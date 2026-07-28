@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
 import InstallPrompt from './components/InstallPrompt'
 import Login from './pages/Login'
+import ResetPassword from './pages/ResetPassword'
 import Onboarding from './pages/Onboarding'
 import Dashboard from './pages/Dashboard'
 import AddExpense from './pages/AddExpense'
@@ -45,9 +46,10 @@ function SetupNeeded() {
 
 // Shell that decides what to show based on auth state.
 function Shell() {
-  const { loading, session, household } = useAuth()
+  const { loading, session, household, recoveryMode } = useAuth()
 
   if (loading) return <Splash />
+  if (recoveryMode) return <ResetPassword />
   if (!session) return <Login />
   if (!household) return <Onboarding />
 

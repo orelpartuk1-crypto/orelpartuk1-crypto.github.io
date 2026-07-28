@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [household, setHousehold] = useState(null)
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [recoveryMode, setRecoveryMode] = useState(false) // true after a "reset password" email link is opened
 
   // Load the profile + household + members for the signed-in user.
   const refreshProfile = useCallback(async (uid) => {
@@ -69,7 +70,8 @@ export function AuthProvider({ children }) {
       setLoading(false)
     })
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, s) => {
+      if (event === 'PASSWORD_RECOVERY') setRecoveryMode(true)
       setSession(s)
       await refreshProfile(s?.user?.id)
     })
@@ -90,6 +92,7 @@ export function AuthProvider({ children }) {
     hasBusiness: Boolean(priv?.has_business),
     quickKey: priv?.quick_key || null,
     reminderHour: priv?.reminder_hour ?? null, // null = daily push reminder off
+    recoveryMode,
     refreshProfile: () => refreshProfile(session?.user?.id),
 
     signIn: (email, password) =>
@@ -155,6 +158,12 @@ export function AuthProvider({ children }) {
         .from('user_private')
         .upsert({ owner: session?.user?.id, reminder_hour, updated_at: new Date().toISOString() })
       if (!error) await refreshProfile(session?.user?.id)
+      return { error }
+    },
+
+    async updatePassword(newPassword) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (!error) setRecoveryMode(false)
       return { error }
     },
   }
