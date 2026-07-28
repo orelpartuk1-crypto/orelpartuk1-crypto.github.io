@@ -32,17 +32,17 @@ export function useRecurring() {
   }, [])
 
   const add = useCallback(
-    async (row) => {
-      const { error } = await supabase.from('recurring').insert({
-        household_id: household.id,
-        owner: user.id,
-        ...row,
-      })
+    async (row, { materialize: shouldMaterialize = true } = {}) => {
+      const { data, error } = await supabase
+        .from('recurring')
+        .insert({ household_id: household.id, owner: user.id, ...row })
+        .select()
+        .single()
       if (!error) {
-        await materialize()
+        if (shouldMaterialize) await materialize()
         await load()
       }
-      return { error }
+      return { data, error }
     },
     [household?.id, user?.id, load, materialize]
   )

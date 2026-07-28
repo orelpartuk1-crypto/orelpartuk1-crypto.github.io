@@ -2,13 +2,16 @@ import { useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
+import { useMoney } from '../hooks/useMoney'
+import { useRecurring } from '../hooks/useRecurring'
 import Numpad from '../components/Numpad'
 import CategoryPicker from '../components/CategoryPicker'
 import Segmented from '../components/Segmented'
 import GrocerySelector from '../components/GrocerySelector'
+import SplitSlider from '../components/SplitSlider'
 import TopBar from '../components/TopBar'
-import { money, dayLabel } from '../lib/format'
-import { defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES } from '../lib/categories'
+import { money, dayLabel, monthRange } from '../lib/format'
+import { defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES, BONUS_SOURCES } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 
 // Parse the numpad string ("12,34") to a float.
@@ -22,6 +25,14 @@ export default function AddExpense() {
   const editing = location.state?.edit // an existing expense row
   const { user, household, hasBusiness, members } = useAuth()
   const { addExpense, updateExpense, deleteExpense } = useExpenses()
+  const { addBonus } = useMoney()
+  const { add: addRecurring } = useRecurring()
+
+  // Income vs expense — never offered while editing an existing expense.
+  const isIncomeCapable = !editing
+  const [mode, setMode] = useState('expense') // 'expense' | 'income'
+  const isIncome = isIncomeCapable && mode === 'income'
+  const [source, setSource] = useState('') // income-only: where the money came from
 
   const seed = editing || prefill || {}
   // Default the scope to the zone the user was viewing (Shared / Mine / Business).
@@ -48,6 +59,7 @@ export default function AddExpense() {
   )
   const [note, setNote] = useState(editing?.note || '')
   const [spentAt, setSpentAt] = useState(seed.date || editing?.spent_at || todayISO())
+  const [repeats, setRepeats] = useState(false) // "repeats monthly" — add-only, hidden when editing
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const [dupWarn, setDupWarn] = useState(false)
@@ -55,30 +67,19 @@ export default function AddExpense() {
   const value = toNumber(amount)
 
   // --- Partial split: how much the other partner owes the payer back ---
+  // Needs are always split 50/50 automatically — no UI, no question asked.
+  // Only treats get a slider, defaulting to "I cover it" (0%) unless dragged.
   const partner = members?.find((m) => m.id !== user?.id)
-  const canSplit = scope === 'shared' && members?.length === 2
+  const canSplit = !isIncome && scope === 'shared' && members?.length === 2
+  const isTreat = !isIncome && spendType === 'treat'
   const initialOwed = editing?.owed_amount ?? prefill?.owed_amount ?? null
-  const [splitMode, setSplitMode] = useState(() => {
-    if (initialOwed == null) return defaultSpendType(seed.category || 'Groceries') === 'need' ? 'even' : 'mine'
-    if (Number(initialOwed) === 0) return 'mine'
-    return 'custom'
-  })
-  const [owedInput, setOwedInput] = useState(
-    initialOwed != null && Number(initialOwed) > 0 ? String(initialOwed).replace('.', ',') : ''
-  )
-  // Euros the partner owes, resolved from the current mode.
-  const owedAmount = !canSplit
-    ? null
-    : splitMode === 'even'
-      ? Math.round((value / 2) * 100) / 100
-      : splitMode === 'mine'
-        ? 0
-        : Math.min(toNumber(owedInput), value)
-  const owedPct = value > 0 && owedAmount != null ? Math.round((owedAmount / value) * 100) : 0
-  const setOwedFromPct = (pctStr) => {
-    const pct = Math.max(0, Math.min(100, toNumber(pctStr)))
-    setOwedInput(String(Math.round(value * pct) / 100).replace('.', ','))
-  }
+  const initialPct = initialOwed != null && Number(seed.amount) > 0
+    ? Math.round((Number(initialOwed) / Number(seed.amount)) * 100)
+    : 0
+  const [treatOwedPct, setTreatOwedPct] = useState(initialPct)
+  const owedAmount = canSplit && isTreat
+    ? Math.round(((value * treatOwedPct) / 100) * 100) / 100
+    : null
 
   const scopeOptions = [
     { value: 'shared', label: '🤝 Shared' },
@@ -99,23 +100,58 @@ export default function AddExpense() {
   const save = async (force = false) => {
     if (value <= 0) return
     setErr(null)
-    // Warn if the same person already logged this exact amount+category+date.
-    if (!editing && !force) {
+
+    // Warn if the same person already logged this exact amount+category+date
+    // (income has no such concept — bonuses of the same amount aren't unusual).
+    if (!isIncome && !editing && !force) {
       setBusy(true)
       const dup = await findDuplicate({ household_id: household?.id, paid_by: user?.id, spent_at: spentAt, category, amount: value })
       setBusy(false)
       if (dup) { setDupWarn(true); return }
     }
+
     setBusy(true)
+
+    // "Repeats monthly": register a template first (without materializing —
+    // we insert today's occurrence directly below), then tag that occurrence
+    // with the new template's id so next month's auto-materialization doesn't
+    // duplicate it.
+    let recurringId = null
+    if (repeats && !editing) {
+      const recurringPayload = isIncome
+        ? { kind: 'income', name: source.trim() || 'Bonus', amount: value, source: source.trim() || null }
+        : { kind: 'expense', name: category, amount: value, category, scope, spend_type: spendType }
+      const { data: recRow, error: recErr } = await addRecurring(recurringPayload, { materialize: false })
+      if (recErr) { setBusy(false); setErr(recErr.message); return }
+      recurringId = recRow?.id ?? null
+    }
+
+    if (isIncome) {
+      const { error } = await addBonus({
+        amount: value,
+        bonus_type: source.trim() || 'Bonus',
+        month: monthRange(new Date(spentAt)).start,
+        note: note.trim() || null,
+        recurring_id: recurringId,
+      })
+      setBusy(false)
+      if (error) { setErr(error.message); return }
+      nav('/')
+      return
+    }
+
     const row = {
       amount: value,
       category,
       scope,
       spend_type: spendType,
       paid_by: user?.id, // you can only log your own expenses
-      owed_amount: owedAmount, // null unless it's a shared split
+      owed_amount: owedAmount, // null unless it's a shared treat split
       note: note.trim() || null,
       spent_at: spentAt,
+      // Never touch recurring_id when editing — omitting the key leaves
+      // whatever link (if any) the row already had untouched.
+      ...(!editing ? { recurring_id: recurringId } : {}),
       items: (() => {
         const rows = items
           .filter((i) => i.name && i.name.trim())
@@ -142,10 +178,10 @@ export default function AddExpense() {
   return (
     <div className="pb-40">
       <TopBar
-        title={editing ? 'Edit expense' : 'Add expense'}
+        title={editing ? 'Edit expense' : isIncome ? 'Add income' : 'Add expense'}
         back
         right={
-          !editing && (
+          !editing && !isIncome && (
             <Link to="/scan" className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3 shadow-sm text-brand-600 font-medium active:scale-95">
               <CameraIcon className="h-5 w-5" /> Scan
             </Link>
@@ -164,91 +200,90 @@ export default function AddExpense() {
 
         <Numpad value={amount} onChange={setAmount} />
 
-        {/* Type / need-treat / split */}
-        <div className="grid grid-cols-1 gap-3">
-          <div>
-            <label className="label">Type</label>
-            <Segmented options={scopeOptions} value={scope} onChange={changeScope} />
-          </div>
-          {scope !== 'business' && (
-            <div>
-              <label className="label">Need or treat?</label>
-              <Segmented
-                options={[
-                  { value: 'need', label: '🧺 Need' },
-                  { value: 'treat', label: '🍦 Treat' },
-                ]}
-                value={spendType}
-                onChange={setSpendType}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Partial split — how much the partner owes the payer back */}
-        {canSplit && (
-          <div>
-            <label className="label">What {partner?.display_name || 'they'} owe{partner ? 's' : ''} you back</label>
-            <Segmented
-              options={[
-                { value: 'even', label: '½ 50/50' },
-                { value: 'mine', label: 'I cover it' },
-                { value: 'custom', label: 'Custom' },
-              ]}
-              value={splitMode}
-              onChange={setSplitMode}
-            />
-            {splitMode === 'custom' ? (
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <div>
-                  <label className="label">Amount (€)</label>
-                  <input
-                    className="field"
-                    inputMode="decimal"
-                    value={owedInput}
-                    onChange={(e) => setOwedInput(e.target.value.replace(/[^0-9.,]/g, ''))}
-                    placeholder="e.g. 12"
-                  />
-                </div>
-                <div>
-                  <label className="label">Percent (%)</label>
-                  <input
-                    className="field"
-                    inputMode="numeric"
-                    value={owedPct ? String(owedPct) : ''}
-                    onChange={(e) => setOwedFromPct(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="e.g. 25"
-                  />
-                </div>
-              </div>
-            ) : null}
-            <p className="mt-1.5 text-sm text-muted">
-              {owedAmount > 0
-                ? `${partner?.display_name || 'They'} owe${partner ? 's' : ''} you ${money(owedAmount)}${value > 0 ? ` · ${owedPct}% of ${money(value)}` : ''}.`
-                : `You cover this one — nothing owed back.`}
-            </p>
-          </div>
+        {isIncomeCapable && (
+          <Segmented
+            options={[
+              { value: 'expense', label: '💳 Expense' },
+              { value: 'income', label: '💰 Income' },
+            ]}
+            value={mode}
+            onChange={setMode}
+          />
         )}
 
-        <div>
-          <label className="label">Category</label>
-          <CategoryPicker
-            value={category}
-            items={scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES}
-            onChange={(c) => {
-              setCategory(c)
-              if (!editing && scope !== 'business') setSpendType(defaultSpendType(c))
-            }}
-          />
-        </div>
+        {!isIncome && (
+          <>
+            {/* Type / need-treat */}
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="label">Type</label>
+                <Segmented options={scopeOptions} value={scope} onChange={changeScope} />
+              </div>
+              {scope !== 'business' && (
+                <div>
+                  <label className="label">Need or treat?</label>
+                  <Segmented
+                    options={[
+                      { value: 'need', label: '🧺 Need' },
+                      { value: 'treat', label: '🍦 Treat' },
+                    ]}
+                    value={spendType}
+                    onChange={setSpendType}
+                  />
+                </div>
+              )}
+            </div>
 
-        {/* Itemized products (groceries, or anything scanned) */}
-        {(category === 'Groceries' || items.length > 0) && (
-          <GrocerySelector
-            items={items}
-            onChange={setItems}
-            onUseTotal={(sum) => setAmount(String(sum.toFixed(2)).replace('.', ','))}
-          />
+            {/* Partial split — treats only; needs are always 50/50, no question asked */}
+            {canSplit && isTreat && (
+              <div>
+                <label className="label">What {partner?.display_name || 'they'} owe{partner ? 's' : ''} you back</label>
+                <SplitSlider
+                  value={treatOwedPct}
+                  onChange={setTreatOwedPct}
+                  amount={value}
+                  partnerName={partner?.display_name}
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="label">Category</label>
+              <CategoryPicker
+                value={category}
+                items={scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES}
+                onChange={(c) => {
+                  setCategory(c)
+                  if (!editing && scope !== 'business') setSpendType(defaultSpendType(c))
+                }}
+              />
+            </div>
+
+            {/* Itemized products (groceries, or anything scanned) */}
+            {(category === 'Groceries' || items.length > 0) && (
+              <GrocerySelector
+                items={items}
+                onChange={setItems}
+                onUseTotal={(sum) => setAmount(String(sum.toFixed(2)).replace('.', ','))}
+              />
+            )}
+          </>
+        )}
+
+        {isIncome && (
+          <div>
+            <label className="label">Source</label>
+            <input
+              className="field"
+              list="bonus-sources"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="Where from? e.g. Freelance"
+            />
+            <datalist id="bonus-sources">
+              {BONUS_SOURCES.map((t) => <option key={t} value={t} />)}
+            </datalist>
+          </div>
         )}
 
         {/* Date — defaults to today, editable, auto-filled from scans */}
@@ -273,6 +308,13 @@ export default function AddExpense() {
             />
           </div>
         </div>
+
+        {!editing && (
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={repeats} onChange={(e) => setRepeats(e.target.checked)} className="h-5 w-5" />
+            Repeats monthly
+          </label>
+        )}
 
         {err && <p className="text-sm text-red-600">{err}</p>}
 

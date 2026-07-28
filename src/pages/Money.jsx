@@ -4,12 +4,8 @@ import { useMoney } from '../hooks/useMoney'
 import Segmented from '../components/Segmented'
 import TopBar from '../components/TopBar'
 import { money, monthRange, monthLabel } from '../lib/format'
+import { BONUS_SOURCES } from '../lib/categories'
 
-// Suggestions only — you can type any source (a client name, a product, etc.)
-const BONUS_SOURCES = [
-  'Freelance', 'Second job', 'Work bonus', 'Business', 'Business – product',
-  'Business – service', 'Client', 'Sale', 'Commission', 'Investment', 'Refund', 'Gift',
-]
 const num = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 
 export default function Money() {

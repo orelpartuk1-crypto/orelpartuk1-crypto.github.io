@@ -42,6 +42,12 @@ const TREAT_CATEGORIES = new Set(['Nights Out', 'Restaurants', 'Experiences', 'S
 export const defaultSpendType = (category) =>
   TREAT_CATEGORIES.has(category) ? 'treat' : 'need'
 
+// Suggestions only for one-off bonus/income sources — free text is still allowed.
+export const BONUS_SOURCES = [
+  'Freelance', 'Second job', 'Work bonus', 'Business', 'Business – product',
+  'Business – service', 'Client', 'Sale', 'Commission', 'Investment', 'Refund', 'Gift',
+]
+
 // Naive keyword guesser for the OCR flow — maps receipt text to a category.
 const KEYWORDS = {
   Groceries: ['mercadona', 'carrefour', 'lidl', 'aldi', 'dia', 'supermercado', 'super', 'grocery', 'alcampo', 'consum', 'eroski'],

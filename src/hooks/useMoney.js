@@ -35,7 +35,7 @@ export function useMoney(base = new Date()) {
   }, [load])
 
   const addBonus = useCallback(
-    async ({ amount, bonus_type, month, note }) => {
+    async ({ amount, bonus_type, month, note, recurring_id = null }) => {
       const { error } = await supabase.from('incomes').insert({
         household_id: household.id,
         owner: user.id,
@@ -44,6 +44,7 @@ export function useMoney(base = new Date()) {
         amount,
         month,
         note: note || null,
+        recurring_id,
       })
       if (!error) await load()
       return { error }
