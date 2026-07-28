@@ -2,8 +2,15 @@ import { moneyShort, money } from '../lib/format'
 
 // Simple, dependency-free SVG bar chart of monthly spending.
 // Highlights the current (last) month and marks the average.
-export default function TrendChart({ data }) {
-  if (!data || data.length === 0) return null
+export default function TrendChart({ data: rawData }) {
+  if (!rawData || rawData.length === 0) return null
+
+  // Drop leading months with no spend at all — those are almost always
+  // "before you started using the app", not genuine €0 months, and including
+  // them would drag the average down and make it misleading. A real €0 month
+  // AFTER tracking started still counts normally.
+  const firstActive = rawData.findIndex((d) => d.total > 0)
+  const data = firstActive === -1 ? rawData : rawData.slice(firstActive)
 
   const max = Math.max(1, ...data.map((d) => d.total))
   const avg = data.reduce((t, d) => t + d.total, 0) / data.length
