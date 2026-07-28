@@ -15,3 +15,6 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+
+# Local Supabase CLI cache (project ref, pooler host, tool versions)
+supabase/.temp
