@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f4f6fb;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Prevent the iOS "zoom on input focus" bug via 16px base */
+  font-size: 16px;
+  overscroll-behavior-y: none;
+  /* Native app feel: no long-press menu, no accidental text selection */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Remove the 300ms tap delay / double-tap zoom on interactive elements */
+button,
+a,
+[role='button'] {
+  touch-action: manipulation;
+}
+
+/* ...but keep real text fields selectable & editable */
+input,
+textarea,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Disable the blue tap flash on mobile for a native feel */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Utility: honor the iPhone notch / home-indicator safe areas */
+.safe-top {
+  padding-top: max(env(safe-area-inset-top), 0.75rem);
+}
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl font-semibold
+           transition active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100;
+  }
+  .btn-primary {
+    @apply btn bg-brand-500 text-white shadow-card px-5 py-4 text-lg;
+  }
+  .btn-ghost {
+    @apply btn bg-white text-ink border border-slate-200 px-5 py-4 text-lg;
+  }
+  .card {
+    @apply bg-white rounded-xl2 shadow-card p-4;
+  }
+  .field {
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-lg
+           outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+  }
+  .label {
+    @apply block text-sm font-medium text-muted mb-1.5;
+  }
+}
