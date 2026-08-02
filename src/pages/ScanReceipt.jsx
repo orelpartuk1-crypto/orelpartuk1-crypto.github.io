@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
 import { scanReceipt, parseReceipt } from '../lib/ocr'
-import { cloudScan } from '../lib/cloudOcr'
+import { cloudScan, geminiScan } from '../lib/cloudOcr'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingScan } from '../lib/pendingScan'
 import { categoryMeta, defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES } from '../lib/categories'
@@ -66,14 +66,21 @@ export default function ScanReceipt() {
     try {
       let res
       try {
-        // Reliable cloud OCR first (better at real receipts).
+        // Gemini reads the photo directly — far more accurate than OCR + regex.
         setProgress(0.4)
-        const text = await cloudScan(file)
+        res = await geminiScan(file)
         setProgress(0.9)
-        res = parseReceipt(text)
-      } catch (cloudErr) {
-        // Offline / cloud unavailable → fall back to on-device OCR.
-        res = await scanReceipt(file, setProgress)
+      } catch (geminiErr) {
+        try {
+          // Fall back to traditional cloud OCR.
+          setProgress(0.4)
+          const text = await cloudScan(file)
+          setProgress(0.9)
+          res = parseReceipt(text)
+        } catch (cloudErr) {
+          // Offline / both cloud paths unavailable → fall back to on-device OCR.
+          res = await scanReceipt(file, setProgress)
+        }
       }
       setResult(res)
       setAmount(res.amount != null ? String(res.amount).replace('.', ',') : '')

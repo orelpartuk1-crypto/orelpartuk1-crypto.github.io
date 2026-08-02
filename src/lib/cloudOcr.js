@@ -27,3 +27,20 @@ export async function cloudScan(file) {
   if (!j.text || !j.text.trim()) throw new Error('empty result')
   return j.text
 }
+
+// Returns already-structured { amount, date, category, items }, reading the
+// photo directly with Gemini's vision model — far more accurate than OCR +
+// regex. Throws if Gemini is unavailable/misconfigured/rate-limited, so the
+// caller can fall back to cloudScan()/parseReceipt().
+export async function geminiScan(file) {
+  const dataUrl = await compressToDataURL(file)
+  const res = await fetch('https://bckxqcyyvhxlcfbyvgzl.supabase.co/functions/v1/gemini-ocr', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image: dataUrl }),
+  })
+  if (!res.ok) throw new Error('gemini OCR unavailable')
+  const j = await res.json()
+  if (j.error) throw new Error(j.error)
+  return { amount: j.amount ?? null, date: j.date ?? null, category: j.category || 'Other', items: j.items || [], rawText: '' }
+}
