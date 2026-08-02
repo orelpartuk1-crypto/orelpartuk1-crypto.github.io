@@ -57,7 +57,7 @@ export default function AddExpense() {
       ? seed.items.map((i) => ({ name: i.name, price: String(i.price ?? '').replace('.', ',') }))
       : []
   )
-  const [note, setNote] = useState(editing?.note || '')
+  const [note, setNote] = useState(seed.note || '')
   const [spentAt, setSpentAt] = useState(seed.date || editing?.spent_at || todayISO())
   const [repeats, setRepeats] = useState(false) // "repeats monthly" — add-only, hidden when editing
   const [busy, setBusy] = useState(false)

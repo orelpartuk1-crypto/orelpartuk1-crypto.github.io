@@ -30,6 +30,7 @@ export default function ScanReceipt() {
   const [scope, setScope] = useState(() => (localStorage.getItem('db_zone') === 'mine' ? 'private' : 'shared'))
   const [spendType, setSpendType] = useState('need')
   const [items, setItems] = useState([])
+  const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
 
   const scopeOptions = [
@@ -98,7 +99,7 @@ export default function ScanReceipt() {
   const confirm = async (editAfter = false, force = false) => {
     if (value <= 0) return
     if (editAfter) {
-      nav('/add', { state: { prefill: { amount: value, category, scope, date: result?.date || undefined, items: toItems() } } })
+      nav('/add', { state: { prefill: { amount: value, category, scope, date: result?.date || undefined, items: toItems(), note: note.trim() || undefined } } })
       return
     }
     setErr(null)
@@ -116,7 +117,7 @@ export default function ScanReceipt() {
       scope,
       spend_type: spendType,
       paid_by: user?.id,
-      note: 'Scanned receipt',
+      note: note.trim() || 'Scanned receipt',
       items: rows.length ? rows : null,
       ...(result?.date ? { spent_at: result.date } : {}),
     })
@@ -261,6 +262,16 @@ export default function ScanReceipt() {
                 />
               </div>
             )}
+
+            <div>
+              <label className="label">Note (optional)</label>
+              <input
+                className="field"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="e.g. dinner with Adi"
+              />
+            </div>
 
             {result?.rawText && (
               <details className="text-xs text-muted">
