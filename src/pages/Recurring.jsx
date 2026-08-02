@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useRecurring } from '../hooks/useRecurring'
 import Segmented from '../components/Segmented'
@@ -11,74 +12,63 @@ const num = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 export default function Recurring() {
   const { hasBusiness } = useAuth()
   const { items, loading, add, toggle, remove } = useRecurring()
-  const [kind, setKind] = useState('expense') // expense | income
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
   const [scope, setScope] = useState('shared')
   const [spendType, setSpendType] = useState('need')
-  const [source, setSource] = useState('')
   const [err, setErr] = useState(null)
   const [busy, setBusy] = useState(false)
 
   const expenses = items.filter((i) => i.kind === 'expense')
   const incomes = items.filter((i) => i.kind === 'income')
 
+  // Expenses only — income can also be added inline from Add Expense, but
+  // recurring salary is deliberately NOT supported anywhere: it lives solely
+  // in the Money page's Salary field so it's never double-counted. Any
+  // "income" items below are legacy — remove one if it's actually your salary.
   const create = async () => {
     if (!name.trim() || num(amount) <= 0) { setErr('Enter a name and an amount.'); return }
     setErr(null); setBusy(true)
-    const payload =
-      kind === 'expense'
-        ? { kind: 'expense', name: name.trim(), amount: num(amount), scope, spend_type: spendType, category: 'Subscriptions' }
-        : { kind: 'income', name: name.trim(), amount: num(amount), source: source.trim() || name.trim() }
+    const payload = { kind: 'expense', name: name.trim(), amount: num(amount), scope, spend_type: spendType, category: 'Subscriptions' }
     const { error } = await add(payload)
     setBusy(false)
     if (error) { setErr(error.message || 'Could not save.'); return }
-    setName(''); setAmount(''); setSource('')
+    setName(''); setAmount('')
   }
 
   return (
     <div className="pb-28">
-      <TopBar title="Repeats monthly" subtitle="Subscriptions & regular income" back />
+      <TopBar title="Repeats monthly" subtitle="Subscriptions" back />
       <div className="mx-auto max-w-md px-4 space-y-4">
         {/* Add form */}
         <div className="card space-y-3">
-          <Segmented
-            options={[{ value: 'expense', label: '💳 Expense' }, { value: 'income', label: '💰 Income' }]}
-            value={kind}
-            onChange={setKind}
-          />
           <div className="grid grid-cols-3 gap-2">
-            <input className="field col-span-2" value={name} onChange={(e) => setName(e.target.value)}
-              placeholder={kind === 'expense' ? 'e.g. Netflix' : 'e.g. From mom'} />
+            <input className="field col-span-2" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Netflix" />
             <input className="field" inputMode="decimal" value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="€" />
           </div>
-
-          {kind === 'expense' ? (
-            <>
-              <Segmented
-                options={[
-                  { value: 'shared', label: '🤝 Shared' },
-                  { value: 'private', label: '👤 Private' },
-                  ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
-                ]}
-                value={scope}
-                onChange={setScope}
-              />
-              {scope !== 'business' && (
-                <Segmented
-                  options={[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }]}
-                  value={spendType}
-                  onChange={setSpendType}
-                />
-              )}
-            </>
-          ) : (
-            <input className="field" value={source} onChange={(e) => setSource(e.target.value)} placeholder="Source (optional) e.g. Family" />
+          <Segmented
+            options={[
+              { value: 'shared', label: '🤝 Shared' },
+              { value: 'private', label: '👤 Private' },
+              ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
+            ]}
+            value={scope}
+            onChange={setScope}
+          />
+          {scope !== 'business' && (
+            <Segmented
+              options={[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }]}
+              value={spendType}
+              onChange={setSpendType}
+            />
           )}
 
           {err && <p className="text-sm text-red-600">{err}</p>}
-          <button className="btn-primary w-full" disabled={busy} onClick={create}>{busy ? 'Saving…' : `Add monthly ${kind}`}</button>
+          <button className="btn-primary w-full" disabled={busy} onClick={create}>{busy ? 'Saving…' : 'Add monthly expense'}</button>
+          <p className="text-xs text-muted">
+            You can also check "Repeats monthly" right on the Add Expense screen — this does the same thing.
+          </p>
         </div>
 
         {loading && <p className="text-muted">Loading…</p>}
@@ -93,7 +83,12 @@ export default function Recurring() {
         )}
         {incomes.length > 0 && (
           <div className="card">
-            <h2 className="font-semibold text-lg mb-1">Monthly income</h2>
+            <h2 className="font-semibold text-lg mb-1">Monthly income (legacy)</h2>
+            <p className="text-sm text-muted mb-2">
+              Recurring income isn't supported here anymore — your salary belongs only in{' '}
+              <Link to="/money" className="text-brand-600 underline">Income & bills</Link>. If one of these represents
+              your salary, remove it below so it doesn't get counted twice.
+            </p>
             <ul className="divide-y divide-slate-100">
               {incomes.map((i) => <Row key={i.id} item={i} onToggle={toggle} onRemove={remove} income />)}
             </ul>

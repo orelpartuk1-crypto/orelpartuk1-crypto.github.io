@@ -5,6 +5,10 @@ import { money } from '../lib/format'
 // amount: total expense amount in euros, for the live € label.
 export default function SplitSlider({ value, onChange, amount, partnerName = 'They' }) {
   const owed = Math.round(((amount * value) / 100) * 100) / 100
+  // Native range inputs don't fill in colour up to the thumb by default, which
+  // made the slider look flat/uninteractive before you'd dragged it — this
+  // paints the "filled" portion so the current value is visible at a glance.
+  const fillStyle = { background: `linear-gradient(to right, #2f6bff ${value}%, #e2e8f0 ${value}%)` }
   return (
     <div>
       <input
@@ -14,7 +18,8 @@ export default function SplitSlider({ value, onChange, amount, partnerName = 'Th
         step={1}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full h-2 appearance-none rounded-full bg-slate-100 cursor-pointer accent-brand-500
+        style={fillStyle}
+        className="w-full h-2 appearance-none rounded-full cursor-pointer accent-brand-500
           [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slider-thumb]:w-6
           [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-500 [&::-webkit-slider-thumb]:shadow-sm
           [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
