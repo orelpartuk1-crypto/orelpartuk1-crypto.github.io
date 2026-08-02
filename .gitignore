@@ -13,6 +13,9 @@ yarn-error.log*
 # Netlify deploy token (never commit)
 .netlify-token
 
+# GitHub deploy token, scoped only to this repo (never commit)
+.github-token
+
 # Local Netlify folder
 .netlify
 
