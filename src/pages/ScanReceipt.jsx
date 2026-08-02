@@ -249,16 +249,18 @@ export default function ScanReceipt() {
               />
             </div>
 
-            <div>
-              <label className="label">
-                Items {items.length > 0 ? `(${items.length} found)` : '— none detected, add them below'}
-              </label>
-              <GrocerySelector
-                items={items}
-                onChange={setItems}
-                onUseTotal={(sum) => setAmount(String(sum.toFixed(2)).replace('.', ','))}
-              />
-            </div>
+            {category === 'Groceries' && (
+              <div>
+                <label className="label">
+                  Items {items.length > 0 ? `(${items.length} found)` : '— none detected, add them below'}
+                </label>
+                <GrocerySelector
+                  items={items}
+                  onChange={setItems}
+                  onUseTotal={(sum) => setAmount(String(sum.toFixed(2)).replace('.', ','))}
+                />
+              </div>
+            )}
 
             {result?.rawText && (
               <details className="text-xs text-muted">

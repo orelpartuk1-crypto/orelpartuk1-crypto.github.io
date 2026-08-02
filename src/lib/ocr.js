@@ -18,7 +18,11 @@ function parseNumber(raw) {
   return Number.isFinite(n) ? n : null
 }
 
-const TOTAL_HINTS = ['total a pagar', 'total', 'importe', 'a pagar', 'to pay', 'amount due', 'suma']
+const TOTAL_HINTS = [
+  'total a pagar', 'importe total', 'total ticket', 'total compra', 'total factura',
+  'precio total', 'gran total', 'total', 'importe', 'a pagar', 'to pay', 'amount due',
+  'balance due', 'you pay', 'suma', 'total eur', 'total €',
+]
 
 // Match dates like 12/07/2026, 12-07-26, 12.07.2026 (day-first, European).
 const DATE_RE = /\b(\d{1,2})[/.\-](\d{1,2})[/.\-](\d{2,4})\b/
@@ -84,7 +88,7 @@ export function translateItem(name) {
 
 // Extract individual line items (product + price) from a receipt.
 const ITEM_PRICE = /(\d{1,3}(?:[.\s]\d{3})*,\d{2})\s*€?\s*[A-Z*]?\s*$/
-const ITEM_STOP = /(lidl|mercadona|carrefour|alcampo|eroski|\bdia\b|supermercado|s\.a\b|c\.i\.f|nif|calle|avda|avenida|\bmadrid\b|\bbarcelona\b|tel\.?|www\.|\beur\b|iva|total|entrega|subtotal|tarjeta|mastercard|visa|debit|credit|efectivo|cambio|contactless|factura|ticket|recibo|gracias|cliente|importe|\bsuma\b|redondeo|descuento)/i
+const ITEM_STOP = /(lidl|mercadona|carrefour|alcampo|eroski|\bdia\b|hipercor|condis|caprabo|ahorramas|\bspar\b|gadis|consum|supermercado|s\.a\b|s\.l\b|c\.i\.f|\bnif\b|calle|avda|avenida|\bmadrid\b|\bbarcelona\b|tel\.?|www\.|\beur\b|\biva\b|total|entrega|subtotal|tarjeta|mastercard|visa|debit|credit|efectivo|cambio|contactless|factura|ticket|recibo|gracias|cliente|atencion|operador|cajer[ao]|\bcaja\b|\bhora\b|\bfecha\b|n[º°]\s*(ticket|pedido|operacion)|importe|\bsuma\b|redondeo|descuento|puntos|devoluc)/i
 
 export function parseItems(text) {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
@@ -99,10 +103,15 @@ export function parseItems(text) {
     const price = parseNumber(m[1])
     if (price == null || price <= 0 || price > 10000) continue
     let name = line.slice(0, m.index).replace(/[.\-–·*_=]+$/, '').replace(/\s{2,}/g, ' ').trim()
-    // Pull out a quantity like "2 x 1,09" (2 units at 1,09) -> qty 2, clean name.
+    // Drop a leading barcode/product-code (8+ digits) some receipts print before the name.
+    name = name.replace(/^\d{8,}\s*/, '').trim()
+    // Pull out a quantity — either trailing "NAME 2 x 1,09" or leading "2 x 1,09 NAME"
+    // (both are common receipt layouts) -> qty 2, clean name.
     let qty = 1
-    const qm = name.match(/^(.*?)\s+(\d+)\s*[xX]\s*\d+[.,]\d{2}$/)
-    if (qm) { name = qm[1].trim(); qty = parseInt(qm[2], 10) || 1 }
+    const qmTrail = name.match(/^(.*?)\s+(\d+)\s*[xX]\s*\d+[.,]\d{2}$/)
+    const qmLead = name.match(/^(\d+)\s*[xX]\s*\d+[.,]\d{2}\s+(.+)$/)
+    if (qmTrail) { name = qmTrail[1].trim(); qty = parseInt(qmTrail[2], 10) || 1 }
+    else if (qmLead) { name = qmLead[2].trim(); qty = parseInt(qmLead[1], 10) || 1 }
     name = name
       .replace(/^\d+\s*[xX]\s*/, '')                 // leading "2 x"
       .replace(/\s+\d+\s*[xX]$/, '')                 // trailing "2 x"

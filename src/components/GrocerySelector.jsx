@@ -7,16 +7,17 @@ export default function GrocerySelector({ items, onChange, onUseTotal }) {
   const [q, setQ] = useState('')
 
   const chosen = new Set(items.map((i) => i.name.toLowerCase()))
+  // Search matches either the English name or the Spanish alias (e.g. "leche" finds "Milk").
   const suggestions = useMemo(() => {
     const query = q.trim().toLowerCase()
-    let list = GROCERY_ITEMS.filter((n) => !chosen.has(n.toLowerCase()))
-    if (query) list = list.filter((n) => n.toLowerCase().includes(query))
+    let list = GROCERY_ITEMS.filter((it) => !chosen.has(it.name.toLowerCase()))
+    if (query) list = list.filter((it) => it.name.toLowerCase().includes(query) || it.es?.toLowerCase().includes(query))
     return list.slice(0, 12)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, items])
 
   const exactExists =
-    GROCERY_ITEMS.some((n) => n.toLowerCase() === q.trim().toLowerCase()) ||
+    GROCERY_ITEMS.some((it) => it.name.toLowerCase() === q.trim().toLowerCase() || it.es?.toLowerCase() === q.trim().toLowerCase()) ||
     chosen.has(q.trim().toLowerCase())
 
   const add = (name) => {
@@ -52,9 +53,9 @@ export default function GrocerySelector({ items, onChange, onUseTotal }) {
               + Add “{q.trim()}”
             </button>
           )}
-          {suggestions.map((n) => (
-            <button key={n} type="button" onClick={() => add(n)} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm active:scale-95">
-              {n}
+          {suggestions.map((it) => (
+            <button key={it.name} type="button" onClick={() => add(it.name)} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm active:scale-95">
+              {it.name}
             </button>
           ))}
         </div>

@@ -259,8 +259,8 @@ export default function AddExpense() {
               />
             </div>
 
-            {/* Itemized products (groceries, or anything scanned) */}
-            {(category === 'Groceries' || items.length > 0) && (
+            {/* Itemized products — groceries only, not a general item list */}
+            {category === 'Groceries' && (
               <GrocerySelector
                 items={items}
                 onChange={setItems}

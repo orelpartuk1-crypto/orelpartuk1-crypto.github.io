@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 
@@ -27,7 +27,7 @@ export function useTax() {
         .lte('spent_at', end)
         .order('spent_at', { ascending: true }),
     ])
-    setProfile(tp || { annual_income: 0, extra_expenses: 0 })
+    setProfile(tp || { annual_income: 0, extra_expenses: 0, category_pct: {} })
     setBusinessRows(exp || [])
     setBusinessThisYear((exp || []).reduce((t, e) => t + Number(e.amount), 0))
     setLoading(false)
@@ -48,5 +48,33 @@ export function useTax() {
     [user?.id, load]
   )
 
-  return { profile, businessThisYear, businessRows, loading, save, reload: load }
+  // % deductible per category comes from the user (or their gestor) — a
+  // category missing from the map defaults to 100%, never invented by us.
+  const categoryPct = profile?.category_pct || {}
+  const pctFor = useCallback((cat) => (categoryPct[cat] != null ? Number(categoryPct[cat]) : 100), [categoryPct])
+
+  const businessByCategory = useMemo(() => {
+    const byCat = {}
+    for (const e of businessRows) {
+      byCat[e.category] = (byCat[e.category] || 0) + Number(e.amount)
+    }
+    return Object.entries(byCat)
+      .map(([category, total]) => {
+        const pct = pctFor(category)
+        return { category, total, pct, deductible: Math.round(total * (pct / 100) * 100) / 100 }
+      })
+      .sort((a, b) => b.total - a.total)
+  }, [businessRows, pctFor])
+
+  const deductibleThisYear = businessByCategory.reduce((t, c) => t + c.deductible, 0)
+
+  const saveCategoryPct = useCallback(
+    (category, pct) => save({ category_pct: { ...categoryPct, [category]: pct } }),
+    [save, categoryPct]
+  )
+
+  return {
+    profile, businessThisYear, businessRows, businessByCategory, deductibleThisYear,
+    loading, save, saveCategoryPct, reload: load,
+  }
 }

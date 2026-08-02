@@ -11,7 +11,7 @@ const field = (v, set, ph) => (
 )
 
 export default function Tax() {
-  const { profile, businessThisYear, businessRows, save } = useTax()
+  const { profile, businessThisYear, businessRows, businessByCategory, deductibleThisYear, save, saveCategoryPct } = useTax()
   const [income, setIncome] = useState('')
   const [ss, setSs] = useState('')
   const [accountant, setAccountant] = useState('')
@@ -27,11 +27,20 @@ export default function Tax() {
     }
   }, [profile])
 
-  // Project the full year from what's logged so far.
-  const monthsElapsed = new Date().getMonth() + 1
-  const projectedBiz = monthsElapsed > 0 ? (businessThisYear / monthsElapsed) * 12 : businessThisYear
+  // Project the full year from what's logged so far — based on when you
+  // actually started logging business expenses, not just the calendar month
+  // number (otherwise someone who started in June gets July divided by 7).
+  const now = new Date()
+  const earliestRow = businessRows.reduce((min, r) => {
+    const d = new Date(r.spent_at)
+    return !min || d < min ? d : min
+  }, null)
+  const monthsElapsed = earliestRow
+    ? Math.max(1, (now.getFullYear() - earliestRow.getFullYear()) * 12 + (now.getMonth() - earliestRow.getMonth()) + 1)
+    : now.getMonth() + 1
+  const projectedDeductible = monthsElapsed > 0 ? (deductibleThisYear / monthsElapsed) * 12 : deductibleThisYear
   const ssAnnual = num(ss) * 12
-  const deductions = projectedBiz + ssAnnual + num(accountant) + num(extra)
+  const deductions = projectedDeductible + ssAnnual + num(accountant) + num(extra)
   const est = estimate(num(income), deductions)
   const netInPocket = est.netAfterTax // revenue − all deductions − IRPF
 
@@ -47,10 +56,13 @@ export default function Tax() {
   }
 
   const exportCSV = () => {
+    const pctByCat = Object.fromEntries(businessByCategory.map((c) => [c.category, c.pct]))
     const csv = toCSV(businessRows, [
       { key: 'spent_at', label: 'Date' },
       { key: 'category', label: 'Category' },
       { key: 'amount', label: 'Amount (EUR)' },
+      { label: '% Deductible', get: (e) => pctByCat[e.category] ?? 100 },
+      { label: 'Deductible amount (EUR)', get: (e) => Math.round(Number(e.amount) * ((pctByCat[e.category] ?? 100) / 100) * 100) / 100 },
       { key: 'note', label: 'Note' },
     ])
     downloadCSV(`business-expenses-${new Date().getFullYear()}.csv`, csv)
@@ -71,10 +83,26 @@ export default function Tax() {
           <div><label className="label">Other deductible expenses / year (€)</label>{field(extra, setExtra, '0')}</div>
           <div className="rounded-2xl bg-slate-50 p-3 text-sm">
             <div className="flex justify-between"><span className="text-muted">Business expenses logged so far</span><b>{money(businessThisYear)}</b></div>
-            <div className="flex justify-between"><span className="text-muted">→ projected for full year</span><b>{money(projectedBiz)}</b></div>
+            <div className="flex justify-between"><span className="text-muted">→ of which deductible</span><b>{money(deductibleThisYear)}</b></div>
+            <div className="flex justify-between"><span className="text-muted">→ deductible, projected for full year</span><b>{money(projectedDeductible)}</b></div>
           </div>
           <button className="btn-primary w-full" onClick={doSave}>{saved ? 'Saved ✓' : 'Save'}</button>
         </div>
+
+        {/* Per-category deductibility — set by you or your gestor, never assumed */}
+        {businessByCategory.length > 0 && (
+          <div className="card space-y-1">
+            <h2 className="font-semibold text-lg">Deductible % by category</h2>
+            <p className="text-sm text-muted mb-2">
+              Set what your gestor says is deductible per category — defaults to 100%. This is documentation, not tax advice.
+            </p>
+            <div className="divide-y divide-slate-100">
+              {businessByCategory.map((c) => (
+                <CategoryPctRow key={c.category} row={c} onSave={(pct) => saveCategoryPct(c.category, pct)} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Projection hero */}
         <div className="card bg-gradient-to-br from-brand-500 to-brand-700 text-white">
@@ -96,7 +124,7 @@ export default function Tax() {
         <div className="card">
           <h2 className="font-semibold text-lg mb-1">Projected year</h2>
           <div className="flex justify-between py-1"><span className="text-muted">Revenue</span><b>{money(num(income))}</b></div>
-          <div className="flex justify-between py-1"><span className="text-muted">− Business expenses</span><b>{money(projectedBiz)}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">− Deductible business expenses</span><b>{money(projectedDeductible)}</b></div>
           <div className="flex justify-between py-1"><span className="text-muted">− Social security</span><b>{money(ssAnnual)}</b></div>
           <div className="flex justify-between py-1"><span className="text-muted">− Accountant</span><b>{money(num(accountant))}</b></div>
           {num(extra) > 0 && <div className="flex justify-between py-1"><span className="text-muted">− Other deductibles</span><b>{money(num(extra))}</b></div>}
@@ -124,6 +152,37 @@ export default function Tax() {
           brackets, treats social security as deductible, and extrapolates your logged expenses to a full year.
           Confirm real figures with your gestor.
         </p>
+      </div>
+    </div>
+  )
+}
+
+// One category row: total logged, editable deductible %, resulting deductible amount.
+function CategoryPctRow({ row, onSave }) {
+  const [v, setV] = useState(String(row.pct))
+  useEffect(() => { setV(String(row.pct)) }, [row.pct])
+
+  const commit = () => {
+    const pct = Math.max(0, Math.min(100, Math.round(num(v))))
+    if (pct !== row.pct) onSave(pct)
+    setV(String(pct))
+  }
+
+  return (
+    <div className="flex items-center gap-3 py-2.5">
+      <div className="min-w-0 flex-1">
+        <p className="font-medium truncate">{row.category}</p>
+        <p className="text-xs text-muted">{money(row.total)} logged · {money(row.deductible)} deductible</p>
+      </div>
+      <div className="flex items-center gap-1 rounded-xl bg-slate-50 px-2.5 py-1.5">
+        <input
+          className="w-10 bg-transparent text-right outline-none font-semibold"
+          inputMode="numeric"
+          value={v}
+          onChange={(e) => setV(e.target.value.replace(/[^0-9]/g, ''))}
+          onBlur={commit}
+        />
+        <span className="text-muted">%</span>
       </div>
     </div>
   )
