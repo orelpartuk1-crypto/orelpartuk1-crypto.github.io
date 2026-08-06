@@ -138,12 +138,17 @@ export default function ScanReceipt() {
   const saveToDropbox = async () => {
     if (!imageFile) return
     setShareMsg(null)
+    // The note becomes the filename. Strip only characters filesystems reject —
+    // accented and non-Latin letters are kept as typed.
+    const fromNote = note.trim().replace(/[\/\\:*?"<>|\x00-\x1f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
     const safeCat = (category || 'receipt').toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const base = fromNote || `receipt-${safeCat}-${spentAt}`
     const ext = (imageFile.type || '').includes('png') ? 'png' : 'jpg'
-    const named = new File([imageFile], `receipt-${safeCat}-${spentAt}.${ext}`, { type: imageFile.type || 'image/jpeg' })
+    const named = new File([imageFile], `${base}.${ext}`, { type: imageFile.type || 'image/jpeg' })
     try {
       if (navigator.canShare && navigator.canShare({ files: [named] })) {
-        await navigator.share({ files: [named], title: 'Receipt', text: `Receipt · ${category} · ${dayLabel(spentAt)}` })
+        // Files only — passing title/text makes Dropbox save a second .txt alongside the image.
+        await navigator.share({ files: [named] })
         setShareMsg('Share sheet opened — pick Dropbox to save it.')
       } else {
         // Desktop / unsupported: download the image so it can be moved manually.
@@ -278,6 +283,7 @@ export default function ScanReceipt() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="e.g. dinner with Adi"
               />
+              <p className="mt-1 text-xs text-muted">Also used as the filename when you save to Dropbox.</p>
             </div>
 
             {result?.rawText && (
