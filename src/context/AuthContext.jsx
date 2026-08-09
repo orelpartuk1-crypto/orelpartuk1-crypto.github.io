@@ -1,7 +1,12 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { isoDay } from '../lib/format'
 
 const AuthContext = createContext(null)
+
+// Shared by every auth event in the tab, so the monthly charges are generated
+// once per cold open rather than once per event.
+let materializing = null
 export const useAuth = () => useContext(AuthContext)
 
 export function AuthProvider({ children }) {
@@ -47,9 +52,19 @@ export function AuthProvider({ children }) {
       setHousehold(h || null)
       setMembers(mem || [])
       // Generate this month's recurring items (Netflix, monthly income…) if missing.
+      // Auth fires several events on a cold open, and each one lands here; the
+      // RPC's own "does this month already exist" check can't see an insert
+      // that a sibling call hasn't committed yet, so three of them at once used
+      // to produce three identical charges. One in flight at a time, and the
+      // unique index added in schema_v18 catches whatever still slips past.
       const first = new Date()
       first.setDate(1)
-      await supabase.rpc('materialize_recurring', { p_month: first.toISOString().slice(0, 10) })
+      if (!materializing) {
+        materializing = supabase
+          .rpc('materialize_recurring', { p_month: isoDay(first) })
+          .then(() => { materializing = null })
+      }
+      await materializing
     } else {
       setHousehold(null)
       setMembers([])

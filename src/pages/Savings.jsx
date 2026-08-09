@@ -3,7 +3,7 @@ import { useSavings } from '../hooks/useSavings'
 import Donut from '../components/Donut'
 import Segmented from '../components/Segmented'
 import TopBar from '../components/TopBar'
-import { money } from '../lib/format'
+import { money, isoDay } from '../lib/format'
 
 export default function Savings() {
   const { goals, savedByGoal, loading, addGoal, deleteGoal, addContribution } = useSavings()
@@ -53,7 +53,7 @@ export default function Savings() {
             </div>
             <div>
               <label className="label">Target date (optional)</label>
-              <input className="field" type="date" value={targetDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setTargetDate(e.target.value)} />
+              <input className="field" type="date" value={targetDate} min={isoDay(new Date())} onChange={(e) => setTargetDate(e.target.value)} />
               <p className="mt-1 text-xs text-muted">Set a date to see how much to save each month.</p>
             </div>
             <div>

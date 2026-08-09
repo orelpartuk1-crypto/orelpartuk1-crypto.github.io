@@ -10,7 +10,7 @@ import Segmented from '../components/Segmented'
 import GrocerySelector from '../components/GrocerySelector'
 import SplitSlider from '../components/SplitSlider'
 import TopBar from '../components/TopBar'
-import { money, dayLabel, monthRange } from '../lib/format'
+import { money, dayLabel, monthRange, isoDay } from '../lib/format'
 import { defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES, BONUS_SOURCES } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingReceipt } from '../lib/pendingScan'
@@ -18,7 +18,7 @@ import { uploadReceipt } from '../lib/receipts'
 
 // Parse the numpad string ("12,34") to a float.
 const toNumber = (s) => parseFloat((s || '0').replace(',', '.')) || 0
-const todayISO = () => new Date().toISOString().slice(0, 10)
+const todayISO = () => isoDay(new Date())
 
 export default function AddExpense() {
   const nav = useNavigate()

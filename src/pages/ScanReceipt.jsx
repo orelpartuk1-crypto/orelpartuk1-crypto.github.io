@@ -12,7 +12,7 @@ import CategoryPicker from '../components/CategoryPicker'
 import GrocerySelector from '../components/GrocerySelector'
 import Segmented from '../components/Segmented'
 import TopBar from '../components/TopBar'
-import { money, dayLabel } from '../lib/format'
+import { money, dayLabel, isoDay } from '../lib/format'
 
 export default function ScanReceipt() {
   const nav = useNavigate()
@@ -102,7 +102,7 @@ export default function ScanReceipt() {
       .filter((i) => i.name && i.name.trim())
       .map((i) => ({ name: i.name.trim(), price: parseFloat((String(i.price) || '0').replace(',', '.')) || 0 }))
 
-  const spentAt = result?.date || new Date().toISOString().slice(0, 10)
+  const spentAt = result?.date || isoDay(new Date())
 
   const confirm = async (editAfter = false, force = false) => {
     if (value <= 0) return
