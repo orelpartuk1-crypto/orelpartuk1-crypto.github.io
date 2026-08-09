@@ -56,6 +56,20 @@ export function useRecurring() {
     [load]
   )
 
+  // Only the label. Amount, category and scope stay put — changing those would
+  // silently rewrite what gets charged from next month, which is a different
+  // decision than fixing a name you can no longer tell apart.
+  const rename = useCallback(
+    async (id, name) => {
+      const clean = (name || '').trim()
+      if (!clean) return { error: new Error('Give it a name') }
+      const { error } = await supabase.from('recurring').update({ name: clean }).eq('id', id)
+      if (!error) await load()
+      return { error }
+    },
+    [load]
+  )
+
   const remove = useCallback(
     async (id) => {
       const { error } = await supabase.from('recurring').delete().eq('id', id)
@@ -65,5 +79,5 @@ export function useRecurring() {
     [load]
   )
 
-  return { items, loading, add, toggle, remove, reload: load }
+  return { items, loading, add, toggle, rename, remove, reload: load }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useRecurring } from '../hooks/useRecurring'
@@ -11,7 +11,7 @@ const num = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 
 export default function Recurring() {
   const { hasBusiness } = useAuth()
-  const { items, loading, add, toggle, remove } = useRecurring()
+  const { items, loading, add, toggle, rename, remove } = useRecurring()
   const [name, setName] = useState('')
   const [amount, setAmount] = useState('')
   const [scope, setScope] = useState('shared')
@@ -77,7 +77,7 @@ export default function Recurring() {
           <div className="card">
             <h2 className="font-semibold text-lg mb-1">Monthly expenses</h2>
             <ul className="divide-y divide-slate-100">
-              {expenses.map((i) => <Row key={i.id} item={i} onToggle={toggle} onRemove={remove} />)}
+              {expenses.map((i) => <Row key={i.id} item={i} onToggle={toggle} onRename={rename} onRemove={remove} />)}
             </ul>
           </div>
         )}
@@ -90,7 +90,7 @@ export default function Recurring() {
               your salary, remove it below so it doesn't get counted twice.
             </p>
             <ul className="divide-y divide-slate-100">
-              {incomes.map((i) => <Row key={i.id} item={i} onToggle={toggle} onRemove={remove} income />)}
+              {incomes.map((i) => <Row key={i.id} item={i} onToggle={toggle} onRename={rename} onRemove={remove} income />)}
             </ul>
           </div>
         )}
@@ -106,14 +106,53 @@ export default function Recurring() {
   )
 }
 
-function Row({ item, onToggle, onRemove, income }) {
+function Row({ item, onToggle, onRename, onRemove, income }) {
+  // Older items were all named after their category, so several can read the
+  // same thing. Tap the name to say what it actually is.
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(item.name)
+  // Enter closes the field, and closing it fires blur — without this the rename
+  // would be sent twice.
+  const done = useRef(false)
+
+  const commit = async () => {
+    if (done.current) return
+    done.current = true
+    setEditing(false)
+    if (draft.trim() && draft.trim() !== item.name) await onRename(item.id, draft)
+    else setDraft(item.name)
+  }
+
+  const startEditing = () => {
+    done.current = false
+    setDraft(item.name)
+    setEditing(true)
+  }
+
   return (
     <li className="flex items-center gap-3 py-3">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-lg">
         {income ? '💰' : categoryMeta(item.category).emoji}
       </span>
       <div className="min-w-0 flex-1">
-        <p className={`font-medium truncate ${item.active ? '' : 'text-slate-400 line-through'}`}>{item.name}</p>
+        {editing ? (
+          <input
+            className="field w-full py-1 text-sm"
+            value={draft}
+            autoFocus
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') commit()
+              if (e.key === 'Escape') { done.current = true; setDraft(item.name); setEditing(false) }
+            }}
+          />
+        ) : (
+          <button onClick={startEditing} className="block w-full text-left active:opacity-60" aria-label="Rename">
+            <span className={`font-medium truncate ${item.active ? '' : 'text-slate-400 line-through'}`}>{item.name}</span>
+            <span className="ml-1 text-xs text-muted">✎</span>
+          </button>
+        )}
         <p className="text-xs text-muted">
           {money(item.amount)}/mo{!income && item.scope ? ` · ${item.scope}` : ''}{income && item.source ? ` · ${item.source}` : ''}
         </p>
