@@ -126,7 +126,10 @@ export default function AddExpense() {
     // template's id so next month's auto-materialization doesn't duplicate it.
     let recurringId = null
     if (repeats && !editing && !isIncome) {
-      const recurringPayload = { kind: 'expense', name: category, amount: value, category, scope, spend_type: spendType }
+      // Name it after what you typed, not the category. Naming every template
+      // "Personal Care" made them indistinguishable in the Recurring list, so
+      // duplicates of the same real thing were impossible to spot.
+      const recurringPayload = { kind: 'expense', name: note.trim() || category, amount: value, category, scope, spend_type: spendType }
       const { data: recRow, error: recErr } = await addRecurring(recurringPayload, { materialize: false })
       if (recErr) { setBusy(false); setErr(recErr.message); return }
       recurringId = recRow?.id ?? null
