@@ -37,14 +37,17 @@ export function useExpenses(base = new Date()) {
     load()
   }, [load])
 
+  // Returns the inserted row too — the scan flow needs its id to file the
+  // receipt image under a path the storage policies can check.
   const addExpense = useCallback(
     async (row) => {
-      const { error } = await supabase.from('expenses').insert({
-        household_id: household.id,
-        ...row,
-      })
+      const { data, error } = await supabase
+        .from('expenses')
+        .insert({ household_id: household.id, ...row })
+        .select()
+        .single()
       if (!error) await load()
-      return { error }
+      return { data, error }
     },
     [household?.id, load]
   )

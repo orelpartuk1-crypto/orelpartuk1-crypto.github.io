@@ -5,7 +5,8 @@ import { useExpenses } from '../hooks/useExpenses'
 import { scanReceipt, parseReceipt } from '../lib/ocr'
 import { cloudScan, geminiScan } from '../lib/cloudOcr'
 import { findDuplicate } from '../lib/dupCheck'
-import { takePendingScan } from '../lib/pendingScan'
+import { takePendingScan, setPendingReceipt } from '../lib/pendingScan'
+import { uploadReceipt } from '../lib/receipts'
 import { categoryMeta, defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES } from '../lib/categories'
 import CategoryPicker from '../components/CategoryPicker'
 import GrocerySelector from '../components/GrocerySelector'
@@ -106,6 +107,8 @@ export default function ScanReceipt() {
   const confirm = async (editAfter = false, force = false) => {
     if (value <= 0) return
     if (editAfter) {
+      // Hand the photo over too, so adjusting the details doesn't drop the receipt.
+      setPendingReceipt(imageFile)
       nav('/add', { state: { prefill: { amount: value, category, scope, date: result?.date || undefined, items: toItems(), note: note.trim() || undefined } } })
       return
     }
@@ -118,7 +121,7 @@ export default function ScanReceipt() {
     }
     setBusy(true); setErr(null)
     const rows = toItems()
-    const { error } = await addExpense({
+    const { data: saved, error } = await addExpense({
       amount: value,
       category,
       scope,
@@ -128,6 +131,12 @@ export default function ScanReceipt() {
       items: rows.length ? rows : null,
       ...(result?.date ? { spent_at: result.date } : {}),
     })
+    // Keep the photo so you can open this expense later and see what it was.
+    // A failed upload must not lose the expense itself, so it only warns.
+    if (!error && saved?.id && imageFile) {
+      const { error: upErr } = await uploadReceipt(saved.id, imageFile)
+      if (upErr) setShareMsg('Expense saved, but the receipt image could not be stored.')
+    }
     setBusy(false)
     if (error) { setErr(error.message); return }
     nav('/')

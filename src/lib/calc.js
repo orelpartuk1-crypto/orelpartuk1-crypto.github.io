@@ -23,6 +23,26 @@ export function byCategory(expenses) {
     .sort((a, b) => b.total - a.total)
 }
 
+// Per category, how this month is tracking against what the same category cost
+// last month — so you get the heads-up while there is still time to stop, not
+// a post-mortem once the month is already worse.
+//
+// Categories under `floor` last month are skipped: a jump from €3 to €6 is
+// noise, and flagging it would train you to ignore the warnings that matter.
+export function vsLastMonth(thisMonth, lastMonth, { floor = 15, warnAt = 0.8 } = {}) {
+  const prevMap = Object.fromEntries(byCategory(lastMonth).map((c) => [c.category, c.total]))
+  const out = {}
+  for (const { category, total: now } of byCategory(thisMonth)) {
+    const prev = prevMap[category] || 0
+    if (prev < floor) continue
+    const ratio = now / prev
+    const status = ratio > 1 ? 'over' : ratio >= warnAt ? 'warn' : 'ok'
+    if (status === 'ok') continue
+    out[category] = { now, prev, ratio, status, left: Math.max(prev - now, 0) }
+  }
+  return out
+}
+
 // How much each member paid, from a set of expenses.
 export function paidByMember(expenses, members) {
   const out = {}

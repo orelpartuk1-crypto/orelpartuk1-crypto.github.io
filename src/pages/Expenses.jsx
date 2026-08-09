@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useAllExpenses } from '../hooks/useAllExpenses'
 import TopBar from '../components/TopBar'
+import ReceiptViewer from '../components/ReceiptViewer'
 import { categoryMeta } from '../lib/categories'
 import { toCSV, downloadCSV } from '../lib/csv'
 import { money, dayLabel } from '../lib/format'
@@ -30,15 +31,28 @@ export default function Expenses() {
 
   const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
 
+  // Who actually paid — independent of the zone, so you can look at shared
+  // spending and still see only the part that came out of one person's pocket.
+  const [payer, setPayer] = useState('all')
+  const others = members.filter((m) => m.id !== user?.id)
+  const payerOptions = [
+    { key: 'all', label: 'Both' },
+    { key: user?.id, label: 'You' },
+    ...others.map((m) => ({ key: m.id, label: m.display_name || 'Partner' })),
+  ]
+
+  const [receipt, setReceipt] = useState(null)
+
   const filtered = useMemo(
     () =>
       expenses.filter((e) => {
+        if (payer !== 'all' && e.paid_by !== payer) return false
         if (activeZone === 'together') return e.scope === 'shared'
         if (activeZone === 'mine') return e.scope === 'private' && e.paid_by === user?.id
         if (activeZone === 'business') return e.scope === 'business'
         return true
       }),
-    [expenses, activeZone, user?.id]
+    [expenses, activeZone, user?.id, payer]
   )
 
   const groups = useMemo(() => {
@@ -67,7 +81,9 @@ export default function Expenses() {
 
   return (
     <div className="pb-28">
-      <TopBar title="All expenses" subtitle={`${filtered.length} · ${money(grandTotal)}`} back />
+      {/* Don't claim "0 · €0.00" before anything has loaded — that reads as an
+          empty account rather than a screen that is still fetching. */}
+      <TopBar title="All expenses" subtitle={loading && expenses.length === 0 ? 'Loading…' : `${filtered.length} · ${money(grandTotal)}`} back />
       <div className="mx-auto max-w-md px-4 space-y-3">
         {/* Zone toggle — same concept as Dashboard */}
         <div className="space-y-2">
@@ -79,12 +95,22 @@ export default function Expenses() {
               </button>
             ))}
           </div>
+          {members.length > 1 && (
+            <div className="flex rounded-2xl bg-slate-100 p-1">
+              {payerOptions.map((p) => (
+                <button key={p.key} onClick={() => setPayer(p.key)}
+                  className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${payer === p.key ? 'bg-white shadow-sm' : 'text-muted'}`}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
           <button className="btn-ghost w-full py-2.5 text-base" onClick={exportCSV} disabled={filtered.length === 0}>
             ⬇︎ Export CSV
           </button>
         </div>
 
-        {loading && <p className="text-muted py-4">Loading…</p>}
+        {loading && expenses.length === 0 && <p className="text-muted py-4">Loading…</p>}
         {!loading && filtered.length === 0 && <p className="text-muted py-8 text-center">No expenses match.</p>}
 
         {groups.map((grp) => (
@@ -110,6 +136,9 @@ export default function Expenses() {
                       </div>
                       <span className="font-semibold">{money(e.amount)}</span>
                     </button>
+                    {e.receipt_path && (
+                      <button onClick={() => setReceipt(e)} className="px-1 text-lg" aria-label="View receipt">🧾</button>
+                    )}
                     {editable && (
                       <button onClick={() => deleteExpense(e.id)} className="text-slate-300 hover:text-red-500 px-1" aria-label="Delete">
                         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
@@ -122,6 +151,7 @@ export default function Expenses() {
           </div>
         ))}
       </div>
+      {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
     </div>
   )
 }

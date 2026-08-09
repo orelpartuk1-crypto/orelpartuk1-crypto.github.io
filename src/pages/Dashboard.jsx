@@ -6,7 +6,7 @@ import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
 import { useDates, daysUntil } from '../hooks/useDates'
 import { useTreatPct } from '../hooks/useTreatPct'
-import { summarize, byCategory, paidByMember, settlement, treatBalance, budgetStatus, insights, groceryBreakdown, myShareOfShared, myShareOfBills } from '../lib/calc'
+import { summarize, byCategory, paidByMember, settlement, treatBalance, budgetStatus, insights, groceryBreakdown, myShareOfShared, myShareOfBills, vsLastMonth } from '../lib/calc'
 import { opportunityInsights } from '../lib/opportunity'
 import { paceForecast, trendInsights, savingsNudges, monthlyTotals } from '../lib/coach'
 import TrendChart from '../components/TrendChart'
@@ -18,6 +18,8 @@ import { money, monthLabel, dayLabel } from '../lib/format'
 import ProgressBar from '../components/ProgressBar'
 import Donut from '../components/Donut'
 import TopBar from '../components/TopBar'
+import MiniExpenseList from '../components/MiniExpenseList'
+import ReceiptViewer from '../components/ReceiptViewer'
 
 const isThisMonth = (d) => {
   const n = new Date()
@@ -51,12 +53,15 @@ export default function Dashboard() {
   const shiftMonth = (delta) => setMonthDate((d) => new Date(d.getFullYear(), d.getMonth() + delta, 1))
   const atCurrentMonth = isThisMonth(monthDate)
   const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
+  // Receipt opened from any category breakdown on this screen.
+  const [receipt, setReceipt] = useState(null)
 
   const shared = useMemo(() => all.filter((e) => e.scope === 'shared'), [all])
   const mine = useMemo(() => all.filter((e) => e.scope === 'private' && e.paid_by === user?.id), [all, user?.id])
   const business = useMemo(() => all.filter((e) => e.scope === 'business' && e.paid_by === user?.id), [all, user?.id])
   const prevShared = useMemo(() => prevAll.filter((e) => e.scope === 'shared'), [prevAll])
   const prevMine = useMemo(() => prevAll.filter((e) => e.scope === 'private' && e.paid_by === user?.id), [prevAll, user?.id])
+  const prevBusiness = useMemo(() => prevAll.filter((e) => e.scope === 'business' && e.paid_by === user?.id), [prevAll, user?.id])
   // Multi-month history slices for the trend-aware coach.
   const sharedHist = useMemo(() => history.filter((e) => e.scope === 'shared'), [history])
   const mineHist = useMemo(() => history.filter((e) => e.scope === 'private' && e.paid_by === user?.id), [history, user?.id])
@@ -158,13 +163,13 @@ export default function Dashboard() {
         )}
 
         {activeZone === 'together' && (
-          <TogetherZone shared={shared} prevShared={prevShared} history={sharedHist} members={members} activeBills={activeBills} budgets={budgets} nameOf={nameOf} monthLabel={monthLabel(monthDate)} monthDate={monthDate} atCurrentMonth={atCurrentMonth} treatPct={treatPct} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} />
+          <TogetherZone shared={shared} prevShared={prevShared} history={sharedHist} members={members} activeBills={activeBills} budgets={budgets} nameOf={nameOf} monthLabel={monthLabel(monthDate)} monthDate={monthDate} atCurrentMonth={atCurrentMonth} treatPct={treatPct} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} onReceipt={setReceipt} />
         )}
         {activeZone === 'mine' && (
-          <MineZone mine={mine} prevMine={prevMine} history={mineHist} myIncome={myIncome} balance={balance} budgets={budgets} budgetMap={budgetMap} monthDate={monthDate} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} />
+          <MineZone mine={mine} prevMine={prevMine} history={mineHist} myIncome={myIncome} balance={balance} budgets={budgets} budgetMap={budgetMap} monthDate={monthDate} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} nameOf={nameOf} onReceipt={setReceipt} />
         )}
         {activeZone === 'business' && hasBusiness && (
-          <BusinessZone business={business} budgetMap={budgetMap} />
+          <BusinessZone business={business} prevBusiness={prevBusiness} budgetMap={budgetMap} nameOf={nameOf} onReceipt={setReceipt} />
         )}
 
         {/* Recent (current zone) — Mine gets a bank-style ledger (money in + out) */}
@@ -190,6 +195,7 @@ export default function Dashboard() {
           />
         )}
       </div>
+      {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
     </div>
   )
 }
@@ -204,9 +210,11 @@ function ZoneHero({ label, total, sub }) {
   )
 }
 
-function CategoryCard({ expenses, budgetMap }) {
+function CategoryCard({ expenses, prevExpenses = [], budgetMap, nameOf, onReceipt }) {
+  const [open, setOpen] = useState(null)
   const cats = byCategory(expenses)
   const total = cats.reduce((t, c) => t + c.total, 0)
+  const pace = useMemo(() => vsLastMonth(expenses, prevExpenses), [expenses, prevExpenses])
   if (cats.length === 0) return null
   const donutData = cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))
   return (
@@ -220,15 +228,34 @@ function CategoryCard({ expenses, budgetMap }) {
           const meta = categoryMeta(category)
           const limit = budgetMap[category] || 0
           const st = budgetStatus(t, limit)
+          const isOpen = open === category
           return (
             <div key={category} className="py-2.5">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-2 font-medium"><span className="text-xl">{meta.emoji}</span> {category}</span>
-                <span className={`font-semibold ${st.status === 'over' ? 'text-red-600' : ''}`}>
-                  {money(t)}{limit > 0 && <span className="text-muted font-normal"> / {money(limit)}</span>}
-                </span>
-              </div>
-              {limit > 0 && <div className="mt-1.5"><ProgressBar ratio={st.ratio} status={st.status} color={meta.color} /></div>}
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : category)}
+                aria-expanded={isOpen}
+                className="w-full text-left active:opacity-60"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2 font-medium">
+                    <span className="text-xl">{meta.emoji}</span> {category}
+                    <span className={`text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
+                  </span>
+                  <span className={`font-semibold ${st.status === 'over' ? 'text-red-600' : ''}`}>
+                    {money(t)}{limit > 0 && <span className="text-muted font-normal"> / {money(limit)}</span>}
+                  </span>
+                </div>
+                {limit > 0 && <div className="mt-1.5"><ProgressBar ratio={st.ratio} status={st.status} color={meta.color} /></div>}
+              </button>
+              <PaceNote pace={pace[category]} />
+              {isOpen && (
+                <MiniExpenseList
+                  expenses={expenses.filter((e) => e.category === category)}
+                  nameOf={nameOf}
+                  onReceipt={onReceipt}
+                />
+              )}
             </div>
           )
         })}
@@ -421,24 +448,59 @@ function BalanceCard({ balance, needs = 0, treats = 0 }) {
   )
 }
 
+// How this category is tracking against the same category last month.
+function PaceNote({ pace }) {
+  if (!pace) return null
+  const tone = pace.status === 'over' ? 'text-red-600' : 'text-amber-600'
+  return (
+    <p className={`mt-1 text-xs font-medium ${tone}`}>
+      {pace.status === 'over'
+        ? `Past last month — ${money(pace.now)} vs ${money(pace.prev)}`
+        : `${money(pace.left)} left before you match last month's ${money(pace.prev)}`}
+    </p>
+  )
+}
+
 // A compact list of categories with coloured bars (used for Needs / Treats).
-function CatList({ expenses, empty }) {
+// Tapping a category opens the expenses behind that number.
+function CatList({ expenses, prevExpenses = [], empty, nameOf, onReceipt }) {
+  const [open, setOpen] = useState(null)
   const cats = byCategory(expenses)
+  const pace = useMemo(() => vsLastMonth(expenses, prevExpenses), [expenses, prevExpenses])
   if (cats.length === 0) return <p className="mt-2 text-sm text-muted">{empty}</p>
   const max = Math.max(...cats.map((c) => c.total), 1)
   return (
     <div className="mt-3 space-y-2.5">
       {cats.map(({ category, total }) => {
         const m = categoryMeta(category)
+        const isOpen = open === category
         return (
           <div key={category}>
-            <div className="flex items-center justify-between text-sm">
-              <span className="flex items-center gap-2 font-medium"><span className="text-base">{m.emoji}</span>{category}</span>
-              <span className="font-semibold">{money(total)}</span>
-            </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full" style={{ width: `${(total / max) * 100}%`, backgroundColor: m.color }} />
-            </div>
+            <button
+              type="button"
+              onClick={() => setOpen(isOpen ? null : category)}
+              aria-expanded={isOpen}
+              className="w-full text-left active:opacity-60"
+            >
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 font-medium">
+                  <span className="text-base">{m.emoji}</span>{category}
+                  <span className={`text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
+                </span>
+                <span className="font-semibold">{money(total)}</span>
+              </div>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className="h-full rounded-full" style={{ width: `${(total / max) * 100}%`, backgroundColor: m.color }} />
+              </div>
+            </button>
+            <PaceNote pace={pace[category]} />
+            {isOpen && (
+              <MiniExpenseList
+                expenses={expenses.filter((e) => e.category === category)}
+                nameOf={nameOf}
+                onReceipt={onReceipt}
+              />
+            )}
           </div>
         )
       })}
@@ -446,12 +508,15 @@ function CatList({ expenses, empty }) {
   )
 }
 
-function TogetherZone({ shared, prevShared, history = [], members, activeBills, budgets, nameOf, monthLabel, monthDate, atCurrentMonth, treatPct = {}, goals = [], savedByGoal = {}, tripAvg = 0 }) {
+function TogetherZone({ shared, prevShared, history = [], members, activeBills, budgets, nameOf, monthLabel, monthDate, atCurrentMonth, treatPct = {}, goals = [], savedByGoal = {}, tripAvg = 0, onReceipt }) {
   const totals = summarize(shared)
   const settle = settlement(shared, members, activeBills)
   const treats = treatBalance(shared, members)
   const needExp = useMemo(() => shared.filter((e) => e.spend_type === 'need'), [shared])
   const treatExp = useMemo(() => shared.filter((e) => e.spend_type === 'treat'), [shared])
+  // Same slices a month back, so each category can show how it is pacing.
+  const prevNeedExp = useMemo(() => prevShared.filter((e) => e.spend_type === 'need'), [prevShared])
+  const prevTreatExp = useMemo(() => prevShared.filter((e) => e.spend_type === 'treat'), [prevShared])
   const needPct = totals.total > 0 ? (totals.needs / totals.total) * 100 : 0
   const hasIncome = treats.rows.some((r) => (treatPct[r.id] || 0) > 0)
   const salaryGap = treats.rows.length === 2
@@ -490,7 +555,7 @@ function TogetherZone({ shared, prevShared, history = [], members, activeBills, 
         ) : (
           <p className="mt-2 rounded-2xl bg-green-50 p-2.5 text-sm font-medium text-green-700">All square 🎉</p>
         )}
-        <CatList expenses={needExp} empty="No shared needs yet." />
+        <CatList expenses={needExp} prevExpenses={prevNeedExp} empty="No shared needs yet." nameOf={nameOf} onReceipt={onReceipt} />
       </div>
 
       {/* TREATS together */}
@@ -521,7 +586,7 @@ function TogetherZone({ shared, prevShared, history = [], members, activeBills, 
         ) : (
           <Link to="/money" className="mt-3 block text-sm text-brand-600 underline">Add salaries to compare treats vs income →</Link>
         ))}
-        <CatList expenses={treatExp} empty="No shared treats yet." />
+        <CatList expenses={treatExp} prevExpenses={prevTreatExp} empty="No shared treats yet." nameOf={nameOf} onReceipt={onReceipt} />
       </div>
 
       <MoneyCoach expenses={shared} history={history} budgets={budgets} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} monthDate={monthDate} />
@@ -532,7 +597,7 @@ function TogetherZone({ shared, prevShared, history = [], members, activeBills, 
   )
 }
 
-function MineZone({ mine, prevMine, history = [], myIncome, balance, budgets, budgetMap, monthDate, goals = [], savedByGoal = {}, tripAvg = 0 }) {
+function MineZone({ mine, prevMine, history = [], myIncome, balance, budgets, budgetMap, monthDate, goals = [], savedByGoal = {}, tripAvg = 0, nameOf, onReceipt }) {
   const totals = summarize(mine)
   const { bonusesYTD, spendYTD, monthsElapsed } = useYearStats()
 
@@ -584,13 +649,13 @@ function MineZone({ mine, prevMine, history = [], myIncome, balance, budgets, bu
       <MoneyCoach expenses={mine} history={history} budgets={budgets} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} monthDate={monthDate} />
       <TrendCard history={history} />
       <InsightsCard thisMonth={mine} lastMonth={prevMine} budgets={budgets} />
-      <CategoryCard expenses={mine} budgetMap={budgetMap} />
+      <CategoryCard expenses={mine} prevExpenses={prevMine} budgetMap={budgetMap} nameOf={nameOf} onReceipt={onReceipt} />
       <GroceryCard expenses={mine} />
     </>
   )
 }
 
-function BusinessZone({ business, budgetMap }) {
+function BusinessZone({ business, prevBusiness = [], budgetMap, nameOf, onReceipt }) {
   const totals = summarize(business)
   return (
     <>
@@ -605,7 +670,7 @@ function BusinessZone({ business, budgetMap }) {
         </span>
         <span className="text-muted">›</span>
       </Link>
-      <CategoryCard expenses={business} budgetMap={budgetMap} />
+      <CategoryCard expenses={business} prevExpenses={prevBusiness} budgetMap={budgetMap} nameOf={nameOf} onReceipt={onReceipt} />
     </>
   )
 }

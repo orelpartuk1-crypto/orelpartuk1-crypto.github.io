@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
@@ -13,6 +13,8 @@ import TopBar from '../components/TopBar'
 import { money, dayLabel, monthRange } from '../lib/format'
 import { defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES, BONUS_SOURCES } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
+import { takePendingReceipt } from '../lib/pendingScan'
+import { uploadReceipt } from '../lib/receipts'
 
 // Parse the numpad string ("12,34") to a float.
 const toNumber = (s) => parseFloat((s || '0').replace(',', '.')) || 0
@@ -27,6 +29,9 @@ export default function AddExpense() {
   const { addExpense, updateExpense, deleteExpense } = useExpenses()
   const { addBonus } = useMoney()
   const { add: addRecurring } = useRecurring()
+  // Claimed once on mount: a scan handed over here keeps its photo through save.
+  const [claimedReceipt] = useState(() => (prefill ? takePendingReceipt() : null))
+  const pendingReceipt = useRef(claimedReceipt)
 
   // Income vs expense — never offered while editing an existing expense.
   const isIncomeCapable = !editing
@@ -160,9 +165,15 @@ export default function AddExpense() {
         return rows.length ? rows : null
       })(),
     }
-    const { error } = editing
+    const { data: saved, error } = editing
       ? await updateExpense(editing.id, row)
       : await addExpense(row)
+    // A scan sent here to be adjusted still carries its photo — file it now that
+    // the expense finally has an id. Losing the image must not lose the expense.
+    if (!error && !editing && saved?.id && pendingReceipt.current) {
+      await uploadReceipt(saved.id, pendingReceipt.current)
+      pendingReceipt.current = null
+    }
     setBusy(false)
     if (error) { setErr(error.message); return }
     nav('/')
