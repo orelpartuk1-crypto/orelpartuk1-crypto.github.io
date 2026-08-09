@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { isoDay } from '../lib/format'
 
 // Raw expense rows for the last `months` months (including the current one),
 // so the money coach can reason over trends, not just this-vs-last month.
@@ -16,9 +17,7 @@ export function useHistory(months = 6) {
     setLoading(true)
 
     const now = new Date()
-    const start = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1)
-      .toISOString()
-      .slice(0, 10)
+    const start = isoDay(new Date(now.getFullYear(), now.getMonth() - (months - 1), 1))
 
     ;(async () => {
       const { data } = await supabase
