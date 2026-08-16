@@ -87,7 +87,13 @@ export default function ScanReceipt() {
       setAmount(res.amount != null ? String(res.amount).replace('.', ',') : '')
       setCategory(res.category || 'Other')
       setSpendType(defaultSpendType(res.category || 'Other'))
-      setItems((res.items || []).map((i) => ({ name: i.name, price: String(i.price).replace('.', ',') })))
+      // Several lines of the same product come back merged, so show the count
+      // the same way the regex parser does — "3× Cheese", not a bare "Cheese"
+      // whose price looks inexplicably high.
+      setItems((res.items || []).map((i) => ({
+        name: i.qty > 1 ? `${i.qty}× ${i.name}` : i.name,
+        price: String(i.price).replace('.', ','),
+      })))
       setStage('review')
     } catch (e2) {
       setErr('Could not read the receipt. Try a clearer, well-lit photo.')

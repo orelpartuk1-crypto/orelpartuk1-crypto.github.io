@@ -20,14 +20,47 @@ const SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'Product name, translated to English, title case' },
-          price: { type: 'number' },
+          name: { type: 'string', description: 'Base product name in English, title case — no brand, variety or size' },
+          price: { type: 'number', description: 'Price actually paid for this line, after any discount' },
+          qty: { type: 'number', description: 'How many of this product, if the line says so. Default 1.', nullable: true },
         },
         required: ['name', 'price'],
       },
     },
   },
   required: ['category', 'items'],
+}
+
+// The prompt asks for one line per base product, but the model still slips
+// sometimes — and collapsing duplicates is arithmetic, which belongs in code
+// rather than in a language model's head. Same name (ignoring case and
+// accents) becomes one line with the prices added up.
+function mergeItems(raw: unknown) {
+  if (!Array.isArray(raw)) return []
+  const key = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
+  const out: { name: string; price: number; qty: number }[] = []
+  const seen = new Map<string, number>() // key -> index in out
+
+  for (const it of raw) {
+    const name = String(it?.name ?? '').trim()
+    const price = Number(it?.price)
+    if (!name || !Number.isFinite(price)) continue
+    // A negative line means the model emitted a discount as its own item after
+    // all. Take it off the product it names rather than dropping it, so the
+    // items still add up to something close to the receipt.
+    const qty = Number.isFinite(Number(it?.qty)) && Number(it?.qty) > 0 ? Math.round(Number(it.qty)) : 1
+    const k = key(name)
+    const at = seen.get(k)
+    if (at == null) {
+      if (price < 0) continue // nothing to subtract it from
+      seen.set(k, out.length)
+      out.push({ name, price, qty })
+    } else {
+      out[at].price = Math.round((out[at].price + price) * 100) / 100
+      if (price >= 0) out[at].qty += qty
+    }
+  }
+  return out.filter((i) => i.price > 0)
 }
 
 Deno.serve(async (req) => {
@@ -66,7 +99,23 @@ Deno.serve(async (req) => {
 - amount: the FINAL total paid (look for "TOTAL", "TOTAL A PAGAR" — not subtotal, not IVA line alone).
 - date: the receipt's date, as YYYY-MM-DD.
 - category: pick the single best fit from the allowed list, based on the shop/items.
-- items: every distinct product line with its price in euros, name translated to English. Skip barcodes, taxes, payment method lines, and totals — only real products. If the category isn't Groceries, you may return an empty items array.`
+- items: the products bought. Skip barcodes, taxes, payment lines and totals. If the category isn't Groceries you may return an empty array.
+
+Two rules matter more than literal transcription:
+
+1. NAME THE PRODUCT, NOT THE PACKAGE. Write the name the way it would appear on
+a shopping list: the base product in English, with no brand, no variety, no
+flavour and no weight or volume. "Queso Gouda lonchas 200g" and "Mozzarella
+120g" are both just "Cheese". "Leche Pascual desnatada 1L" is "Milk". "Coca-Cola
+Zero 2L" is "Soft Drink". If the same base product appears on several lines,
+return it ONCE with the prices added together and qty set to how many lines.
+
+2. DISCOUNTS BELONG TO THEIR PRODUCT. A discount, offer or refund line ("DTO",
+"descuento", "ahorro", "oferta", "3x2", a negative amount) is never its own
+item. Subtract it from the product it applies to and return only the final
+price. Oranges at 2.00 with a 0.20 discount underneath is one item: Oranges,
+1.80. If a discount clearly applies to the whole basket rather than one
+product, leave it out of items entirely — the total already reflects it.`
 
     const r = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`,
@@ -113,7 +162,7 @@ Deno.serve(async (req) => {
         amount: parsed.amount ?? null,
         date: parsed.date ?? null,
         category: parsed.category || 'Other',
-        items: Array.isArray(parsed.items) ? parsed.items : [],
+        items: mergeItems(parsed.items),
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
