@@ -29,8 +29,8 @@ export default function Numpad({ value, onChange }) {
           key={k}
           type="button"
           onClick={() => press(k)}
-          className="h-16 rounded-2xl bg-white text-2xl font-semibold text-ink shadow-sm border border-slate-100
-                     active:scale-95 active:bg-slate-50 transition flex items-center justify-center"
+          className="flex h-16 items-center justify-center rounded-2xl bg-white text-2xl font-semibold text-ink
+                     shadow-card transition-transform duration-100 active:scale-90 active:bg-brand-50"
         >
           {k === 'del' ? <DelIcon className="h-6 w-6" /> : k}
         </button>

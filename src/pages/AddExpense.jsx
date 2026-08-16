@@ -208,26 +208,39 @@ export default function AddExpense() {
       />
 
       <div className="mx-auto max-w-md px-4 space-y-4">
-        {/* Amount display */}
-        <div className="card text-center py-6">
-          <p className="text-sm text-muted">Amount</p>
-          <p className={`mt-1 text-5xl font-bold tracking-tight ${value ? 'text-ink' : 'text-slate-300'}`}>
-            {money(value)}
-          </p>
+        {/* What kind of entry this is, before anything else is decided */}
+        {isIncomeCapable && (
+          <div className="flex rounded-full bg-black/[0.04] p-1">
+            {[
+              { value: 'expense', label: 'Expense' },
+              { value: 'income', label: 'Income' },
+            ].map((o) => (
+              <button
+                key={o.value}
+                onClick={() => setMode(o.value)}
+                className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${
+                  mode === o.value
+                    ? `bg-white shadow-card ${o.value === 'income' ? 'text-earn' : 'text-spend'}`
+                    : 'text-muted'
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* The amount is the hero — no card around it, nothing competing */}
+        <div className="flex items-start justify-center gap-1.5 pt-3 pb-1">
+          <span className={`tnum text-6xl font-bold tracking-tight transition-colors duration-200 ${
+            value ? (isIncome ? 'text-earn' : 'text-ink') : 'text-slate-300'
+          }`}>
+            {amount || '0'}
+          </span>
+          <span className="mt-3 text-2xl font-normal text-muted">€</span>
         </div>
 
         <Numpad value={amount} onChange={setAmount} />
-
-        {isIncomeCapable && (
-          <Segmented
-            options={[
-              { value: 'expense', label: '💳 Expense' },
-              { value: 'income', label: '💰 Income' },
-            ]}
-            value={mode}
-            onChange={setMode}
-          />
-        )}
 
         {!isIncome && (
           <>
@@ -360,11 +373,16 @@ export default function AddExpense() {
         )}
       </div>
 
-      {/* Sticky save bar */}
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur px-4 pt-3 safe-bottom">
+      {/* Sticky save bar — floats over the content rather than sitting behind
+          a hard rule, so the page reads as one surface */}
+      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-surface via-surface to-transparent px-4 pb-1 pt-8 safe-bottom">
         <div className="mx-auto max-w-md">
-          <button className="btn-primary w-full" disabled={busy || value <= 0} onClick={() => save()}>
-            {busy ? 'Saving…' : editing ? `Update ${money(value)}` : `Save ${money(value)}`}
+          <button
+            className={`btn w-full px-5 py-4 text-lg text-white shadow-fab ${isIncome ? 'bg-earn' : 'bg-brand-500'}`}
+            disabled={busy || value <= 0}
+            onClick={() => save()}
+          >
+            {busy ? 'Saving…' : editing ? `Update ${money(value)}` : isIncome ? `Save income ${money(value)}` : `Save expense ${money(value)}`}
           </button>
         </div>
       </div>
