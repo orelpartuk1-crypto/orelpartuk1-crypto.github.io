@@ -69,17 +69,25 @@ export function useCategories() {
         .filter((r) => !r.parent_id)
         .map((parent) => ({ ...parent, children: inScope.filter((c) => c.parent_id === parent.id) }))
     }
-    return { expense: build('expense'), business: build('business') }
+    return { expense: build('expense'), business: build('business'), income: build('income') }
   }, [rows])
 
   // Flat picker list: a parent, then anything under it, so choosing is one pass.
   const pickList = useCallback(
     (scope) =>
-      tree[scope === 'business' ? 'business' : 'expense'].flatMap((p) => [
+      (tree[scope] || tree.expense).flatMap((p) => [
         { ...p, depth: 0 },
         ...p.children.map((c) => ({ ...c, depth: 1, parentName: p.name })),
       ]),
     [tree]
+  )
+
+  // Names of categories that are recorded but are not spending — investments
+  // and transfers move money rather than consume it, and counting them would
+  // make every "what did we spend" figure wrong.
+  const notSpending = useMemo(
+    () => new Set(rows.filter((r) => r.counts_as_expense === false).map((r) => r.name)),
+    [rows]
   )
 
   const byId = useMemo(() => Object.fromEntries(rows.map((r) => [r.id, r])), [rows])
@@ -92,5 +100,5 @@ export function useCategories() {
     [byId]
   )
 
-  return { rows, tree, pickList, byId, rootNameOf, loading, add, update, remove, reload: load }
+  return { rows, tree, pickList, byId, rootNameOf, notSpending, loading, add, update, remove, reload: load }
 }

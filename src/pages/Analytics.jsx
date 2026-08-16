@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
 import { useBudgets } from '../hooks/useBudgets'
 import { useHistory } from '../hooks/useHistory'
-import { byCategory, summarize, budgetStatus, vsLastMonth } from '../lib/calc'
+import { byCategory, summarize, budgetStatus, vsLastMonth, onlySpending } from '../lib/calc'
 import { monthlyTotals } from '../lib/coach'
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel } from '../lib/format'
@@ -36,6 +37,7 @@ export default function Analytics() {
   const { bonuses } = useMoney(monthDate)
   const { shared: sharedBudgets, personal: personalBudgets, set: setBudget } = useBudgets()
   const { rows: history } = useHistory(6)
+  const { notSpending } = useCategories()
 
   // Arriving from the Together screen should land on shared, not on whatever
   // zone was last used somewhere else.
@@ -65,8 +67,8 @@ export default function Analytics() {
       return e.scope === 'business' && e.paid_by === user?.id
     })
 
-  const expenses = useMemo(() => sliceOf(all), [all, activeZone, user?.id])
-  const prevExpenses = useMemo(() => sliceOf(prevAll), [prevAll, activeZone, user?.id])
+  const expenses = useMemo(() => onlySpending(sliceOf(all), notSpending), [all, activeZone, user?.id, notSpending])
+  const prevExpenses = useMemo(() => onlySpending(sliceOf(prevAll), notSpending), [prevAll, activeZone, user?.id, notSpending])
 
   // Income is personal by nature — there is no shared income — so the toggle
   // only offers it where it means something.

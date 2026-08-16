@@ -11,24 +11,28 @@ const COLORS = [
 
 export default function Categories() {
   const { hasBusiness } = useAuth()
-  const { tree, loading, add, update, remove } = useCategories()
+  const { rows, tree, loading, add, update, remove } = useCategories()
   const [scope, setScope] = useState('expense')
   const [editing, setEditing] = useState(null)
   const [addingUnder, setAddingUnder] = useState(undefined) // undefined = closed, null = new top level
 
   const list = tree[scope] || []
+  // Without this, switching a category off would hide it with no way back.
+  const hidden = rows.filter((r) => r.scope === scope && !r.active && !r.parent_id)
 
   return (
     <div className="pb-28">
       <TopBar title="Categories" subtitle="Shared with your partner" back />
       <div className="mx-auto max-w-md px-4 space-y-4">
-        {hasBusiness && (
-          <Segmented
-            options={[{ value: 'expense', label: 'Personal & shared' }, { value: 'business', label: '💼 Business' }]}
-            value={scope}
-            onChange={setScope}
-          />
-        )}
+        <Segmented
+          options={[
+            { value: 'expense', label: 'Spending' },
+            { value: 'income', label: 'Income' },
+            ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
+          ]}
+          value={scope}
+          onChange={setScope}
+        />
 
         {loading && <p className="text-muted">Loading…</p>}
 
@@ -44,17 +48,26 @@ export default function Categories() {
                 </span>
                 <button onClick={() => setEditing(parent)} className="min-w-0 flex-1 text-left active:opacity-60">
                   <span className="block truncate font-semibold">{parent.name}</span>
-                  {parent.spend_type && (
+                  {parent.counts_as_expense === false ? (
+                    <span className="block text-xs text-muted">Doesn't count as spending</span>
+                  ) : parent.spend_type ? (
                     <span className="block text-xs text-muted">
                       Defaults to {parent.spend_type === 'treat' ? '🍦 treat' : '🧺 need'}
                     </span>
-                  )}
+                  ) : null}
                 </button>
                 <button
                   onClick={() => setAddingUnder(parent)}
                   className="shrink-0 rounded-full bg-slate-50 px-3 py-1.5 text-sm font-semibold text-brand-600 active:scale-95"
                 >
                   + Sub
+                </button>
+                <button
+                  onClick={() => update(parent.id, { active: false })}
+                  aria-label={`Hide ${parent.name}`}
+                  className="flex h-7 w-12 shrink-0 items-center justify-end rounded-full bg-brand-500 px-0.5 transition"
+                >
+                  <span className="h-6 w-6 rounded-full bg-white shadow" />
                 </button>
               </div>
 
@@ -91,6 +104,28 @@ export default function Categories() {
               return error
             }}
           />
+        )}
+
+        {hidden.length > 0 && (
+          <div className="card">
+            <h2 className="label">Hidden</h2>
+            <p className="mb-2 text-sm text-muted">Still on past expenses — just not offered when adding.</p>
+            <ul className="divide-y divide-slate-100">
+              {hidden.map((c) => (
+                <li key={c.id} className="flex items-center gap-3 py-2.5">
+                  <span className="text-lg opacity-50">{c.emoji}</span>
+                  <span className="min-w-0 flex-1 truncate text-muted">{c.name}</span>
+                  <button
+                    onClick={() => update(c.id, { active: true })}
+                    aria-label={`Show ${c.name}`}
+                    className="flex h-7 w-12 shrink-0 items-center justify-start rounded-full bg-slate-200 px-0.5 transition"
+                  >
+                    <span className="h-6 w-6 rounded-full bg-white shadow" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         <p className="px-1 text-xs text-muted">

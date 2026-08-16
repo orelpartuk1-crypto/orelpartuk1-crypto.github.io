@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
 import { useSettlements } from '../hooks/useSettlements'
 import { useAccounts } from '../hooks/useAccounts'
-import { summarize, settlement } from '../lib/calc'
+import { summarize, settlement, onlySpending } from '../lib/calc'
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel, dayLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
@@ -28,6 +29,7 @@ export default function Couple() {
   const { activeBills } = useMoney(monthDate)
   const { rows: settlements, settle: recordSettlement } = useSettlements()
   const { active: myAccounts, defaultAccount } = useAccounts()
+  const { notSpending } = useCategories()
 
   const [receipt, setReceipt] = useState(null)
   const [movement, setMovement] = useState(null)
@@ -40,7 +42,7 @@ export default function Couple() {
   const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
 
   const shared = useMemo(() => all.filter((e) => e.scope === 'shared'), [all])
-  const totals = summarize(shared)
+  const totals = summarize(onlySpending(shared, notSpending))
   const needPct = totals.total > 0 ? (totals.needs / totals.total) * 100 : 0
   const settle = useMemo(
     () => settlement(shared, members, activeBills, settlements),

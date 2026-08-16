@@ -6,6 +6,14 @@
 const num = (v) => Number(v) || 0
 const sum = (arr, f = (e) => e.amount) => arr.reduce((t, e) => t + num(f(e)), 0)
 
+// Drops categories flagged as not-spending (investments, transfers out to
+// yourself). They are recorded, they move money, but calling them spending
+// makes every "what did we spend" figure wrong.
+export function onlySpending(expenses, notSpending) {
+  if (!notSpending || notSpending.size === 0) return expenses
+  return expenses.filter((e) => !notSpending.has(e.category))
+}
+
 export function summarize(expenses) {
   return {
     total: sum(expenses),

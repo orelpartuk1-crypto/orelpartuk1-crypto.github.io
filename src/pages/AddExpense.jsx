@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
@@ -6,61 +6,43 @@ import { useMoney } from '../hooks/useMoney'
 import { useRecurring } from '../hooks/useRecurring'
 import { useAccounts } from '../hooks/useAccounts'
 import { useCategories } from '../hooks/useCategories'
-import Numpad from '../components/Numpad'
-import CategoryPicker from '../components/CategoryPicker'
+import { useAllExpenses } from '../hooks/useAllExpenses'
 import Segmented from '../components/Segmented'
 import GrocerySelector from '../components/GrocerySelector'
 import SplitSlider from '../components/SplitSlider'
+import CategorySheet from '../components/CategorySheet'
 import TopBar from '../components/TopBar'
+import { Screen, Item, Tap, Sheet } from '../components/motion'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
-import { defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES, BONUS_SOURCES } from '../lib/categories'
+import { defaultSpendType, categoryMeta, CATEGORIES, BUSINESS_CATEGORIES } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingReceipt } from '../lib/pendingScan'
 import { uploadReceipt } from '../lib/receipts'
 
-// Parse the numpad string ("12,34") to a float.
 const toNumber = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 const todayISO = () => isoDay(new Date())
 
 export default function AddExpense() {
   const nav = useNavigate()
   const location = useLocation()
-  const prefill = location.state?.prefill // from the receipt scanner
-  const editing = location.state?.edit // an existing expense row
+  const prefill = location.state?.prefill
+  const editing = location.state?.edit
   const { user, household, hasBusiness, members } = useAuth()
   const { addExpense, updateExpense, deleteExpense } = useExpenses()
   const { addBonus } = useMoney()
-  const { add: addRecurring } = useRecurring()
-  // Claimed once on mount: a scan handed over here keeps its photo through save.
+  const { items: recurringItems, add: addRecurring } = useRecurring()
+  const { active: myAccounts, defaultAccount } = useAccounts()
+  const { pickList } = useCategories()
+  const { expenses: history } = useAllExpenses()
+
   const [claimedReceipt] = useState(() => (prefill ? takePendingReceipt() : null))
   const pendingReceipt = useRef(claimedReceipt)
 
-  // Income / transfer are only offered for new entries, never while editing.
   const isIncomeCapable = !editing
-  const [mode, setMode] = useState('expense') // 'expense' | 'income' | 'transfer'
+  const [mode, setMode] = useState('expense') // 'expense' | 'income'
   const isIncome = isIncomeCapable && mode === 'income'
-  const isTransfer = isIncomeCapable && mode === 'transfer'
-  const [source, setSource] = useState('') // income-only: where the money came from
-
-  // Which of my accounts this came out of (or went into). Every entry gets one;
-  // the default is filled in as soon as the accounts load so it never blocks.
-  const { active: myAccounts, defaultAccount, transfer: makeTransfer } = useAccounts()
-  const [accountId, setAccountId] = useState(editing?.account_id || prefill?.account_id || null)
-  const { pickList } = useCategories()
-  const [categoryId, setCategoryId] = useState(editing?.category_id || null)
-  const [toAccountId, setToAccountId] = useState(null) // transfer destination
-  useEffect(() => {
-    if (!accountId && defaultAccount) setAccountId(defaultAccount.id)
-  }, [defaultAccount, accountId])
-  useEffect(() => {
-    if (isTransfer && !toAccountId) {
-      const other = myAccounts.find((a) => a.id !== accountId)
-      if (other) setToAccountId(other.id)
-    }
-  }, [isTransfer, toAccountId, myAccounts, accountId])
 
   const seed = editing || prefill || {}
-  // Default the scope to the zone the user was viewing (Shared / Mine / Business).
   const defaultScope = (() => {
     if (editing?.scope) return editing.scope
     if (prefill?.scope) return prefill.scope
@@ -69,55 +51,94 @@ export default function AddExpense() {
     if (z === 'mine') return 'private'
     return 'shared'
   })()
-  const [amount, setAmount] = useState(
-    seed.amount ? String(seed.amount).replace('.', ',') : ''
-  )
+
+  const [amount, setAmount] = useState(seed.amount ? String(seed.amount).replace('.', ',') : '')
   const [category, setCategory] = useState(seed.category || (defaultScope === 'business' ? 'Meeting' : 'Groceries'))
+  const [categoryId, setCategoryId] = useState(editing?.category_id || prefill?.category_id || null)
   const [scope, setScope] = useState(defaultScope)
-  const [spendType, setSpendType] = useState(
-    editing?.spend_type || defaultSpendType(seed.category || 'Groceries')
-  )
+  const [spendType, setSpendType] = useState(editing?.spend_type || defaultSpendType(seed.category || 'Groceries'))
   const [items, setItems] = useState(
-    Array.isArray(seed.items)
-      ? seed.items.map((i) => ({ name: i.name, price: String(i.price ?? '').replace('.', ',') }))
-      : []
+    Array.isArray(seed.items) ? seed.items.map((i) => ({ name: i.name, price: String(i.price ?? '').replace('.', ',') })) : []
   )
   const [note, setNote] = useState(seed.note || '')
   const [spentAt, setSpentAt] = useState(seed.date || editing?.spent_at || todayISO())
-  const [repeats, setRepeats] = useState(false) // "repeats monthly" — add-only, hidden when editing
+  const [repeats, setRepeats] = useState(false)
+  const [accountId, setAccountId] = useState(editing?.account_id || prefill?.account_id || null)
+  const [catOpen, setCatOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const [dupWarn, setDupWarn] = useState(false)
 
-  const value = toNumber(amount)
-  const dbCategories = pickList(scope)
+  useEffect(() => {
+    if (!accountId && defaultAccount) setAccountId(defaultAccount.id)
+  }, [defaultAccount, accountId])
 
-  // --- Partial split: how much the other partner owes the payer back ---
-  // Needs are always split 50/50 automatically — no UI, no question asked.
-  // Only treats get a slider, defaulting to "I cover it" (0%) unless dragged.
+  const value = toNumber(amount)
+  const catScope = isIncome ? 'income' : scope === 'business' ? 'business' : 'expense'
+  const dbCategories = pickList(catScope)
+  const fallback = scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES
+  const catItems = dbCategories.length ? dbCategories : fallback
+  const chosenCat = catItems.find((c) => (c.id ?? c.key) === (categoryId || category))
+
+  // Shortcuts: what you actually log again and again. Your own monthly items
+  // first, then anything the history shows you repeat — so the list is useful
+  // on day one and gets better without you maintaining it.
+  const shortcuts = useMemo(() => {
+    const out = []
+    for (const r of recurringItems.filter((r) => r.active && r.kind === 'expense')) {
+      out.push({ key: `r-${r.id}`, label: r.name, amount: Number(r.amount), category: r.category, scope: r.scope, spend_type: r.spend_type, pinned: true })
+    }
+    const counts = new Map()
+    for (const e of history) {
+      const label = (e.note || '').trim()
+      if (!label || e.paid_by !== user?.id) continue
+      const k = `${label.toLowerCase()}|${e.category}`
+      const prev = counts.get(k) || { n: 0, label, category: e.category, scope: e.scope, spend_type: e.spend_type, amounts: [] }
+      prev.n += 1
+      prev.amounts.push(Number(e.amount))
+      counts.set(k, prev)
+    }
+    const frequent = [...counts.values()]
+      .filter((c) => c.n >= 3 && !out.some((o) => o.label.toLowerCase() === c.label.toLowerCase()))
+      .sort((a, b) => b.n - a.n)
+      .slice(0, 6)
+      .map((c) => ({
+        key: `f-${c.label}`,
+        label: c.label,
+        // The amount you most often pay, not the average — an average of 8 and
+        // 40 is a number you have never actually spent.
+        amount: c.amounts.sort((a, b) => a - b)[Math.floor(c.amounts.length / 2)],
+        category: c.category,
+        scope: c.scope,
+        spend_type: c.spend_type,
+      }))
+    return [...out.slice(0, 6), ...frequent].slice(0, 8)
+  }, [recurringItems, history, user?.id])
+
+  const applyShortcut = (s) => {
+    setAmount(String(s.amount).replace('.', ','))
+    setNote(s.label)
+    setCategory(s.category)
+    setCategoryId(null)
+    if (s.scope) setScope(s.scope)
+    if (s.spend_type) setSpendType(s.spend_type)
+  }
+
   const partner = members?.find((m) => m.id !== user?.id)
-  const canSplit = !isIncome && !isTransfer && scope === 'shared' && members?.length === 2
+  const canSplit = !isIncome && scope === 'shared' && members?.length === 2
   const isTreat = !isIncome && spendType === 'treat'
   const initialOwed = editing?.owed_amount ?? prefill?.owed_amount ?? null
-  const initialPct = initialOwed != null && Number(seed.amount) > 0
-    ? Math.round((Number(initialOwed) / Number(seed.amount)) * 100)
-    : 0
+  const initialPct = initialOwed != null && Number(seed.amount) > 0 ? Math.round((Number(initialOwed) / Number(seed.amount)) * 100) : 0
   const [treatOwedPct, setTreatOwedPct] = useState(initialPct)
-  const owedAmount = canSplit && isTreat
-    ? Math.round(((value * treatOwedPct) / 100) * 100) / 100
-    : null
+  const owedAmount = canSplit && isTreat ? Math.round(((value * treatOwedPct) / 100) * 100) / 100 : null
 
   const scopeOptions = [
-    { value: 'shared', label: '🤝 Shared' },
-    { value: 'private', label: '👤 Private' },
+    { value: 'shared', label: '🤝 Together' },
+    { value: 'private', label: '👤 Mine' },
     ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
   ]
 
-  // Switching to/from Business swaps the category set.
   const changeScope = (s) => {
-    // The category list is per scope, so a category picked under the old scope
-    // no longer exists under the new one — drop the id rather than leave it
-    // pointing somewhere that isn't on screen.
     if (s !== scope) setCategoryId(null)
     if (s === 'business' && scope !== 'business') setCategory('Meeting')
     else if (s !== 'business' && scope === 'business') {
@@ -127,31 +148,24 @@ export default function AddExpense() {
     setScope(s)
   }
 
+  const pickCategory = (c) => {
+    if (typeof c === 'string' || c.key) {
+      setCategoryId(null)
+      setCategory(c.key ?? c)
+      if (!editing && !isIncome && scope !== 'business') setSpendType(defaultSpendType(c.key ?? c))
+      return
+    }
+    setCategoryId(c.id)
+    setCategory(c.parentName || c.name)
+    if (!editing && !isIncome && scope !== 'business') {
+      setSpendType(c.spend_type || defaultSpendType(c.parentName || c.name))
+    }
+  }
+
   const save = async (force = false) => {
     if (value <= 0) return
     setErr(null)
 
-    // Moving money between your own accounts isn't spending — it never touches
-    // expenses, categories or the shared split, so it short-circuits here.
-    if (isTransfer) {
-      if (!accountId || !toAccountId) { setErr('Pick both accounts.'); return }
-      if (accountId === toAccountId) { setErr('Pick two different accounts.'); return }
-      setBusy(true)
-      const { error } = await makeTransfer({
-        from_account: accountId,
-        to_account: toAccountId,
-        amount: value,
-        note: note.trim() || null,
-        transferred_at: spentAt,
-      })
-      setBusy(false)
-      if (error) { setErr(error.message); return }
-      nav('/')
-      return
-    }
-
-    // Warn if the same person already logged this exact amount+category+date
-    // (income has no such concept — bonuses of the same amount aren't unusual).
     if (!isIncome && !editing && !force) {
       setBusy(true)
       const dup = await findDuplicate({ household_id: household?.id, paid_by: user?.id, spent_at: spentAt, category, amount: value })
@@ -161,23 +175,12 @@ export default function AddExpense() {
 
     setBusy(true)
 
-    // "Repeats monthly" — for money out and money in alike. Fixed salary is the
-    // one thing that must NOT come through here: it has its own field, and
-    // having it in both places is exactly what once made income read 3500 when
-    // it was 2000. The Source hint above says so; nothing else needs blocking.
-    //
-    // Register the template first (without materializing — we insert this
-    // month's occurrence directly below), then tag that occurrence with the new
-    // template's id so next month's auto-materialization doesn't duplicate it.
     let recurringId = null
     if (repeats && !editing) {
-      // Name it after what you typed, not the category. Naming every template
-      // "Personal Care" made them indistinguishable in the Recurring list, so
-      // duplicates of the same real thing were impossible to spot.
-      const recurringPayload = isIncome
-        ? { kind: 'income', name: note.trim() || source.trim() || 'Income', amount: value, source: source.trim() || 'Income' }
+      const payload = isIncome
+        ? { kind: 'income', name: note.trim() || category, amount: value, source: category }
         : { kind: 'expense', name: note.trim() || category, amount: value, category, scope, spend_type: spendType }
-      const { data: recRow, error: recErr } = await addRecurring(recurringPayload, { materialize: false })
+      const { data: recRow, error: recErr } = await addRecurring(payload, { materialize: false })
       if (recErr) { setBusy(false); setErr(recErr.message); return }
       recurringId = recRow?.id ?? null
     }
@@ -185,7 +188,7 @@ export default function AddExpense() {
     if (isIncome) {
       const { error } = await addBonus({
         amount: value,
-        bonus_type: source.trim() || 'Bonus',
+        bonus_type: category,
         month: monthRange(new Date(spentAt)).start,
         note: note.trim() || null,
         recurring_id: recurringId,
@@ -200,17 +203,14 @@ export default function AddExpense() {
     const row = {
       amount: value,
       category,
+      category_id: categoryId,
       scope,
       spend_type: spendType,
-      paid_by: user?.id, // you can only log your own expenses
-      owed_amount: owedAmount, // null unless it's a shared treat split
+      paid_by: user?.id,
+      owed_amount: owedAmount,
       note: note.trim() || null,
       spent_at: spentAt,
-      // Shared or not, it left one person's account — that's whose balance moves.
       account_id: accountId,
-      category_id: categoryId,
-      // Never touch recurring_id when editing — omitting the key leaves
-      // whatever link (if any) the row already had untouched.
       ...(!editing ? { recurring_id: recurringId } : {}),
       items: (() => {
         const rows = items
@@ -219,11 +219,8 @@ export default function AddExpense() {
         return rows.length ? rows : null
       })(),
     }
-    const { data: saved, error } = editing
-      ? await updateExpense(editing.id, row)
-      : await addExpense(row)
-    // A scan sent here to be adjusted still carries its photo — file it now that
-    // the expense finally has an id. Losing the image must not lose the expense.
+
+    const { data: saved, error } = editing ? await updateExpense(editing.id, row) : await addExpense(row)
     if (!error && !editing && saved?.id && pendingReceipt.current) {
       await uploadReceipt(saved.id, pendingReceipt.current)
       pendingReceipt.current = null
@@ -242,31 +239,32 @@ export default function AddExpense() {
   }
 
   return (
-    <div className="pb-40">
+    <div className="pb-36">
       <TopBar
-        title={editing ? 'Edit expense' : isIncome ? 'Add income' : 'Add expense'}
+        title={editing ? 'Edit' : isIncome ? 'New income' : 'New expense'}
         back
         right={
-          !editing && !isIncome && !isTransfer && (
-            <Link to="/scan" className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3 shadow-sm text-brand-600 font-medium active:scale-95">
-              <CameraIcon className="h-5 w-5" /> Scan
-            </Link>
+          !editing && !isIncome && (
+            <Tap as={Link} to="/scan" className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3 font-medium text-brand-600 shadow-card">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 8h3l2-2h6l2 2h3v11H4z" /><circle cx="12" cy="13" r="3.2" />
+              </svg>
+              Scan
+            </Tap>
           )
         }
       />
 
-      <div className="mx-auto max-w-md px-4 space-y-4">
-        {/* What kind of entry this is, before anything else is decided */}
+      <Screen className="mx-auto max-w-md px-4 space-y-4">
         {isIncomeCapable && (
-          <div className="flex rounded-full bg-black/[0.04] p-1">
+          <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
             {[
               { value: 'expense', label: 'Expense', cls: 'text-spend' },
               { value: 'income', label: 'Income', cls: 'text-earn' },
-              { value: 'transfer', label: 'Transfer', cls: 'text-ink' },
             ].map((o) => (
               <button
                 key={o.value}
-                onClick={() => setMode(o.value)}
+                onClick={() => { setMode(o.value); setCategoryId(null); setCategory(o.value === 'income' ? 'Salary' : 'Groceries') }}
                 className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${
                   mode === o.value ? `bg-white shadow-card ${o.cls}` : 'text-muted'
                 }`}
@@ -277,222 +275,197 @@ export default function AddExpense() {
           </div>
         )}
 
-        {/* The amount is the hero — no card around it, nothing competing */}
-        <div className="flex items-start justify-center gap-1.5 pt-3 pb-1">
-          <span className={`tnum text-6xl font-bold tracking-tight transition-colors duration-200 ${
-            value ? (isIncome ? 'text-earn' : 'text-ink') : 'text-slate-300'
-          }`}>
-            {amount || '0'}
-          </span>
-          <span className="mt-3 text-2xl font-normal text-muted">€</span>
+        {/* Amount — a real input, so the phone's own keypad appears and the
+            screen keeps the room a custom pad would have taken. */}
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <input
+            className={`tnum w-full bg-transparent text-center text-6xl font-bold tracking-tight outline-none placeholder:text-slate-300 ${
+              isIncome ? 'text-earn' : 'text-ink'
+            }`}
+            inputMode="decimal"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, '').replace('.', ','))}
+            placeholder="0"
+            autoFocus={!editing}
+            aria-label="Amount"
+          />
+          <span className="shrink-0 text-2xl text-muted">€</span>
         </div>
 
-        <Numpad value={amount} onChange={setAmount} />
-
-        {/* Which of my accounts this moves. Transfers need two. */}
-        {myAccounts.length > 0 && (
-          <div className={isTransfer ? 'grid grid-cols-2 gap-3' : ''}>
-            <div>
-              <label className="label">{isTransfer ? 'From' : isIncome ? 'Into' : 'Paid from'}</label>
-              <select className="field" value={accountId || ''} onChange={(e) => setAccountId(e.target.value)}>
-                {myAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
+        {/* Shortcuts */}
+        {!editing && shortcuts.length > 0 && (
+          <div className="-mx-4 overflow-x-auto px-4">
+            <div className="flex gap-2 pb-1">
+              {shortcuts.map((s) => {
+                const m = categoryMeta(s.category)
+                return (
+                  <Tap
+                    key={s.key}
+                    onClick={() => applyShortcut(s)}
+                    className="flex shrink-0 items-center gap-2 rounded-full bg-white px-3 py-2 shadow-card"
+                  >
+                    <span className="text-base">{m.emoji}</span>
+                    <span className="max-w-[9rem] truncate text-sm font-medium">{s.label}</span>
+                    <span className="tnum text-sm text-muted">{money(s.amount)}</span>
+                  </Tap>
+                )
+              })}
             </div>
-            {isTransfer && (
-              <div>
-                <label className="label">To</label>
-                <select className="field" value={toAccountId || ''} onChange={(e) => setToAccountId(e.target.value)}>
-                  {myAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                </select>
-              </div>
-            )}
           </div>
         )}
 
-        {!editing && !isTransfer && (
-          <Link to="/import" className="card-tap flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📄</span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold">Import bank statement</span>
-              <span className="block text-sm text-muted">CSV from your bank</span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
-        )}
+        {/* Description */}
+        <div>
+          <label className="label">Description</label>
+          <input
+            className="field"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder={isIncome ? 'e.g. August invoice' : 'e.g. weekly shop'}
+          />
+        </div>
 
-        {isTransfer && (
-          <p className="rounded-2xl bg-slate-50 p-3 text-sm text-muted">
-            Moving money between your own accounts. It isn't spending, so it won't appear in
-            expenses, categories or the shared split — only your balances change.
-          </p>
-        )}
-
-        {!isIncome && !isTransfer && (
+        {/* Who it belongs to, and whether it was a choice */}
+        {!isIncome && (
           <>
-            {/* Type / need-treat */}
-            <div className="grid grid-cols-1 gap-3">
-              <div>
-                <label className="label">Type</label>
-                <Segmented options={scopeOptions} value={scope} onChange={changeScope} />
-              </div>
-              {scope !== 'business' && (
-                <div>
-                  <label className="label">Need or treat?</label>
-                  <Segmented
-                    options={[
-                      { value: 'need', label: '🧺 Need' },
-                      { value: 'treat', label: '🍦 Treat' },
-                    ]}
-                    value={spendType}
-                    onChange={setSpendType}
-                  />
-                </div>
-              )}
+            <div>
+              <label className="label">Whose is it</label>
+              <Segmented options={scopeOptions} value={scope} onChange={changeScope} />
             </div>
-
-            {/* Partial split — treats only; needs are always 50/50, no question asked */}
-            {canSplit && isTreat && (
+            {scope !== 'business' && (
               <div>
-                <label className="label">What {partner?.display_name || 'they'} owe{partner ? 's' : ''} you back</label>
-                <SplitSlider
-                  value={treatOwedPct}
-                  onChange={setTreatOwedPct}
-                  amount={value}
-                  partnerName={partner?.display_name}
+                <label className="label">Need or treat</label>
+                <Segmented
+                  options={[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }]}
+                  value={spendType}
+                  onChange={setSpendType}
                 />
               </div>
-            )}
-
-            <div>
-              <label className="label">Category</label>
-              <CategoryPicker
-                value={categoryId || category}
-                items={dbCategories.length ? dbCategories : (scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES)}
-                onChange={(c) => {
-                  if (typeof c === 'string') {
-                    // Fallback list — no database categories loaded yet.
-                    setCategoryId(null)
-                    setCategory(c)
-                    if (!editing && scope !== 'business') setSpendType(defaultSpendType(c))
-                    return
-                  }
-                  // Store the exact choice, but keep `category` on the root name
-                  // so every existing total keeps grouping the way it always has.
-                  setCategoryId(c.id)
-                  setCategory(c.parentName || c.name)
-                  if (!editing && scope !== 'business') {
-                    const st = c.spend_type || defaultSpendType(c.parentName || c.name)
-                    setSpendType(st)
-                  }
-                }}
-              />
-            </div>
-
-            {/* Itemized products — groceries only, not a general item list */}
-            {category === 'Groceries' && (
-              <GrocerySelector
-                items={items}
-                onChange={setItems}
-                onUseTotal={(sum) => setAmount(String(sum.toFixed(2)).replace('.', ','))}
-              />
             )}
           </>
         )}
 
-        {isIncome && (
-          <div>
-            <label className="label">Source</label>
-            <input
-              className="field"
-              list="bonus-sources"
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              placeholder="Where from? e.g. Freelance"
-            />
-            <datalist id="bonus-sources">
-              {BONUS_SOURCES.map((t) => <option key={t} value={t} />)}
-            </datalist>
-            <p className="mt-1.5 text-xs text-muted">
-              Your fixed salary belongs in{' '}
-              <Link to="/salary" className="text-brand-600 underline">Salary</Link>, not here — adding it in
-              both places counts it twice. Use this for anything else that comes in.
-            </p>
-          </div>
-        )}
-
-        {/* Date — defaults to today, editable, auto-filled from scans */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="label">Date</label>
-            <input
-              className="field"
-              type="date"
-              value={spentAt}
-              max={todayISO()}
-              onChange={(e) => setSpentAt(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="label">Note (optional)</label>
-            <input
-              className="field"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. weekly shop"
-            />
-          </div>
+        {/* Category — opens its own screen */}
+        <div>
+          <label className="label">Category</label>
+          <Tap onClick={() => setCatOpen(true)} className="flex w-full items-center gap-3 rounded-2xl border border-black/5 bg-white px-4 py-3.5 text-left dark:border-white/10">
+            <span className="text-2xl">{chosenCat?.emoji || categoryMeta(category).emoji}</span>
+            <span className="min-w-0 flex-1 truncate text-lg">{chosenCat?.name || chosenCat?.key || category}</span>
+            <span className="text-muted">›</span>
+          </Tap>
         </div>
 
-        {!editing && !isTransfer && (
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={repeats} onChange={(e) => setRepeats(e.target.checked)} className="h-5 w-5" />
-            Repeats monthly
-          </label>
-        )}
+        {/* Date */}
+        <div>
+          <label className="label">Date</label>
+          <input
+            className="field"
+            type="date"
+            value={spentAt}
+            max={todayISO()}
+            onChange={(e) => setSpentAt(e.target.value)}
+          />
+          <p className="mt-1 text-xs text-muted">{dayLabel(spentAt)}</p>
+        </div>
 
-        {err && <p className="text-sm text-red-600">{err}</p>}
-
-        {dupWarn && (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3">
-            <p className="text-sm font-medium text-amber-800">
-              ⚠️ Possible duplicate — you already logged {money(value)} for {category} on {dayLabel(spentAt)}.
-            </p>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <button className="btn-ghost py-2.5 text-base" onClick={() => setDupWarn(false)}>Cancel</button>
-              <button className="btn-primary py-2.5 text-base" disabled={busy} onClick={() => save(true)}>Add anyway</button>
-            </div>
+        {/* Split, only where it means something */}
+        {canSplit && isTreat && (
+          <div>
+            <label className="label">{partner ? `${partner.display_name} pays back` : 'Split'}</label>
+            <SplitSlider value={treatOwedPct} onChange={setTreatOwedPct} amount={value} />
           </div>
         )}
 
-        {editing && (
-          <button className="btn-ghost w-full text-red-600" disabled={busy} onClick={remove}>
-            Delete expense
-          </button>
+        {category === 'Groceries' && !isIncome && (
+          <GrocerySelector items={items} onChange={setItems} />
         )}
-      </div>
 
-      {/* Sticky save bar — floats over the content rather than sitting behind
-          a hard rule, so the page reads as one surface */}
+        {/* Repeats */}
+        {!editing && (
+          <Tap
+            as="div"
+            onClick={() => setRepeats(!repeats)}
+            className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white p-4 shadow-card"
+          >
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">🔁</span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">Repeats monthly</span>
+              <span className="block text-sm text-muted">Same day, every month, from now on</span>
+            </span>
+            <span className={`flex h-7 w-12 shrink-0 items-center rounded-full px-0.5 transition ${repeats ? 'justify-end bg-brand-500' : 'justify-start bg-slate-200'}`}>
+              <span className="h-6 w-6 rounded-full bg-white shadow" />
+            </span>
+          </Tap>
+        )}
+
+        {/* Bulk and filing, at the bottom where they belong */}
+        {!editing && (
+          <div className="space-y-2.5">
+            <Tap as={Link} to="/import" className="card-tap flex w-full items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📄</span>
+              <span className="min-w-0 flex-1 text-left">
+                <span className="block font-semibold">Import from bank</span>
+                <span className="block text-sm text-muted">CSV statement</span>
+              </span>
+              <span className="text-muted">›</span>
+            </Tap>
+
+            {scope === 'business' && (
+              <Tap as={Link} to="/scan" className="card-tap flex w-full items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📦</span>
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="block font-semibold">Scan and save to Dropbox</span>
+                  <span className="block text-sm text-muted">Keeps the invoice for your gestor</span>
+                </span>
+                <span className="text-muted">›</span>
+              </Tap>
+            )}
+          </div>
+        )}
+
+        {err && <p className="text-sm text-spend">{err}</p>}
+
+        {editing && (
+          <Tap className="btn-ghost w-full text-spend" disabled={busy} onClick={remove}>Delete</Tap>
+        )}
+      </Screen>
+
+      {/* Save */}
       <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-surface via-surface to-transparent px-4 pb-1 pt-8 safe-bottom">
         <div className="mx-auto max-w-md">
-          <button
+          <Tap
             className={`btn w-full px-5 py-4 text-lg text-white shadow-fab ${isIncome ? 'bg-earn' : 'bg-brand-500'}`}
             disabled={busy || value <= 0}
             onClick={() => save()}
           >
-            {busy ? 'Saving…' : editing ? `Update ${money(value)}` : isTransfer ? `Move ${money(value)}` : isIncome ? `Save income ${money(value)}` : `Save expense ${money(value)}`}
-          </button>
+            {busy ? 'Saving…' : editing ? `Update ${money(value)}` : isIncome ? `Save income ${money(value)}` : `Save ${money(value)}`}
+          </Tap>
         </div>
       </div>
-    </div>
-  )
-}
 
-function CameraIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 8h3l2-2h6l2 2h3v11H4z" />
-      <circle cx="12" cy="13" r="3.2" />
-    </svg>
+      <CategorySheet
+        open={catOpen}
+        onClose={() => setCatOpen(false)}
+        items={catItems}
+        value={categoryId || category}
+        onPick={pickCategory}
+        title={isIncome ? 'Where from' : 'Category'}
+      />
+
+      <Sheet open={dupWarn} onClose={() => setDupWarn(false)}>
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold">Possibly already logged</h2>
+          <p className="text-muted">
+            You already have {money(value)} for {category} on {dayLabel(spentAt)}. Add it anyway?
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <Tap className="btn-ghost py-3 text-base" onClick={() => setDupWarn(false)}>Cancel</Tap>
+            <Tap className="btn-primary py-3 text-base" disabled={busy} onClick={() => { setDupWarn(false); save(true) }}>
+              Add anyway
+            </Tap>
+          </div>
+        </div>
+      </Sheet>
+    </div>
   )
 }

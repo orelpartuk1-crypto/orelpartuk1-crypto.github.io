@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
 import { useAccounts } from '../hooks/useAccounts'
@@ -8,7 +9,7 @@ import { useRecurring } from '../hooks/useRecurring'
 import { useDates } from '../hooks/useDates'
 import { useBudgets } from '../hooks/useBudgets'
 import { useSettlements } from '../hooks/useSettlements'
-import { byCategory, settlement, myShareOfShared, myShareOfBills, summarize } from '../lib/calc'
+import { byCategory, settlement, myShareOfShared, myShareOfBills, summarize, onlySpending } from '../lib/calc'
 import { upcomingPayments, buildAlerts } from '../lib/upcoming'
 import { setPendingScan } from '../lib/pendingScan'
 import { categoryMeta } from '../lib/categories'
@@ -38,6 +39,7 @@ export default function Home() {
   const { items: recurringItems } = useRecurring()
   const { dates } = useDates()
   const { shared: sharedBudgets, personal: personalBudgets } = useBudgets()
+  const { notSpending } = useCategories()
   const { rows: settlements } = useSettlements()
 
   const [receipt, setReceipt] = useState(null)
@@ -56,9 +58,12 @@ export default function Home() {
   const balance = useMemo(() => {
     const myBonuses = bonuses.filter((b) => b.owner === user?.id).reduce((t, b) => t + Number(b.amount), 0)
     const income = (myIncome || 0) + myBonuses
-    const spent = summarize(mine).total + myShareOfShared(shared, user?.id) + myShareOfBills(activeBills, user?.id)
+    const spent =
+      summarize(onlySpending(mine, notSpending)).total +
+      myShareOfShared(onlySpending(shared, notSpending), user?.id) +
+      myShareOfBills(activeBills, user?.id)
     return { income, spent, saved: income - spent, pct: income > 0 ? ((income - spent) / income) * 100 : null }
-  }, [bonuses, myIncome, mine, shared, activeBills, user?.id])
+  }, [bonuses, myIncome, mine, shared, activeBills, user?.id, notSpending])
 
   // 2 — Everything that moved, money out and money in together, newest first.
   const movements = useMemo(() => {
@@ -213,7 +218,7 @@ export default function Home() {
         <Item className="card">
           <div className="flex items-baseline justify-between">
             <h2 className="label mb-0">Recent</h2>
-            <Link to="/expenses" className="text-sm font-semibold text-brand-600">View all →</Link>
+            <Link to="/movements" className="text-sm font-semibold text-brand-600">View all →</Link>
           </div>
 
           {loading && movements.length === 0 && <SkeletonRows />}
@@ -249,7 +254,10 @@ export default function Home() {
         {/* 3 — Upcoming */}
         {due.length > 0 && (
           <Item className="card">
-            <h2 className="label">Next 7 days</h2>
+            <div className="flex items-baseline justify-between">
+              <h2 className="label mb-0">Next 7 days</h2>
+              <Link to="/upcoming" className="text-sm font-semibold text-brand-600">View all →</Link>
+            </div>
             <Stagger className="divide-y divide-slate-100">
               {due.slice(0, 4).map((u) => (
                 <Item key={u.id}>
