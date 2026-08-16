@@ -23,7 +23,7 @@ const kindEmoji = (k) => ACCOUNT_KINDS.find((x) => x.value === k)?.emoji || '�
 const SLICE_COLORS = ['#0f7a3e', '#6d8fd6', '#d946ef', '#ca8a04', '#0891b2', '#7c3aed', '#16a34a', '#db2777']
 
 export default function Wealth() {
-  const { profile } = useAuth()
+  const { profile, hasBusiness } = useAuth()
   const { active: accounts, balances, total: liquid, add: addAccount } = useAccounts()
   const { assets, debts, assetsTotal, debtsTotal, loading, add: addHolding, update, remove } = useHoldings()
   const { goals, savedByGoal } = useSavings()
@@ -198,6 +198,18 @@ export default function Wealth() {
             </span>
             <span className="text-muted">›</span>
           </Link>
+          {hasBusiness && (
+            <Link to="/tax" className="card-tap flex items-center justify-between">
+              <span className="flex items-center gap-3">
+                <span className="text-2xl">🧮</span>
+                <span>
+                  <span className="block font-semibold">Business tax</span>
+                  <span className="block text-sm text-muted">Autónomo estimate and what's deductible</span>
+                </span>
+              </span>
+              <span className="text-muted">›</span>
+            </Link>
+          )}
           <Link to="/simulators" className="card-tap flex items-center justify-between">
             <span className="flex items-center gap-3">
               <span className="text-2xl">🧮</span>

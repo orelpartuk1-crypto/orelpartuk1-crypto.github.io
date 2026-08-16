@@ -28,7 +28,6 @@ import Bills from './pages/Bills'
 import Tax from './pages/Tax'
 import Dates from './pages/Dates'
 import Recurring from './pages/Recurring'
-import Expenses from './pages/Expenses'
 import Automate from './pages/Automate'
 
 function Splash({ text = 'Loading…' }) {
@@ -94,7 +93,9 @@ function Shell() {
               working so a home-screen icon saved to it still lands somewhere. */}
           <Route path="/money" element={<Navigate to="/plan" replace />} />
           <Route path="/recurring" element={<Recurring />} />
-          <Route path="/expenses" element={<Expenses />} />
+          {/* Superseded by /movements, which shows money in as well as out.
+              Kept as a redirect so old links and saved icons still land. */}
+          <Route path="/expenses" element={<Navigate to="/movements" replace />} />
           <Route path="/automate" element={<Automate />} />
           <Route path="/tax" element={<Tax />} />
           <Route path="/dates" element={<Dates />} />

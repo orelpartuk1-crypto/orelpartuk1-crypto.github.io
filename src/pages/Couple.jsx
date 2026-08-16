@@ -219,7 +219,18 @@ export default function Couple() {
           </Stagger>
         </Item>
 
-        <Item>
+        <Item className="space-y-2.5">
+          <Link to="/plan" className="card-tap flex items-center justify-between">
+            <span className="flex items-center gap-3">
+              <span className="text-2xl">🔁</span>
+              <span>
+                <span className="block font-semibold">Every month</span>
+                <span className="block text-sm text-muted">Rent, subscriptions and dates</span>
+              </span>
+            </span>
+            <span className="text-muted">›</span>
+          </Link>
+
           <Link to="/analytics?zone=together" className="card-tap flex items-center justify-between">
             <span className="flex items-center gap-3">
               <span className="text-2xl">📊</span>
