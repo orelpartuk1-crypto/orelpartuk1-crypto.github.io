@@ -17,6 +17,7 @@ import TopBar from '../components/TopBar'
 import AlertBell from '../components/AlertBell'
 import ReceiptViewer from '../components/ReceiptViewer'
 import MovementSheet from '../components/MovementSheet'
+import { Avatar } from './Profile'
 import { Screen, Stagger, Item, Tap, Counter, motion } from '../components/motion'
 
 const isThisMonth = (d) => {
@@ -146,12 +147,8 @@ export default function Home() {
                 <path d="M4 8h3l2-2h6l2 2h3v11H4z" /><circle cx="12" cy="13" r="3.2" />
               </svg>
             </Tap>
-            <Tap as={motion.a} href="/settings" onClick={(e) => { e.preventDefault(); nav('/settings') }}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card" aria-label="Settings">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
-              </svg>
+            <Tap onClick={() => nav('/profile')} className="rounded-full" aria-label="Profile">
+              <Avatar name={profile?.display_name} size={40} />
             </Tap>
           </div>
         }

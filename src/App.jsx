@@ -8,6 +8,7 @@ import ResetPassword from './pages/ResetPassword'
 import Onboarding from './pages/Onboarding'
 import Home from './pages/Home'
 import Couple from './pages/Couple'
+import Profile from './pages/Profile'
 import Dashboard from './pages/Dashboard'
 import AddExpense from './pages/AddExpense'
 import ScanReceipt from './pages/ScanReceipt'
@@ -69,6 +70,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/together" element={<Couple />} />
+          <Route path="/profile" element={<Profile />} />
           {/* The money coach and the zone breakdowns still live here until they
               get a proper home on Analytics. */}
           <Route path="/coach" element={<Dashboard />} />

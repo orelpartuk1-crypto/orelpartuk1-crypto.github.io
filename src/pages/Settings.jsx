@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { enablePush, disablePush, isPushEnabled, pushSupported } from '../lib/push'
+import { getTheme, setTheme } from '../lib/theme'
 import TopBar from '../components/TopBar'
 
 export default function Settings() {
@@ -14,6 +15,7 @@ export default function Settings() {
   const [pushOn, setPushOn] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
   const [pushErr, setPushErr] = useState(null)
+  const [themeChoice, setThemeChoice] = useState(getTheme)
 
   useEffect(() => { setName(profile?.display_name || '') }, [profile?.display_name])
   useEffect(() => { setBudget(String(household?.monthly_budget ?? '')) }, [household?.monthly_budget])
@@ -60,6 +62,28 @@ export default function Settings() {
         {/* Only things that change how the app behaves live here. Money itself —
             salary, rent, subscriptions, goals, dates — lives under Monthly, and
             every transaction goes through Add. */}
+
+        <div className="card">
+          <h2 className="label">Appearance</h2>
+          <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+            {[
+              { v: 'light', l: '☀️ Light' },
+              { v: 'dark', l: '🌙 Dark' },
+              { v: 'system', l: '📱 Auto' },
+            ].map((o) => (
+              <button
+                key={o.v}
+                onClick={() => { setTheme(o.v); setThemeChoice(o.v) }}
+                className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${
+                  themeChoice === o.v ? 'bg-white text-ink shadow-card' : 'text-muted'
+                }`}
+              >
+                {o.l}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-muted">Auto follows your phone, including when it switches at sunset.</p>
+        </div>
 
         {/* Profile + budget */}
         <div className="card space-y-3">

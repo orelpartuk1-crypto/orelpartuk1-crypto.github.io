@@ -2,8 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Every colour in the app resolves through these, so dark mode is a matter of
+   swapping values here rather than adding a dark: variant to a thousand class
+   names. Tailwind's palette is mapped onto them in the config — including
+   `white`, which is really "card surface" and must not stay white at night. */
 :root {
   color-scheme: light;
+
+  --c-surface: 239 243 237;   /* page ground */
+  --c-card: 255 255 255;      /* raised surfaces */
+  --c-ink: 18 36 26;
+  --c-muted: 124 138 128;
+
+  --c-brand-50: 232 244 236;
+  --c-brand-100: 201 229 211;
+  --c-brand-200: 163 211 181;
+  --c-brand-500: 15 122 62;
+  --c-brand-600: 12 103 51;
+  --c-brand-700: 10 84 41;
+
+  --c-mint-100: 220 238 226;
+  --c-mint-200: 195 221 202;
+  --c-mint-300: 168 205 179;
+
+  --c-spend: 210 74 60;
+  --c-earn: 15 122 62;
+
+  --c-n-50: 245 248 243;
+  --c-n-100: 233 238 231;
+  --c-n-200: 215 222 212;
+  --c-n-300: 185 196 182;
+  --c-n-400: 152 164 149;
+  --c-n-500: 124 138 128;
+  --c-n-600: 95 108 99;
+  --c-n-700: 72 83 76;
+  --c-n-800: 51 59 54;
+  --c-n-900: 29 35 31;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --c-surface: 14 22 17;
+  --c-card: 22 33 26;
+  --c-ink: 232 239 233;
+  --c-muted: 126 143 131;
+
+  /* Brand lightens at night: the daytime green on a dark card is unreadable,
+     and the 50/100 steps become tints of the surface rather than near-white. */
+  --c-brand-50: 22 40 29;
+  --c-brand-100: 31 68 48;
+  --c-brand-200: 45 94 66;
+  --c-brand-500: 63 176 105;
+  --c-brand-600: 87 191 130;
+  --c-brand-700: 168 218 186;
+
+  --c-mint-100: 27 45 34;
+  --c-mint-200: 31 58 41;
+  --c-mint-300: 45 84 60;
+
+  --c-spend: 224 119 106;
+  --c-earn: 87 191 130;
+
+  --c-n-50: 27 40 32;
+  --c-n-100: 33 48 38;
+  --c-n-200: 42 58 47;
+  --c-n-300: 62 80 68;
+  --c-n-400: 95 112 100;
+  --c-n-500: 126 143 131;
+  --c-n-600: 155 172 160;
+  --c-n-700: 186 200 190;
+  --c-n-800: 212 223 215;
+  --c-n-900: 236 243 238;
 }
 
 html,
@@ -14,8 +84,8 @@ body,
 
 body {
   margin: 0;
-  background: #eff3ed;
-  color: #12241a;
+  background: rgb(var(--c-surface));
+  color: rgb(var(--c-ink));
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   /* Prevent the iOS "zoom on input focus" bug via 16px base */
@@ -25,6 +95,7 @@ body {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Remove the 300ms tap delay / double-tap zoom on interactive elements */
@@ -79,10 +150,10 @@ textarea,
            disabled:opacity-40 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply btn bg-brand-500 text-white shadow-fab px-5 py-4 text-lg;
+    @apply btn bg-brand-500 text-white px-5 py-4 text-lg shadow-fab;
   }
   .btn-ghost {
-    @apply btn bg-white text-ink border border-black/5 px-5 py-4 text-lg;
+    @apply btn bg-white text-ink border border-black/5 px-5 py-4 text-lg dark:border-white/10;
   }
   .card {
     @apply bg-white rounded-xl2 shadow-card p-4;
@@ -92,8 +163,9 @@ textarea,
     @apply card transition-transform duration-150 active:scale-[0.985];
   }
   .field {
-    @apply w-full rounded-2xl border border-black/5 bg-white px-4 py-3.5 text-lg
-           outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-50;
+    @apply w-full rounded-2xl border border-black/5 bg-white px-4 py-3.5 text-lg text-ink
+           outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-50
+           dark:border-white/10;
   }
   /* Small, spaced, uppercase — the quiet caption above a group of content. */
   .label {
