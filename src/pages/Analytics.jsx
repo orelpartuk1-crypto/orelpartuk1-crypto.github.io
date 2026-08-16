@@ -6,6 +6,7 @@ import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
 import { useBudgets } from '../hooks/useBudgets'
 import { useHistory } from '../hooks/useHistory'
+import { useRecurring } from '../hooks/useRecurring'
 import { byCategory, summarize, budgetStatus, vsLastMonth, onlySpending } from '../lib/calc'
 import { monthlyTotals } from '../lib/coach'
 import { categoryMeta } from '../lib/categories'
@@ -38,6 +39,7 @@ export default function Analytics() {
   const { shared: sharedBudgets, personal: personalBudgets, set: setBudget } = useBudgets()
   const { rows: history } = useHistory(6)
   const { notSpending } = useCategories()
+  const { items: recurringItems } = useRecurring()
 
   // Arriving from the Together screen should land on shared, not on whatever
   // zone was last used somewhere else.
@@ -177,6 +179,12 @@ export default function Analytics() {
             <p className="py-8 text-center text-muted">Nothing here for {monthLabel(monthDate)}.</p>
           )}
 
+          {openCat && (
+            <button onClick={() => setOpenCat(null)} className="mt-2 w-full rounded-full bg-slate-50 py-2 text-sm font-semibold text-brand-600">
+              ← Show all categories
+            </button>
+          )}
+
           {cats.length > 0 && (
             <>
               <div className="my-4 flex justify-center">
@@ -185,17 +193,26 @@ export default function Analytics() {
                   stroke={24}
                   data={cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
                   total={total}
+                  selected={openCat}
+                  onSelect={(label) => setOpenCat(label)}
                   center={
                     <>
-                      <span className="text-xs text-muted">total</span>
-                      <span className="tnum text-xl font-bold">{money(total)}</span>
+                      <span className="text-xs text-muted">{openCat || 'total'}</span>
+                      <span className="tnum text-xl font-bold">
+                        {money(openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total)}
+                      </span>
+                      {openCat && total > 0 && (
+                        <span className="text-xs text-muted">
+                          {Math.round(((cats.find((c) => c.category === openCat)?.total ?? 0) / total) * 100)}%
+                        </span>
+                      )}
                     </>
                   }
                 />
               </div>
 
               <div className="divide-y divide-slate-100">
-                {cats.map(({ category, total: t }) => {
+                {(openCat ? cats.filter((c) => c.category === openCat) : cats).map(({ category, total: t }) => {
                   const m = categoryMeta(category)
                   const share = total > 0 ? Math.round((t / total) * 100) : 0
                   const isOpen = openCat === category
@@ -311,6 +328,48 @@ export default function Analytics() {
           </span>
           <span className="text-muted">›</span>
         </Link>
+
+        {/* What repeats every month, in whichever direction is being shown */}
+        {(() => {
+          const kind = showingIncome ? 'income' : 'expense'
+          const rows = recurringItems.filter((r) => r.active && r.kind === kind)
+          // Recurring income is personal, so it isn't filtered by zone; expenses are.
+          const wantScope = activeZone === 'together' ? 'shared' : activeZone === 'mine' ? 'private' : 'business'
+          const scoped = kind === 'expense' ? rows.filter((r) => r.scope === wantScope) : rows
+          const monthly = scoped.reduce((t, r) => t + Number(r.amount || 0), 0)
+          return (
+            <div className="card">
+              <div className="flex items-baseline justify-between">
+                <h2 className="label mb-0">Every month</h2>
+                <span className={`tnum font-bold ${showingIncome ? 'text-earn' : 'text-spend'}`}>{money(monthly)}</span>
+              </div>
+              {scoped.length === 0 ? (
+                <p className="py-4 text-center text-sm text-muted">
+                  Nothing repeating here yet. Tick “Repeats monthly” when you add something.
+                </p>
+              ) : (
+                <ul className="divide-y divide-slate-100">
+                  {scoped.map((r) => {
+                    const m = categoryMeta(r.category)
+                    return (
+                      <li key={r.id} className="flex items-center gap-3 py-2.5">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: m.color + '22' }}>
+                          {showingIncome ? '💰' : m.emoji}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">{r.name}</span>
+                          <span className="block text-xs text-muted">{r.category || r.source || 'Monthly'}</span>
+                        </span>
+                        <span className="tnum shrink-0 font-semibold">{money(r.amount)}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+              <Link to="/recurring" className="mt-2 block text-sm font-semibold text-brand-600">Manage →</Link>
+            </div>
+          )
+        })()}
 
         {/* Six-month trend */}
         {trend.length > 1 && (

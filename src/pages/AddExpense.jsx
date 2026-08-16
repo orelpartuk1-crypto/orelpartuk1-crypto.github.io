@@ -21,6 +21,11 @@ import { uploadReceipt } from '../lib/receipts'
 const toNumber = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 const todayISO = () => isoDay(new Date())
 
+// Categories where the category IS the description — nobody needs to write
+// "weekly shop" under Groceries. Everywhere else, a line called "Personal Care"
+// tells you nothing three months later; "dentist" does.
+const SELF_EXPLANATORY = new Set(['Groceries', 'Rent', 'Utilities', 'Taxes', 'Insurance', 'Subscriptions'])
+
 export default function AddExpense() {
   const nav = useNavigate()
   const location = useLocation()
@@ -157,9 +162,15 @@ export default function AddExpense() {
     }
   }
 
+  const needsDescription = !isIncome && !note.trim() && !SELF_EXPLANATORY.has(category)
+
   const save = async (force = false) => {
     if (value <= 0) return
     setErr(null)
+    if (needsDescription) {
+      setErr(`What was this ${category.toLowerCase()} for? Give it a name so you'll recognise it later.`)
+      return
+    }
 
     if (!isIncome && !editing && !force) {
       setBusy(true)
@@ -311,12 +322,14 @@ export default function AddExpense() {
 
         {/* Description */}
         <div>
-          <label className="label">Description</label>
+          <label className="label">
+            What was it{!isIncome && !SELF_EXPLANATORY.has(category) ? '' : ' (optional)'}
+          </label>
           <input
-            className="field"
+            className={`field ${needsDescription && err ? 'border-spend' : ''}`}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder={isIncome ? 'e.g. August invoice' : 'e.g. weekly shop'}
+            placeholder={isIncome ? 'e.g. August invoice' : 'e.g. dentist, haircut, massage'}
           />
         </div>
 
