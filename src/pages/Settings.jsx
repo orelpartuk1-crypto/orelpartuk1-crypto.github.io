@@ -8,17 +8,12 @@ import TopBar from '../components/TopBar'
 export default function Settings() {
   const { profile, household, members, user, updateDisplayName, updateBudget, signOut, hasBusiness, setHasBusiness, reminderHour, updateReminderHour } = useAuth()
 
-  const [name, setName] = useState(profile?.display_name || '')
-  const [budget, setBudget] = useState(String(household?.monthly_budget ?? ''))
   const [copied, setCopied] = useState(false)
-  const [saved, setSaved] = useState(false)
   const [pushOn, setPushOn] = useState(false)
   const [pushBusy, setPushBusy] = useState(false)
   const [pushErr, setPushErr] = useState(null)
   const [themeChoice, setThemeChoice] = useState(getTheme)
 
-  useEffect(() => { setName(profile?.display_name || '') }, [profile?.display_name])
-  useEffect(() => { setBudget(String(household?.monthly_budget ?? '')) }, [household?.monthly_budget])
   useEffect(() => { isPushEnabled().then(setPushOn) }, [])
 
   const togglePush = async () => {
@@ -40,12 +35,7 @@ export default function Settings() {
   }
 
 
-  const saveProfile = async () => {
-    await updateDisplayName(name.trim() || 'Me')
-    await updateBudget(parseFloat((budget || '0').replace(',', '.')) || 0)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 1500)
-  }
+
 
   const copyCode = async () => {
     try {
@@ -83,28 +73,6 @@ export default function Settings() {
             ))}
           </div>
           <p className="mt-2 text-xs text-muted">Auto follows your phone, including when it switches at sunset.</p>
-        </div>
-
-        {/* Profile + budget */}
-        <div className="card space-y-3">
-          <h2 className="font-semibold text-lg">Profile & budget</h2>
-          <div>
-            <label className="label">Your name</label>
-            <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">Monthly budget (€)</label>
-            <input
-              className="field"
-              inputMode="decimal"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value.replace(/[^0-9.,]/g, ''))}
-              placeholder="1500"
-            />
-          </div>
-          <button className="btn-primary w-full" onClick={saveProfile}>
-            {saved ? 'Saved ✓' : 'Save'}
-          </button>
         </div>
 
         {/* Business mode — a real setting: it decides whether the Business zone

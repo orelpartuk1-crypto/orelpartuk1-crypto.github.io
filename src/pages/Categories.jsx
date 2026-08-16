@@ -36,56 +36,50 @@ export default function Categories() {
 
         {loading && <p className="text-muted">Loading…</p>}
 
-        <div className="space-y-2.5">
+        <div className="card divide-y divide-slate-100 py-0">
           {list.map((parent) => (
-            <div key={parent.id} className="card">
-              <div className="flex items-center gap-3">
+            <div key={parent.id} className="py-2">
+              <div className="flex items-center gap-2.5">
                 <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base"
                   style={{ backgroundColor: parent.color + '22' }}
                 >
                   {parent.emoji}
                 </span>
                 <button onClick={() => setEditing(parent)} className="min-w-0 flex-1 text-left active:opacity-60">
-                  <span className="block truncate font-semibold">{parent.name}</span>
-                  {parent.counts_as_expense === false ? (
-                    <span className="block text-xs text-muted">Doesn't count as spending</span>
-                  ) : parent.spend_type ? (
-                    <span className="block text-xs text-muted">
-                      Defaults to {parent.spend_type === 'treat' ? '🍦 treat' : '🧺 need'}
-                    </span>
-                  ) : null}
+                  <span className="block truncate font-medium leading-tight">{parent.name}</span>
+                  {parent.counts_as_expense === false && (
+                    <span className="block text-[11px] leading-tight text-muted">Not counted as spending</span>
+                  )}
                 </button>
                 <button
                   onClick={() => setAddingUnder(parent)}
-                  className="shrink-0 rounded-full bg-slate-50 px-3 py-1.5 text-sm font-semibold text-brand-600 active:scale-95"
+                  aria-label={`Add subcategory to ${parent.name}`}
+                  className="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-brand-600 active:scale-95"
                 >
-                  + Sub
+                  +
                 </button>
                 <button
                   onClick={() => update(parent.id, { active: false })}
                   aria-label={`Hide ${parent.name}`}
-                  className="flex h-7 w-12 shrink-0 items-center justify-end rounded-full bg-brand-500 px-0.5 transition"
+                  className="flex h-6 w-10 shrink-0 items-center justify-end rounded-full bg-brand-500 px-0.5"
                 >
-                  <span className="h-6 w-6 rounded-full bg-white shadow" />
+                  <span className="h-5 w-5 rounded-full bg-white shadow" />
                 </button>
               </div>
 
               {parent.children.length > 0 && (
-                <ul className="mt-2 space-y-1 border-t border-slate-100 pt-2">
+                <div className="mt-1 flex flex-wrap gap-1.5 pl-11">
                   {parent.children.map((c) => (
-                    <li key={c.id}>
-                      <button
-                        onClick={() => setEditing(c)}
-                        className="flex w-full items-center gap-2 rounded-xl px-2 py-1.5 text-left text-sm active:bg-slate-50"
-                      >
-                        <span className="text-base">{c.emoji}</span>
-                        <span className="min-w-0 flex-1 truncate">{c.name}</span>
-                        <span className="text-muted">›</span>
-                      </button>
-                    </li>
+                    <button
+                      key={c.id}
+                      onClick={() => setEditing(c)}
+                      className="rounded-full bg-slate-50 px-2.5 py-1 text-xs font-medium active:scale-95"
+                    >
+                      {c.emoji} {c.name}
+                    </button>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
           ))}

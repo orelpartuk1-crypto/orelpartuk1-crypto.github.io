@@ -252,12 +252,16 @@ export default function Home() {
         </Item>
 
         {/* 3 — Upcoming */}
-        {due.length > 0 && (
-          <Item className="card">
+        <Item className="card">
             <div className="flex items-baseline justify-between">
               <h2 className="label mb-0">Next 7 days</h2>
               <Link to="/upcoming" className="text-sm font-semibold text-brand-600">View all →</Link>
             </div>
+          {due.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted">
+              Nothing due in the next week. Rent and monthly charges appear here as their date comes round.
+            </p>
+          ) : (
             <Stagger className="divide-y divide-slate-100">
               {due.slice(0, 4).map((u) => (
                 <Item key={u.id}>
@@ -280,8 +284,8 @@ export default function Home() {
                 </Item>
               ))}
             </Stagger>
-          </Item>
-        )}
+          )}
+        </Item>
       </Screen>
 
       <MovementSheet

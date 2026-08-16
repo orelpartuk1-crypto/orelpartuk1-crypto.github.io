@@ -9,7 +9,6 @@ import { useCategories } from '../hooks/useCategories'
 import { useAllExpenses } from '../hooks/useAllExpenses'
 import Segmented from '../components/Segmented'
 import GrocerySelector from '../components/GrocerySelector'
-import SplitSlider from '../components/SplitSlider'
 import CategorySheet from '../components/CategorySheet'
 import TopBar from '../components/TopBar'
 import { Screen, Item, Tap, Sheet } from '../components/motion'
@@ -124,13 +123,9 @@ export default function AddExpense() {
     if (s.spend_type) setSpendType(s.spend_type)
   }
 
-  const partner = members?.find((m) => m.id !== user?.id)
-  const canSplit = !isIncome && scope === 'shared' && members?.length === 2
-  const isTreat = !isIncome && spendType === 'treat'
-  const initialOwed = editing?.owed_amount ?? prefill?.owed_amount ?? null
-  const initialPct = initialOwed != null && Number(seed.amount) > 0 ? Math.round((Number(initialOwed) / Number(seed.amount)) * 100) : 0
-  const [treatOwedPct, setTreatOwedPct] = useState(initialPct)
-  const owedAmount = canSplit && isTreat ? Math.round(((value * treatOwedPct) / 100) * 100) / 100 : null
+  // No manual split any more — needs are 50/50 by the default rule and treats
+  // are each their own, which is what the settle-up figure already assumes.
+  const owedAmount = null
 
   const scopeOptions = [
     { value: 'shared', label: '🤝 Together' },
@@ -367,14 +362,6 @@ export default function AddExpense() {
           />
           <p className="mt-1 text-xs text-muted">{dayLabel(spentAt)}</p>
         </div>
-
-        {/* Split, only where it means something */}
-        {canSplit && isTreat && (
-          <div>
-            <label className="label">{partner ? `${partner.display_name} pays back` : 'Split'}</label>
-            <SplitSlider value={treatOwedPct} onChange={setTreatOwedPct} amount={value} />
-          </div>
-        )}
 
         {category === 'Groceries' && !isIncome && (
           <GrocerySelector items={items} onChange={setItems} />
