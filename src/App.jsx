@@ -11,7 +11,9 @@ import AddExpense from './pages/AddExpense'
 import ScanReceipt from './pages/ScanReceipt'
 import Savings from './pages/Savings'
 import Settings from './pages/Settings'
-import Money from './pages/Money'
+import Plan from './pages/Plan'
+import Salary from './pages/Salary'
+import Bills from './pages/Bills'
 import Tax from './pages/Tax'
 import Dates from './pages/Dates'
 import Recurring from './pages/Recurring'
@@ -61,7 +63,12 @@ function Shell() {
           <Route path="/add" element={<AddExpense />} />
           <Route path="/scan" element={<ScanReceipt />} />
           <Route path="/savings" element={<Savings />} />
-          <Route path="/money" element={<Money />} />
+          <Route path="/plan" element={<Plan />} />
+          <Route path="/salary" element={<Salary />} />
+          <Route path="/bills" element={<Bills />} />
+          {/* Income & bills split into Salary and Bills; keep the old path
+              working so a home-screen icon saved to it still lands somewhere. */}
+          <Route path="/money" element={<Navigate to="/plan" replace />} />
           <Route path="/recurring" element={<Recurring />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/automate" element={<Automate />} />

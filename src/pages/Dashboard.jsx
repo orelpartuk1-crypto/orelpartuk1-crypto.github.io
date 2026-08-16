@@ -584,7 +584,7 @@ function TogetherZone({ shared, prevShared, history = [], members, activeBills, 
             {higher ? `⚖️ ${nameOf(higher.id)} spends a bigger share of income on treats.` : '⚖️ Balanced vs each income.'}
           </p>
         ) : (
-          <Link to="/money" className="mt-3 block text-sm text-brand-600 underline">Add salaries to compare treats vs income →</Link>
+          <Link to="/salary" className="mt-3 block text-sm text-brand-600 underline">Add salaries to compare treats vs income →</Link>
         ))}
         <CatList expenses={treatExp} prevExpenses={prevTreatExp} empty="No shared treats yet." nameOf={nameOf} onReceipt={onReceipt} />
       </div>
@@ -615,7 +615,7 @@ function MineZone({ mine, prevMine, history = [], myIncome, balance, budgets, bu
         <div className="card bg-gradient-to-br from-brand-500 to-brand-700 text-white">
           <p className="text-white/80 text-sm">Your private spending this month</p>
           <p className="mt-1 text-4xl font-bold">{money(totals.total)}</p>
-          <Link to="/money" className="mt-3 inline-block text-sm underline text-white/90">Add your income to see your balance →</Link>
+          <Link to="/salary" className="mt-3 inline-block text-sm underline text-white/90">Add your income to see your balance →</Link>
         </div>
       )}
 

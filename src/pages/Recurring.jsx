@@ -22,10 +22,10 @@ export default function Recurring() {
   const expenses = items.filter((i) => i.kind === 'expense')
   const incomes = items.filter((i) => i.kind === 'income')
 
-  // Expenses only — income can also be added inline from Add Expense, but
-  // recurring salary is deliberately NOT supported anywhere: it lives solely
-  // in the Money page's Salary field so it's never double-counted. Any
-  // "income" items below are legacy — remove one if it's actually your salary.
+  // This form stays expense-only on purpose: Add is the single way in for
+  // anything new, income included. What's here is for reviewing and adjusting
+  // what already repeats. Fixed salary never belongs in this table — it has its
+  // own field, and duplicating it there is what once made income read too high.
   const create = async () => {
     if (!name.trim() || num(amount) <= 0) { setErr('Enter a name and an amount.'); return }
     setErr(null); setBusy(true)
@@ -83,11 +83,11 @@ export default function Recurring() {
         )}
         {incomes.length > 0 && (
           <div className="card">
-            <h2 className="font-semibold text-lg mb-1">Monthly income (legacy)</h2>
+            <h2 className="font-semibold text-lg mb-1">Monthly income</h2>
             <p className="text-sm text-muted mb-2">
-              Recurring income isn't supported here anymore — your salary belongs only in{' '}
-              <Link to="/money" className="text-brand-600 underline">Income & bills</Link>. If one of these represents
-              your salary, remove it below so it doesn't get counted twice.
+              Add these from the Add screen. Your fixed salary is the exception — it belongs only in{' '}
+              <Link to="/salary" className="text-brand-600 underline">Salary</Link>, so if one of these is
+              your salary, remove it here or it gets counted twice.
             </p>
             <ul className="divide-y divide-slate-100">
               {incomes.map((i) => <Row key={i.id} item={i} onToggle={toggle} onRename={rename} onRemove={remove} income />)}

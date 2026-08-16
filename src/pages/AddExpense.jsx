@@ -117,19 +117,22 @@ export default function AddExpense() {
 
     setBusy(true)
 
-    // "Repeats monthly" — expenses only. Income deliberately has no recurring
-    // path here: salary lives solely in the Money page's dedicated field, so
-    // it's never double-counted alongside a separately materialized "recurring
-    // income" row (that's exactly what caused a real income mismatch once).
-    // Register the template first (without materializing — we insert today's
-    // occurrence directly below), then tag that occurrence with the new
+    // "Repeats monthly" — for money out and money in alike. Fixed salary is the
+    // one thing that must NOT come through here: it has its own field, and
+    // having it in both places is exactly what once made income read 3500 when
+    // it was 2000. The Source hint above says so; nothing else needs blocking.
+    //
+    // Register the template first (without materializing — we insert this
+    // month's occurrence directly below), then tag that occurrence with the new
     // template's id so next month's auto-materialization doesn't duplicate it.
     let recurringId = null
-    if (repeats && !editing && !isIncome) {
+    if (repeats && !editing) {
       // Name it after what you typed, not the category. Naming every template
       // "Personal Care" made them indistinguishable in the Recurring list, so
       // duplicates of the same real thing were impossible to spot.
-      const recurringPayload = { kind: 'expense', name: note.trim() || category, amount: value, category, scope, spend_type: spendType }
+      const recurringPayload = isIncome
+        ? { kind: 'income', name: note.trim() || source.trim() || 'Income', amount: value, source: source.trim() || 'Income' }
+        : { kind: 'expense', name: note.trim() || category, amount: value, category, scope, spend_type: spendType }
       const { data: recRow, error: recErr } = await addRecurring(recurringPayload, { materialize: false })
       if (recErr) { setBusy(false); setErr(recErr.message); return }
       recurringId = recRow?.id ?? null
@@ -299,8 +302,9 @@ export default function AddExpense() {
               {BONUS_SOURCES.map((t) => <option key={t} value={t} />)}
             </datalist>
             <p className="mt-1.5 text-xs text-muted">
-              This is for one-off income. For your recurring salary, use the Salary field in{' '}
-              <Link to="/money" className="text-brand-600 underline">Income & bills</Link> instead — keeping it in one place avoids double-counting.
+              Your fixed salary belongs in{' '}
+              <Link to="/salary" className="text-brand-600 underline">Salary</Link>, not here — adding it in
+              both places counts it twice. Use this for anything else that comes in.
             </p>
           </div>
         )}
@@ -328,7 +332,7 @@ export default function AddExpense() {
           </div>
         </div>
 
-        {!editing && !isIncome && (
+        {!editing && (
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={repeats} onChange={(e) => setRepeats(e.target.checked)} className="h-5 w-5" />
             Repeats monthly

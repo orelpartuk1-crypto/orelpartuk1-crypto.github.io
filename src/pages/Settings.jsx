@@ -8,7 +8,7 @@ import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
 
 export default function Settings() {
-  const { profile, household, members, user, updateDisplayName, updateBudget, signOut, hasBusiness, reminderHour, updateReminderHour } = useAuth()
+  const { profile, household, members, user, updateDisplayName, updateBudget, signOut, hasBusiness, setHasBusiness, reminderHour, updateReminderHour } = useAuth()
   const { budgets, setCategoryBudget } = useExpenses()
 
   const [name, setName] = useState(profile?.display_name || '')
@@ -62,59 +62,9 @@ export default function Settings() {
     <div className="pb-28">
       <TopBar title="Settings" back />
       <div className="mx-auto max-w-md px-4 space-y-4">
-        {/* Quick links */}
-        <Link to="/money" className="card flex items-center justify-between active:scale-[0.99]">
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">💶</span>
-            <span>
-              <span className="block font-semibold">Income & bills</span>
-              <span className="block text-sm text-muted">Salary, bonuses, rent</span>
-            </span>
-          </span>
-          <span className="text-muted">›</span>
-        </Link>
-        <Link to="/recurring" className="card flex items-center justify-between active:scale-[0.99]">
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">🔁</span>
-            <span>
-              <span className="block font-semibold">Repeats monthly</span>
-              <span className="block text-sm text-muted">Subscriptions & regular income</span>
-            </span>
-          </span>
-          <span className="text-muted">›</span>
-        </Link>
-        <Link to="/automate" className="card flex items-center justify-between active:scale-[0.99]">
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">⚡</span>
-            <span>
-              <span className="block font-semibold">Log faster</span>
-              <span className="block text-sm text-muted">Siri, one-tap & reminders</span>
-            </span>
-          </span>
-          <span className="text-muted">›</span>
-        </Link>
-        {hasBusiness && (
-          <Link to="/tax" className="card flex items-center justify-between active:scale-[0.99]">
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">💼</span>
-              <span>
-                <span className="block font-semibold">Business tax</span>
-                <span className="block text-sm text-muted">Autónomo IRPF estimate (Madrid)</span>
-              </span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
-        )}
-        <Link to="/dates" className="card flex items-center justify-between active:scale-[0.99]">
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">🎂</span>
-            <span>
-              <span className="block font-semibold">Important dates</span>
-              <span className="block text-sm text-muted">Birthdays, holidays + budgets</span>
-            </span>
-          </span>
-          <span className="text-muted">›</span>
-        </Link>
+        {/* Only things that change how the app behaves live here. Money itself —
+            salary, rent, subscriptions, goals, dates — lives under Monthly, and
+            every transaction goes through Add. */}
 
         {/* Profile + budget */}
         <div className="card space-y-3">
@@ -137,6 +87,36 @@ export default function Settings() {
             {saved ? 'Saved ✓' : 'Save'}
           </button>
         </div>
+
+        {/* Business mode — a real setting: it decides whether the Business zone
+            and its categories exist at all. The tax screen itself lives inside
+            that zone on the dashboard, not here. */}
+        <button
+          onClick={() => setHasBusiness(!hasBusiness)}
+          className={`card flex w-full items-center justify-between text-left active:scale-[0.99] ${hasBusiness ? 'ring-2 ring-brand-500' : ''}`}
+        >
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">💼</span>
+            <span>
+              <span className="block font-semibold">I own a business</span>
+              <span className="block text-sm text-muted">Adds a Business zone and its tax estimate</span>
+            </span>
+          </span>
+          <span className={`flex h-7 w-12 shrink-0 items-center rounded-full px-0.5 transition ${hasBusiness ? 'bg-brand-500 justify-end' : 'bg-slate-200 justify-start'}`}>
+            <span className="h-6 w-6 rounded-full bg-white shadow" />
+          </span>
+        </button>
+
+        <Link to="/automate" className="card flex items-center justify-between active:scale-[0.99]">
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">⚡</span>
+            <span>
+              <span className="block font-semibold">Log faster</span>
+              <span className="block text-sm text-muted">Apple Pay auto-log, Siri, home-screen icons</span>
+            </span>
+          </span>
+          <span className="text-muted">›</span>
+        </Link>
 
         {/* Daily push reminder */}
         <div className="card space-y-3">
