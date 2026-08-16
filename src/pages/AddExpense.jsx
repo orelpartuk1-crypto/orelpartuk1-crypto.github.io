@@ -5,6 +5,7 @@ import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
 import { useRecurring } from '../hooks/useRecurring'
 import { useAccounts } from '../hooks/useAccounts'
+import { useCategories } from '../hooks/useCategories'
 import Numpad from '../components/Numpad'
 import CategoryPicker from '../components/CategoryPicker'
 import Segmented from '../components/Segmented'
@@ -45,6 +46,8 @@ export default function AddExpense() {
   // the default is filled in as soon as the accounts load so it never blocks.
   const { active: myAccounts, defaultAccount, transfer: makeTransfer } = useAccounts()
   const [accountId, setAccountId] = useState(editing?.account_id || prefill?.account_id || null)
+  const { pickList } = useCategories()
+  const [categoryId, setCategoryId] = useState(editing?.category_id || null)
   const [toAccountId, setToAccountId] = useState(null) // transfer destination
   useEffect(() => {
     if (!accountId && defaultAccount) setAccountId(defaultAccount.id)
@@ -87,6 +90,7 @@ export default function AddExpense() {
   const [dupWarn, setDupWarn] = useState(false)
 
   const value = toNumber(amount)
+  const dbCategories = pickList(scope)
 
   // --- Partial split: how much the other partner owes the payer back ---
   // Needs are always split 50/50 automatically — no UI, no question asked.
@@ -111,6 +115,10 @@ export default function AddExpense() {
 
   // Switching to/from Business swaps the category set.
   const changeScope = (s) => {
+    // The category list is per scope, so a category picked under the old scope
+    // no longer exists under the new one — drop the id rather than leave it
+    // pointing somewhere that isn't on screen.
+    if (s !== scope) setCategoryId(null)
     if (s === 'business' && scope !== 'business') setCategory('Meeting')
     else if (s !== 'business' && scope === 'business') {
       setCategory('Groceries')
@@ -200,6 +208,7 @@ export default function AddExpense() {
       spent_at: spentAt,
       // Shared or not, it left one person's account — that's whose balance moves.
       account_id: accountId,
+      category_id: categoryId,
       // Never touch recurring_id when editing — omitting the key leaves
       // whatever link (if any) the row already had untouched.
       ...(!editing ? { recurring_id: recurringId } : {}),
@@ -346,11 +355,24 @@ export default function AddExpense() {
             <div>
               <label className="label">Category</label>
               <CategoryPicker
-                value={category}
-                items={scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES}
+                value={categoryId || category}
+                items={dbCategories.length ? dbCategories : (scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES)}
                 onChange={(c) => {
-                  setCategory(c)
-                  if (!editing && scope !== 'business') setSpendType(defaultSpendType(c))
+                  if (typeof c === 'string') {
+                    // Fallback list — no database categories loaded yet.
+                    setCategoryId(null)
+                    setCategory(c)
+                    if (!editing && scope !== 'business') setSpendType(defaultSpendType(c))
+                    return
+                  }
+                  // Store the exact choice, but keep `category` on the root name
+                  // so every existing total keeps grouping the way it always has.
+                  setCategoryId(c.id)
+                  setCategory(c.parentName || c.name)
+                  if (!editing && scope !== 'business') {
+                    const st = c.spend_type || defaultSpendType(c.parentName || c.name)
+                    setSpendType(st)
+                  }
                 }}
               />
             </div>

@@ -107,6 +107,17 @@ export default function Settings() {
           </span>
         </button>
 
+        <Link to="/categories" className="card flex items-center justify-between active:scale-[0.99]">
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">🏷️</span>
+            <span>
+              <span className="block font-semibold">Categories</span>
+              <span className="block text-sm text-muted">Rename, recolour, add subcategories</span>
+            </span>
+          </span>
+          <span className="text-muted">›</span>
+        </Link>
+
         <Link to="/automate" className="card flex items-center justify-between active:scale-[0.99]">
           <span className="flex items-center gap-3">
             <span className="text-2xl">⚡</span>

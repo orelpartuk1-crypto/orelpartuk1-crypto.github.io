@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
 import { useAccounts } from '../hooks/useAccounts'
+import { useCategories } from '../hooks/useCategories'
 import { scanReceipt, parseReceipt } from '../lib/ocr'
 import { cloudScan, geminiScan } from '../lib/cloudOcr'
 import { findDuplicate } from '../lib/dupCheck'
@@ -23,6 +24,8 @@ export default function ScanReceipt() {
   // way to create an expense that never touches a balance.
   const { active: myAccounts, defaultAccount } = useAccounts()
   const [accountId, setAccountId] = useState(null)
+  const { pickList } = useCategories()
+  const [categoryId, setCategoryId] = useState(null)
   const fileRef = useRef(null)
 
   const [preview, setPreview] = useState(null)
@@ -45,6 +48,7 @@ export default function ScanReceipt() {
     ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
   ]
   const changeScope = (s) => {
+    if (s !== scope) setCategoryId(null)
     if (s === 'business' && scope !== 'business') setCategory('Meeting')
     else if (s !== 'business' && scope === 'business') { setCategory('Groceries'); setSpendType(defaultSpendType('Groceries')) }
     setScope(s)
@@ -91,6 +95,7 @@ export default function ScanReceipt() {
       setResult(res)
       setAmount(res.amount != null ? String(res.amount).replace('.', ',') : '')
       setCategory(res.category || 'Other')
+      setCategoryId(null)
       setSpendType(defaultSpendType(res.category || 'Other'))
       // Several lines of the same product come back merged, so show the count
       // the same way the regex parser does — "3× Cheese", not a bare "Cheese"
@@ -107,6 +112,7 @@ export default function ScanReceipt() {
   }
 
   const value = parseFloat((amount || '0').replace(',', '.')) || 0
+  const dbCategories = pickList(scope)
 
   const toItems = () =>
     items
@@ -140,6 +146,7 @@ export default function ScanReceipt() {
       paid_by: user?.id,
       note: note.trim() || 'Scanned receipt',
       account_id: accountId || defaultAccount?.id || null,
+      category_id: categoryId,
       items: rows.length ? rows : null,
       ...(result?.date ? { spent_at: result.date } : {}),
     })
@@ -274,11 +281,18 @@ export default function ScanReceipt() {
                 Category — guessed {categoryMeta(category).emoji}
               </label>
               <CategoryPicker
-                value={category}
-                items={scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES}
+                value={categoryId || category}
+                items={dbCategories.length ? dbCategories : (scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES)}
                 onChange={(c) => {
-                  setCategory(c)
-                  if (scope !== 'business') setSpendType(defaultSpendType(c))
+                  if (typeof c === 'string') {
+                    setCategoryId(null)
+                    setCategory(c)
+                    if (scope !== 'business') setSpendType(defaultSpendType(c))
+                    return
+                  }
+                  setCategoryId(c.id)
+                  setCategory(c.parentName || c.name)
+                  if (scope !== 'business') setSpendType(c.spend_type || defaultSpendType(c.parentName || c.name))
                 }}
               />
             </div>

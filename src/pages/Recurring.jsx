@@ -5,7 +5,8 @@ import { useRecurring } from '../hooks/useRecurring'
 import Segmented from '../components/Segmented'
 import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
-import { categoryMeta } from '../lib/categories'
+import { categoryMeta, CATEGORIES, BUSINESS_CATEGORIES } from '../lib/categories'
+import CategoryPicker from '../components/CategoryPicker'
 
 const num = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 
@@ -16,8 +17,18 @@ export default function Recurring() {
   const [amount, setAmount] = useState('')
   const [scope, setScope] = useState('shared')
   const [spendType, setSpendType] = useState('need')
+  const [category, setCategory] = useState('Subscriptions')
   const [err, setErr] = useState(null)
   const [busy, setBusy] = useState(false)
+
+  // Switching to or from Business swaps which category list applies, the same
+  // way the Add screen does it.
+  const changeScope = (s) => {
+    if (s === 'business' && scope !== 'business') setCategory('Subscriptions')
+    else if (s !== 'business' && scope === 'business') setCategory('Utilities')
+    setScope(s)
+  }
+  const categoryList = scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES
 
   const expenses = items.filter((i) => i.kind === 'expense')
   const incomes = items.filter((i) => i.kind === 'income')
@@ -29,7 +40,10 @@ export default function Recurring() {
   const create = async () => {
     if (!name.trim() || num(amount) <= 0) { setErr('Enter a name and an amount.'); return }
     setErr(null); setBusy(true)
-    const payload = { kind: 'expense', name: name.trim(), amount: num(amount), scope, spend_type: spendType, category: 'Subscriptions' }
+    // Was hardcoded to 'Subscriptions', which is a Business category — so every
+    // private or shared item created here landed on a category that doesn't
+    // exist in its own list, and reports had nowhere sensible to put it.
+    const payload = { kind: 'expense', name: name.trim(), amount: num(amount), scope, spend_type: spendType, category }
     const { error } = await add(payload)
     setBusy(false)
     if (error) { setErr(error.message || 'Could not save.'); return }
@@ -54,7 +68,7 @@ export default function Recurring() {
               ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
             ]}
             value={scope}
-            onChange={setScope}
+            onChange={changeScope}
           />
           {scope !== 'business' && (
             <Segmented
@@ -63,6 +77,11 @@ export default function Recurring() {
               onChange={setSpendType}
             />
           )}
+
+          <div>
+            <label className="label">Category</label>
+            <CategoryPicker value={category} onChange={setCategory} items={categoryList} />
+          </div>
 
           {err && <p className="text-sm text-red-600">{err}</p>}
           <button className="btn-primary w-full" disabled={busy} onClick={create}>{busy ? 'Saving…' : 'Add monthly expense'}</button>
