@@ -1,10 +1,20 @@
 // Minimal service worker: makes the app installable + fast + offline-tolerant.
 // It only caches our own files — Supabase API calls always go to the network.
-const CACHE = 'duo-budget-v6'
+const CACHE = 'duo-budget-v7'
 const SHELL = ['/', '/index.html', '/icon.svg', '/apple-touch-icon.png', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => {}))
+  // Fetch the shell with cache: 'reload' so every entry comes from the network.
+  // addAll() goes through the browser's own HTTP cache, so a freshly bumped
+  // CACHE version would happily fill itself with the very files it was bumped
+  // to replace — which is exactly what happened when the icon turned green and
+  // v6 was populated with the old blue one anyway.
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((c) => Promise.all(SHELL.map((url) => c.add(new Request(url, { cache: 'reload' })))))
+      .catch(() => {})
+  )
   self.skipWaiting()
 })
 
@@ -44,7 +54,7 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-// Real push notification (sent by netlify/functions/send-reminders.mjs).
+// Real push notification (sent by the send-reminders Edge Function).
 // Tapping it focuses an existing tab or opens a new one — this is what makes
 // the notification actually open the app, unlike a plain Shortcuts alert.
 self.addEventListener('push', (event) => {
