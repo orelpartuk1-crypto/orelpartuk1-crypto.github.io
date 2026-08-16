@@ -98,7 +98,7 @@ export default function Home() {
 
   // 3 — What is still to come, in or out.
   const due = useMemo(
-    () => upcomingPayments({ bills: activeBills, recurring: recurringItems, dates, myId: user?.id }),
+    () => upcomingPayments({ bills: activeBills, recurring: recurringItems, dates, myId: user?.id, withinDays: 7 }),
     [activeBills, recurringItems, dates, user?.id]
   )
 
@@ -225,7 +225,7 @@ export default function Home() {
           )}
 
           <Stagger className="divide-y divide-slate-100">
-            {movements.slice(0, 6).map((m) => {
+            {movements.slice(0, 4).map((m) => {
               const meta = m.direction === 'in' ? { emoji: '💰', color: '#0f7a3e' } : categoryMeta(m.category)
               return (
                 <Item key={m.id}>
@@ -252,9 +252,9 @@ export default function Home() {
         {/* 3 — Upcoming */}
         {due.length > 0 && (
           <Item className="card">
-            <h2 className="label">Upcoming</h2>
+            <h2 className="label">Next 7 days</h2>
             <Stagger className="divide-y divide-slate-100">
-              {due.slice(0, 6).map((u) => (
+              {due.slice(0, 4).map((u) => (
                 <Item key={u.id}>
                   <div className="flex items-center gap-3 py-2.5">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-base">

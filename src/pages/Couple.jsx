@@ -195,7 +195,7 @@ export default function Couple() {
           )}
 
           <Stagger className="divide-y divide-slate-100">
-            {movements.slice(0, 8).map((m) => {
+            {movements.slice(0, 4).map((m) => {
               const meta = categoryMeta(m.category)
               return (
                 <Item key={m.id}>
