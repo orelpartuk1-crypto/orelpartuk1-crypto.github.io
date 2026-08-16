@@ -4,8 +4,8 @@
   "description": "Fast shared expense tracker for two people.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f6fb",
-  "theme_color": "#f4f6fb",
+  "background_color": "#eff3ed",
+  "theme_color": "#eff3ed",
   "orientation": "portrait",
   "categories": ["finance", "productivity"],
   "icons": [
