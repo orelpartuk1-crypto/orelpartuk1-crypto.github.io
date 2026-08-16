@@ -118,22 +118,22 @@ export default function Dashboard() {
       />
 
       <div className="mx-auto max-w-md px-4 space-y-4">
-        {/* Month switcher */}
-        <div className="flex items-center justify-between rounded-2xl bg-white px-2 py-1.5 shadow-card">
-          <button onClick={() => shiftMonth(-1)} className="flex h-9 w-9 items-center justify-center rounded-full active:scale-90 active:bg-slate-100" aria-label="Previous month">
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+        {/* Month switcher — arrows sit outside, the month itself is the pill */}
+        <div className="flex items-center justify-between">
+          <button onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card transition-transform duration-150 active:scale-90" aria-label="Previous month">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           </button>
-          <span className="font-semibold">{monthLabel(monthDate)}</span>
-          <button onClick={() => !atCurrentMonth && shiftMonth(1)} disabled={atCurrentMonth} className="flex h-9 w-9 items-center justify-center rounded-full active:scale-90 active:bg-slate-100 disabled:opacity-30" aria-label="Next month">
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          <span className="rounded-full bg-white px-6 py-2.5 font-semibold shadow-card">{monthLabel(monthDate)}</span>
+          <button onClick={() => !atCurrentMonth && shiftMonth(1)} disabled={atCurrentMonth} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card transition-transform duration-150 active:scale-90 disabled:opacity-30 disabled:active:scale-100" aria-label="Next month">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </button>
         </div>
 
         {/* Zone tabs */}
-        <div className="flex rounded-2xl bg-slate-100 p-1">
+        <div className="flex rounded-full bg-black/[0.04] p-1">
           {zones.map((z) => (
             <button key={z.key} onClick={() => persistZone(z.key)}
-              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${activeZone === z.key ? 'bg-white shadow-sm' : 'text-muted'}`}>
+              className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${activeZone === z.key ? 'bg-white text-ink shadow-card' : 'text-muted'}`}>
               {z.label}
             </button>
           ))}
@@ -202,10 +202,10 @@ export default function Dashboard() {
 
 function ZoneHero({ label, total, sub }) {
   return (
-    <div className="card bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-      <p className="text-white/80 text-sm">{label}</p>
-      <p className="mt-1 text-4xl font-bold">{money(total)}</p>
-      {sub && <div className="mt-3 flex gap-4 text-sm text-white/90">{sub}</div>}
+    <div className="animate-fade-up rounded-xl3 bg-mint-200 p-5 text-center">
+      <p className="label mb-0 text-brand-700/70">{label}</p>
+      <p className="figure mt-1 text-brand-700">{money(total)}</p>
+      {sub && <div className="mt-3 flex justify-center gap-4 text-sm text-brand-700/80">{sub}</div>}
     </div>
   )
 }
@@ -407,43 +407,66 @@ function BalanceCard({ balance, needs = 0, treats = 0 }) {
   const pct = (v) => `${Math.max(0, Math.min(100, income > 0 ? (v / income) * 100 : 0))}%`
   const tiles = [
     { label: 'In', value: income, cls: 'text-ink' },
-    { label: 'Spent', value: spent, cls: 'text-rose-600' },
+    { label: 'Spent', value: spent, cls: 'text-spend' },
     { label: 'Saved', value: saved, cls: 'text-brand-600' },
-    { label: 'Invested', value: invested, cls: 'text-emerald-600' },
+    { label: 'Invested', value: invested, cls: 'text-mint-300' },
   ]
+  // Share of income kept — the single number worth leading with, and the one
+  // that makes a good month legible at a glance.
+  const keptPct = income > 0 ? Math.round((left / income) * 100) : null
+
   return (
-    <div className="card">
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-sm text-muted">{over ? 'Overspent this month' : 'Left this month'}</p>
-          <p className={`text-4xl font-bold ${over ? 'text-red-600' : 'text-ink'}`}>{money(Math.abs(left))}</p>
-        </div>
-        <p className="text-sm text-muted">of {money(income)} in</p>
-      </div>
+    <div className="animate-fade-up space-y-4">
+      <div className={`rounded-xl3 p-5 text-center ${over ? 'bg-rose-100' : 'bg-mint-200'}`}>
+        <p className={`label mb-0 ${over ? 'text-rose-700/70' : 'text-brand-700/70'}`}>
+          {over ? 'Overspent this month' : 'Left this month'}
+        </p>
+        <p className={`figure mt-1 ${over ? 'text-rose-700' : 'text-brand-700'}`}>
+          {over ? '−' : '+'}{money(Math.abs(left))}
+        </p>
+        {keptPct != null && !over && (
+          <span className="mt-2 inline-block rounded-full bg-white/60 px-3 py-1 text-sm font-semibold text-brand-700">
+            {keptPct}% of your income
+          </span>
+        )}
 
-      {/* How this month's income was used */}
-      <div className="mt-4 flex h-3 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full bg-rose-400" style={{ width: pct(spent) }} title="Spent" />
-        <div className="h-full bg-brand-500" style={{ width: pct(saved) }} title="Saved" />
-        <div className="h-full bg-emerald-400" style={{ width: pct(invested) }} title="Invested" />
-      </div>
-
-      <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-        {tiles.map((t) => (
-          <div key={t.label} className="rounded-2xl bg-slate-50 p-2.5">
-            <p className="text-[11px] uppercase tracking-wide text-muted">{t.label}</p>
-            <p className={`text-sm font-bold ${t.cls}`}>{money(t.value)}</p>
+        <div className={`mt-4 grid grid-cols-2 divide-x border-t pt-3 ${over ? 'divide-rose-300/60 border-rose-300/60' : 'divide-brand-500/15 border-brand-500/15'}`}>
+          <div>
+            <p className="text-xs font-medium text-muted">Income</p>
+            <p className="tnum font-bold text-earn">{money(income)}</p>
           </div>
-        ))}
+          <div>
+            <p className="text-xs font-medium text-muted">Spent</p>
+            <p className="tnum font-bold text-spend">{money(spent)}</p>
+          </div>
+        </div>
       </div>
 
-      <p className="mt-2 text-xs text-muted">Spending incl. your share of shared bills · 🧺 {money(needs)} · 🍦 {money(treats)}</p>
+      <div className="card">
+        {/* How this month's income was used */}
+        <div className="flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-slate-100">
+          <div className="h-full rounded-full bg-spend transition-[width] duration-500 ease-out" style={{ width: pct(spent) }} title="Spent" />
+          <div className="h-full rounded-full bg-brand-500 transition-[width] duration-500 ease-out" style={{ width: pct(saved) }} title="Saved" />
+          <div className="h-full rounded-full bg-mint-300 transition-[width] duration-500 ease-out" style={{ width: pct(invested) }} title="Invested" />
+        </div>
 
-      {!over && saved === 0 && invested === 0 && left > 0 && (
-        <Link to="/savings" className="mt-2 block text-sm font-semibold text-brand-600">
-          {money(left)} unspent — move some to savings or investments →
-        </Link>
-      )}
+        <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+          {tiles.map((t) => (
+            <div key={t.label} className="rounded-2xl bg-slate-50 p-2.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted">{t.label}</p>
+              <p className={`tnum text-sm font-bold ${t.cls}`}>{money(t.value)}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-3 text-xs text-muted">Spending incl. your share of shared bills · 🧺 {money(needs)} · 🍦 {money(treats)}</p>
+
+        {!over && saved === 0 && invested === 0 && left > 0 && (
+          <Link to="/savings" className="mt-2 block text-sm font-semibold text-brand-600">
+            {money(left)} unspent — move some to savings or investments →
+          </Link>
+        )}
+      </div>
     </div>
   )
 }
@@ -527,14 +550,16 @@ function TogetherZone({ shared, prevShared, history = [], members, activeBills, 
   return (
     <>
       {/* Hero with a visual Needs vs Treats split */}
-      <div className="card bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-        <p className="text-white/80 text-sm">{atCurrentMonth ? 'Shared this month' : `Shared in ${monthLabel}`}</p>
-        <p className="mt-1 text-4xl font-bold">{money(totals.total)}</p>
-        <div className="mt-4 flex h-3 w-full overflow-hidden rounded-full bg-white/25">
-          <div className="h-full bg-emerald-300" style={{ width: `${needPct}%` }} />
-          <div className="h-full bg-amber-300" style={{ width: `${100 - needPct}%` }} />
+      <div className="animate-fade-up rounded-xl3 bg-mint-200 p-5">
+        <p className="label mb-0 text-center text-brand-700/70">
+          {atCurrentMonth ? 'Shared this month' : `Shared in ${monthLabel}`}
+        </p>
+        <p className="figure mt-1 text-center text-brand-700">{money(totals.total)}</p>
+        <div className="mt-5 flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-white/50">
+          <div className="h-full rounded-full bg-brand-500 transition-[width] duration-500 ease-out" style={{ width: `${needPct}%` }} />
+          <div className="h-full flex-1 rounded-full bg-amber-400 transition-[width] duration-500 ease-out" />
         </div>
-        <div className="mt-2 flex justify-between text-sm text-white/90">
+        <div className="mt-2.5 flex justify-between text-sm font-medium text-brand-700/80">
           <span>🧺 Needs {money(totals.needs)}</span>
           <span>🍦 Treats {money(totals.treats)}</span>
         </div>

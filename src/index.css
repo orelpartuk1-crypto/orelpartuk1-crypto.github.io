@@ -14,8 +14,8 @@ body,
 
 body {
   margin: 0;
-  background: #f4f6fb;
-  color: #0f172a;
+  background: #eff3ed;
+  color: #12241a;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   /* Prevent the iOS "zoom on input focus" bug via 16px base */
@@ -47,6 +47,12 @@ textarea,
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Money and other figures should never jitter as digits change. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
 /* Utility: honor the iPhone notch / home-indicator safe areas */
 .safe-top {
   padding-top: max(env(safe-area-inset-top), 0.75rem);
@@ -55,25 +61,46 @@ textarea,
   padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
 }
 
+/* Someone who asked the system to calm motion down means it. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl font-semibold
-           transition active:scale-[0.97] disabled:opacity-40 disabled:active:scale-100;
+    @apply inline-flex items-center justify-center gap-2 rounded-full font-semibold
+           transition-transform duration-150 active:scale-[0.97]
+           disabled:opacity-40 disabled:active:scale-100;
   }
   .btn-primary {
-    @apply btn bg-brand-500 text-white shadow-card px-5 py-4 text-lg;
+    @apply btn bg-brand-500 text-white shadow-fab px-5 py-4 text-lg;
   }
   .btn-ghost {
-    @apply btn bg-white text-ink border border-slate-200 px-5 py-4 text-lg;
+    @apply btn bg-white text-ink border border-black/5 px-5 py-4 text-lg;
   }
   .card {
     @apply bg-white rounded-xl2 shadow-card p-4;
   }
-  .field {
-    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-lg
-           outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+  /* A row you can press: the whole card reacts, like a native list cell. */
+  .card-tap {
+    @apply card transition-transform duration-150 active:scale-[0.985];
   }
+  .field {
+    @apply w-full rounded-2xl border border-black/5 bg-white px-4 py-3.5 text-lg
+           outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-50;
+  }
+  /* Small, spaced, uppercase — the quiet caption above a group of content. */
   .label {
-    @apply block text-sm font-medium text-muted mb-1.5;
+    @apply block text-xs font-semibold uppercase tracking-wider text-muted mb-1.5;
+  }
+  /* The oversized figure a screen is really about. */
+  .figure {
+    @apply tnum text-5xl font-bold tracking-tight;
   }
 }

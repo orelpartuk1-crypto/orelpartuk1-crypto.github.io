@@ -20,12 +20,14 @@ export default function BottomNav() {
   if (HIDE_ON.includes(pathname)) return null
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-slate-200 shadow-nav safe-bottom">
-      <div className="mx-auto flex max-w-md items-end justify-around px-4 pt-1.5">
+    // Floating, detached from the screen edges — the page scrolls underneath it.
+    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 safe-bottom">
+      <div className="pointer-events-auto mx-auto mb-2 flex max-w-md items-center justify-around rounded-full bg-white/90 px-3 py-2 shadow-nav backdrop-blur-xl">
         {items.map(({ to, label, icon: Icon, end, primary }) =>
           primary ? (
-            <NavLink key={to} to={to} className="-mt-6">
-              <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-500 text-white shadow-card active:scale-95 transition">
+            // Raised above the bar so it reads as the main action, not a tab.
+            <NavLink key={to} to={to} aria-label={label} className="-mt-7 px-1">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab transition-transform duration-150 active:scale-90">
                 <Icon className="h-7 w-7" />
               </span>
             </NavLink>
@@ -34,14 +36,21 @@ export default function BottomNav() {
               key={to}
               to={to}
               end={end}
+              aria-label={label}
               className={({ isActive }) =>
-                `flex flex-1 flex-col items-center gap-0.5 py-2 text-xs font-medium ${
+                `flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10px] font-semibold transition-colors duration-200 ${
                   isActive ? 'text-brand-500' : 'text-muted'
                 }`
               }
             >
-              <Icon className="h-6 w-6" />
-              {label}
+              {({ isActive }) => (
+                <>
+                  <span className={`rounded-xl px-3 py-1 transition-colors duration-200 ${isActive ? 'bg-brand-50' : ''}`}>
+                    <Icon className="h-[22px] w-[22px]" />
+                  </span>
+                  {label}
+                </>
+              )}
             </NavLink>
           )
         )}
