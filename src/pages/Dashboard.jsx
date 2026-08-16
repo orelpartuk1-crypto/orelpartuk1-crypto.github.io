@@ -22,6 +22,10 @@ import Donut from '../components/Donut'
 import TopBar from '../components/TopBar'
 import MiniExpenseList from '../components/MiniExpenseList'
 import ReceiptViewer from '../components/ReceiptViewer'
+import AlertBell from '../components/AlertBell'
+import { useRecurring } from '../hooks/useRecurring'
+import { useBudgets } from '../hooks/useBudgets'
+import { upcomingPayments, buildAlerts } from '../lib/upcoming'
 
 const isThisMonth = (d) => {
   const n = new Date()
@@ -45,6 +49,8 @@ export default function Dashboard() {
   const { goals, savedByGoal, contribs } = useSavings()
   const { rows: history } = useHistory(6)
   const { rows: settlements, reload: reloadSettlements } = useSettlements()
+  const { items: recurringItems } = useRecurring()
+  const { shared: sharedBudgets, personal: personalBudgets } = useBudgets()
 
   // Camera button that opens the camera immediately (dialog runs in the tap).
   const scanInputRef = useRef(null)
@@ -88,6 +94,12 @@ export default function Dashboard() {
   }, [bonuses, myIncome, mine, shared, activeBills, goals, contribs, user?.id, monthDate])
 
   const upcoming = useMemo(() => dates.filter((d) => daysUntil(d._next) <= 45).slice(0, 3), [dates])
+
+  const duePayments = useMemo(
+    () => upcomingPayments({ bills: activeBills, recurring: recurringItems, dates, myId: user?.id }),
+    [activeBills, recurringItems, dates, user?.id]
+  )
+
   const budgetMap = useMemo(() => Object.fromEntries(budgets.map((b) => [b.category, Number(b.monthly_limit)])), [budgets])
   // Average business trip cost (for the "money coach" framing).
   const tripAvg = useMemo(() => {
@@ -103,12 +115,28 @@ export default function Dashboard() {
   ]
   const activeZone = zone === 'business' && !hasBusiness ? 'together' : zone
 
+  const alerts = useMemo(() => {
+    const zoneIsShared = activeZone === 'together'
+    const rows = zoneIsShared ? shared : mine
+    const spendByCategory = Object.fromEntries(byCategory(rows).map((c) => [c.category, c.total]))
+    return buildAlerts({
+      budgetMap: zoneIsShared ? sharedBudgets : personalBudgets,
+      spendByCategory,
+      upcoming: duePayments,
+      settle: settlement(shared, members, activeBills, settlements),
+      nameOf,
+      myId: user?.id,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeZone, shared, mine, sharedBudgets, personalBudgets, duePayments, members, activeBills, settlements, user?.id])
+
   return (
     <div className="pb-28">
       <TopBar
         title={`Hi, ${profile?.display_name || ''}`}
         right={
           <div className="flex items-center gap-2">
+            <AlertBell alerts={alerts} />
             <input ref={scanInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={onScanPick} />
             <button onClick={() => scanInputRef.current?.click()} className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm active:scale-95" aria-label="Scan receipt">
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 8h3l2-2h6l2 2h3v11H4z" /><circle cx="12" cy="13" r="3.2" /></svg>
@@ -141,6 +169,33 @@ export default function Dashboard() {
             </button>
           ))}
         </div>
+
+        {/* What is still due, from bills, monthly charges and dated events */}
+        {activeZone !== 'business' && duePayments.length > 0 && (
+          <div className="card">
+            <h2 className="label">Upcoming payments</h2>
+            <ul className="divide-y divide-slate-100">
+              {duePayments.slice(0, 6).map((u) => (
+                <li key={u.id} className="flex items-center gap-3 py-2.5">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-50 text-base">
+                    {u.kind === 'bill' ? '🏠' : u.kind === 'date' ? '🎁' : u.direction === 'in' ? '💰' : '🔁'}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{u.label}</span>
+                    <span className="block text-xs text-muted">
+                      {u.days === 0 ? 'Today' : u.days === 1 ? 'Tomorrow' : `In ${u.days} days`}
+                    </span>
+                  </span>
+                  {u.amount > 0 && (
+                    <span className={`tnum shrink-0 font-semibold ${u.direction === 'in' ? 'text-earn' : ''}`}>
+                      {u.direction === 'in' ? '+' : '−'}{money(u.amount)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Coming up (private) — shown on Mine + Together */}
         {activeZone !== 'business' && upcoming.length > 0 && (
