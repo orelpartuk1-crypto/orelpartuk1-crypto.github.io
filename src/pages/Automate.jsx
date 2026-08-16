@@ -53,6 +53,31 @@ export default function Automate() {
           </p>
         </div>
 
+        {/* Apple Pay tap-to-log — zero taps for amount + merchant */}
+        <div className="card space-y-3">
+          <h2 className="font-semibold text-lg">💳 Auto-log every Apple Pay tap</h2>
+          <p className="text-sm text-muted">
+            iOS has a built-in automation trigger that fires on every physical Apple Pay tap (NFC only —
+            not online checkouts) and hands you the amount and merchant with no typing at all. Only the
+            category defaults generically; fix it later from the <Link to="/expenses" className="text-brand-600 underline">expenses list</Link> if it matters.
+          </p>
+          <ol className="list-decimal space-y-1 pl-5 text-sm">
+            <li><b>Shortcuts</b> app → <b>Automation</b> → <b>＋</b> → <b>Create Personal Automation</b> → search <b>Wallet</b> (older iOS: <b>Transaction</b>).</li>
+            <li>Select the card(s) to auto-log. <b>Do this once per card if they should default to different scopes</b> — e.g. a shared card → Shared, your own → Private.</li>
+            <li>Add <b>URL Encode</b> → input: tap the field, scroll to <b>Shortcut Input</b>, pick <b>Merchant</b>.</li>
+            <li>Add <b>Text</b> → paste the base link below, then insert in order: <b>Shortcut Input → Amount</b>, then the category/scope for this card, then the <b>encoded merchant</b> as the note. It should read like:<br />
+              <code className="break-all">{universalBase}&amount=[Shortcut Input → Amount]&category=Other&scope=shared&note=[Encoded Text]</code>
+            </li>
+            <li>Add <b>Get Contents of URL</b> → URL = that <b>Text</b>.</li>
+            <li>Add <b>Show Notification</b> → text = <b>Contents of URL</b> — confirms what was logged, or shows the error, without opening anything.</li>
+            <li>Turn off <b>Ask Before Running</b> and <b>Notify When Run</b>. Name it after the card, e.g. “Log — Joint card”.</li>
+          </ol>
+          <p className="text-xs text-muted">
+            Apple's own trigger occasionally times out on the first few taps while it settles — this is a known
+            Shortcuts quirk, not a Duo Budget problem. If a tap doesn't log, add it manually; nothing is lost.
+          </p>
+        </div>
+
         {/* Daily reminder */}
         <div className="card">
           <h2 className="font-semibold text-lg">🔔 Daily reminder</h2>
