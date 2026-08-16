@@ -70,19 +70,7 @@ export function useExpenses(base = new Date()) {
     [load]
   )
 
-  const setCategoryBudget = useCallback(
-    async (category, monthly_limit) => {
-      const { error } = await supabase
-        .from('category_budgets')
-        .upsert(
-          { household_id: household.id, category, monthly_limit },
-          { onConflict: 'household_id,category' }
-        )
-      if (!error) await load()
-      return { error }
-    },
-    [household?.id, load]
-  )
-
-  return { expenses, budgets, loading, error, reload: load, addExpense, updateExpense, deleteExpense, setCategoryBudget }
+  // Budgets are written through useBudgets — they carry a scope and an owner
+  // now, which this hook's old household-wide upsert can no longer express.
+  return { expenses, budgets, loading, error, reload: load, addExpense, updateExpense, deleteExpense }
 }

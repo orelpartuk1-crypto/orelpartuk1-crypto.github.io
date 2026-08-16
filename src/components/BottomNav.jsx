@@ -7,7 +7,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 // prominent for something opened a few times a year.
 const items = [
   { to: '/', label: 'Home', icon: HomeIcon, end: true },
-  { to: '/expenses', label: 'Expenses', icon: ListIcon },
+  { to: '/analytics', label: 'Analytics', icon: PieIcon },
   { to: '/add', label: 'Add', icon: PlusIcon, primary: true },
   { to: '/wealth', label: 'Wealth', icon: ChartIcon },
   { to: '/plan', label: 'Monthly', icon: RepeatIcon },
@@ -76,10 +76,11 @@ function PlusIcon(props) {
     </svg>
   )
 }
-function ListIcon(props) {
+function PieIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+      <path d="M21 15.5A9 9 0 1 1 8.5 3" />
+      <path d="M21.5 11.5A9.5 9.5 0 0 0 12.5 2.5V11a.5.5 0 0 0 .5.5Z" />
     </svg>
   )
 }

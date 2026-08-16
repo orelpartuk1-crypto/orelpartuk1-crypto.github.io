@@ -1,15 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useExpenses } from '../hooks/useExpenses'
-import { CATEGORIES } from '../lib/categories'
 import { enablePush, disablePush, isPushEnabled, pushSupported } from '../lib/push'
 import TopBar from '../components/TopBar'
-import { money } from '../lib/format'
 
 export default function Settings() {
   const { profile, household, members, user, updateDisplayName, updateBudget, signOut, hasBusiness, setHasBusiness, reminderHour, updateReminderHour } = useAuth()
-  const { budgets, setCategoryBudget } = useExpenses()
 
   const [name, setName] = useState(profile?.display_name || '')
   const [budget, setBudget] = useState(String(household?.monthly_budget ?? ''))
@@ -41,7 +37,6 @@ export default function Settings() {
     setPushBusy(false)
   }
 
-  const budgetMap = Object.fromEntries(budgets.map((b) => [b.category, Number(b.monthly_limit)]))
 
   const saveProfile = async () => {
     await updateDisplayName(name.trim() || 'Me')
@@ -190,52 +185,19 @@ export default function Settings() {
           </div>
         </div>
 
-        {/* Per-category budgets */}
-        <div className="card">
-          <h2 className="font-semibold text-lg">Category limits</h2>
-          <p className="text-sm text-muted">Set a monthly cap per category (leave 0 for none).</p>
-          <div className="mt-3 divide-y divide-slate-100">
-            {CATEGORIES.map((c) => (
-              <CategoryBudgetRow
-                key={c.key}
-                cat={c}
-                value={budgetMap[c.key] || 0}
-                onSave={(v) => setCategoryBudget(c.key, v)}
-              />
-            ))}
-          </div>
-        </div>
+        <Link to="/analytics" className="card flex items-center justify-between active:scale-[0.99]">
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">🎯</span>
+            <span>
+              <span className="block font-semibold">Category limits</span>
+              <span className="block text-sm text-muted">Now in Analytics, split into shared and personal</span>
+            </span>
+          </span>
+          <span className="text-muted">›</span>
+        </Link>
 
         <button className="btn-ghost w-full text-red-600" onClick={signOut}>Sign out</button>
         <p className="text-center text-xs text-muted pb-2">Duo Budget · v0.1.0</p>
-      </div>
-    </div>
-  )
-}
-
-function CategoryBudgetRow({ cat, value, onSave }) {
-  const [v, setV] = useState(value ? String(value) : '')
-  useEffect(() => { setV(value ? String(value) : '') }, [value])
-
-  const commit = () => {
-    const num = parseFloat((v || '0').replace(',', '.')) || 0
-    if (num !== value) onSave(num)
-  }
-
-  return (
-    <div className="flex items-center gap-3 py-2.5">
-      <span className="text-xl">{cat.emoji}</span>
-      <span className="flex-1 font-medium">{cat.key}</span>
-      <div className="flex items-center gap-1 rounded-xl bg-slate-50 px-3 py-1.5">
-        <span className="text-muted">€</span>
-        <input
-          className="w-16 bg-transparent text-right outline-none font-semibold"
-          inputMode="decimal"
-          value={v}
-          onChange={(e) => setV(e.target.value.replace(/[^0-9.,]/g, ''))}
-          onBlur={commit}
-          placeholder="0"
-        />
       </div>
     </div>
   )
