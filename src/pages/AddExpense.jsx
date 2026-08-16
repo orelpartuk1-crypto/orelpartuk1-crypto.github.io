@@ -309,6 +309,17 @@ export default function AddExpense() {
           </div>
         )}
 
+        {!editing && !isTransfer && (
+          <Link to="/import" className="card-tap flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📄</span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">Import bank statement</span>
+              <span className="block text-sm text-muted">CSV from your bank</span>
+            </span>
+            <span className="text-muted">›</span>
+          </Link>
+        )}
+
         {isTransfer && (
           <p className="rounded-2xl bg-slate-50 p-3 text-sm text-muted">
             Moving money between your own accounts. It isn't spending, so it won't appear in

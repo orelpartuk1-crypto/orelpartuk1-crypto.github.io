@@ -16,6 +16,8 @@ import Accounts from './pages/Accounts'
 import Wealth from './pages/Wealth'
 import Categories from './pages/Categories'
 import Analytics from './pages/Analytics'
+import ImportBank from './pages/ImportBank'
+import Simulators from './pages/Simulators'
 import Salary from './pages/Salary'
 import Bills from './pages/Bills'
 import Tax from './pages/Tax'
@@ -72,6 +74,8 @@ function Shell() {
           <Route path="/wealth" element={<Wealth />} />
           <Route path="/categories" element={<Categories />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/import" element={<ImportBank />} />
+          <Route path="/simulators" element={<Simulators />} />
           <Route path="/salary" element={<Salary />} />
           <Route path="/bills" element={<Bills />} />
           {/* Income & bills split into Salary and Bills; keep the old path

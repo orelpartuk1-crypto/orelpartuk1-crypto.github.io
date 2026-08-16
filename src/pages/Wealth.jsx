@@ -143,6 +143,17 @@ export default function Wealth() {
           </Link>
         </div>
 
+        <Link to="/simulators" className="card-tap flex items-center justify-between">
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">🧮</span>
+            <span>
+              <span className="block font-semibold">Simulators</span>
+              <span className="block text-sm text-muted">Loan, house, retirement, inflation</span>
+            </span>
+          </span>
+          <span className="text-muted">›</span>
+        </Link>
+
         <p className="px-1 text-xs text-muted">
           Investment and property values are whatever you last typed — nothing here tracks live prices.
         </p>
