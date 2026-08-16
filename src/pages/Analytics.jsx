@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
@@ -26,6 +26,7 @@ const isThisMonth = (d) => {
 // One screen that answers "where did it go", for whichever slice of money you
 // mean. The zone toggle matches the dashboard's, so the two never disagree.
 export default function Analytics() {
+  const nav = useNavigate()
   const { user, members, hasBusiness } = useAuth()
   const [monthDate, setMonthDate] = useState(new Date())
   const prevMonthDate = useMemo(
@@ -42,8 +43,11 @@ export default function Analytics() {
   const { items: recurringItems } = useRecurring()
 
   // Arriving from the Together screen should land on shared, not on whatever
-  // zone was last used somewhere else.
+  // zone was last used somewhere else. Arriving with `lock` pins it there for
+  // good — the whole point of "our analysis" is that it never drifts into
+  // personal or business territory.
   const [params] = useSearchParams()
+  const locked = params.get('lock') === '1'
   const [zone, setZone] = useState(() => params.get('zone') || localStorage.getItem('db_zone') || 'together')
   const persistZone = (z) => {
     setZone(z)
@@ -54,6 +58,11 @@ export default function Analytics() {
     setOpenCat(null)
   }
   const activeZone = zone === 'business' && !hasBusiness ? 'together' : zone
+
+  // A "need" or "treat" slice, requested by the Together screen — a whole
+  // separate view built out of the same data rather than a fourth screen.
+  const filterType = params.get('filter') === 'need' || params.get('filter') === 'treat' ? params.get('filter') : null
+
   const [direction, setDirection] = useState('out') // 'out' | 'in'
   const [openCat, setOpenCat] = useState(null)
   const [receipt, setReceipt] = useState(null)
@@ -64,13 +73,15 @@ export default function Analytics() {
 
   const sliceOf = (rows) =>
     rows.filter((e) => {
-      if (activeZone === 'together') return e.scope === 'shared'
-      if (activeZone === 'mine') return e.scope === 'private' && e.paid_by === user?.id
-      return e.scope === 'business' && e.paid_by === user?.id
+      if (activeZone === 'together' && e.scope !== 'shared') return false
+      if (activeZone === 'mine' && !(e.scope === 'private' && e.paid_by === user?.id)) return false
+      if (activeZone === 'business' && !(e.scope === 'business' && e.paid_by === user?.id)) return false
+      if (filterType && e.spend_type !== filterType) return false
+      return true
     })
 
-  const expenses = useMemo(() => onlySpending(sliceOf(all), notSpending), [all, activeZone, user?.id, notSpending])
-  const prevExpenses = useMemo(() => onlySpending(sliceOf(prevAll), notSpending), [prevAll, activeZone, user?.id, notSpending])
+  const expenses = useMemo(() => onlySpending(sliceOf(all), notSpending), [all, activeZone, user?.id, notSpending, filterType])
+  const prevExpenses = useMemo(() => onlySpending(sliceOf(prevAll), notSpending), [prevAll, activeZone, user?.id, notSpending, filterType])
 
   // Income is personal by nature — there is no shared income — so the toggle
   // only offers it where it means something.
@@ -121,13 +132,25 @@ export default function Analytics() {
     ...(hasBusiness ? [{ key: 'business', label: '💼 Business' }] : []),
   ]
 
+  // A category total doesn't say whether the money went on produce or on
+  // something that only looks like groceries — Groceries gets its own screen
+  // instead of just narrowing the list below.
+  const selectCategory = (label) => {
+    if (label === 'Groceries' && !showingIncome) {
+      nav('/groceries', { state: { monthDate: monthDate.toISOString(), zone: activeZone } })
+      return
+    }
+    setOpenCat(label)
+  }
+
   return (
     <div className="pb-28">
       <TopBar
-        title="Analytics"
-        subtitle="Where it went"
+        title={filterType === 'need' ? 'Needs' : filterType === 'treat' ? 'Treats' : 'Analytics'}
+        subtitle={filterType === 'need' ? 'What you had to spend, together' : filterType === 'treat' ? 'What you chose to spend, together' : 'Where it went'}
+        back={locked}
         right={
-          <Link to="/expenses" className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3 font-medium text-brand-600 shadow-card active:scale-95">
+          <Link to="/movements" className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3 font-medium text-brand-600 shadow-card active:scale-95">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
             </svg>
@@ -146,14 +169,16 @@ export default function Analytics() {
           </button>
         </div>
 
-        <div className="flex rounded-full bg-black/[0.04] p-1">
-          {zones.map((z) => (
-            <button key={z.key} onClick={() => persistZone(z.key)}
-              className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${activeZone === z.key ? 'bg-white text-ink shadow-card' : 'text-muted'}`}>
-              {z.label}
-            </button>
-          ))}
-        </div>
+        {!locked && (
+          <div className="flex rounded-full bg-black/[0.04] p-1">
+            {zones.map((z) => (
+              <button key={z.key} onClick={() => persistZone(z.key)}
+                className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${activeZone === z.key ? 'bg-white text-ink shadow-card' : 'text-muted'}`}>
+                {z.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Donut */}
         <div className="card">
@@ -194,7 +219,7 @@ export default function Analytics() {
                   data={cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
                   total={total}
                   selected={openCat}
-                  onSelect={(label) => setOpenCat(label)}
+                  onSelect={(label) => selectCategory(label)}
                   center={
                     <>
                       <span className="text-xs text-muted">{openCat || 'total'}</span>
@@ -220,7 +245,7 @@ export default function Analytics() {
                   return (
                     <div key={category} className="py-2">
                       <button
-                        onClick={() => !showingIncome && setOpenCat(isOpen ? null : category)}
+                        onClick={() => !showingIncome && selectCategory(isOpen ? null : category)}
                         disabled={showingIncome}
                         className="flex w-full items-center gap-2.5 text-left active:opacity-60 disabled:active:opacity-100"
                       >
@@ -252,8 +277,9 @@ export default function Analytics() {
           )}
         </div>
 
-        {/* Needs vs treats — only meaningful for spending */}
-        {!showingIncome && activeZone !== 'business' && totals.total > 0 && (
+        {/* Needs vs treats — only meaningful for spending, and redundant once
+            this view is already narrowed to one of the two */}
+        {!showingIncome && !filterType && activeZone !== 'business' && totals.total > 0 && (
           <div className="card">
             <h2 className="label">Needs vs treats</h2>
             <div className="mt-1 flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-slate-100">
@@ -318,16 +344,20 @@ export default function Analytics() {
           </div>
         )}
 
-        <Link to="/coach" className="card-tap flex items-center justify-between">
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">🧭</span>
-            <span>
-              <span className="block font-semibold">Money coach</span>
-              <span className="block text-sm text-muted">Trends, nudges and where to trim</span>
+        {/* A dedicated destination when arriving from "our analysis" already
+            covers this — no need to offer it again inside a needs/treats slice. */}
+        {!filterType && (
+          <Link to={`/coach${activeZone === 'together' ? '?zone=together' : ''}`} className="card-tap flex items-center justify-between">
+            <span className="flex items-center gap-3">
+              <span className="text-2xl">🧭</span>
+              <span>
+                <span className="block font-semibold">Money coach</span>
+                <span className="block text-sm text-muted">Trends, nudges and where to trim</span>
+              </span>
             </span>
-          </span>
-          <span className="text-muted">›</span>
-        </Link>
+            <span className="text-muted">›</span>
+          </Link>
+        )}
 
         {/* What repeats every month, in whichever direction is being shown */}
         {(() => {
@@ -335,7 +365,8 @@ export default function Analytics() {
           const rows = recurringItems.filter((r) => r.active && r.kind === kind)
           // Recurring income is personal, so it isn't filtered by zone; expenses are.
           const wantScope = activeZone === 'together' ? 'shared' : activeZone === 'mine' ? 'private' : 'business'
-          const scoped = kind === 'expense' ? rows.filter((r) => r.scope === wantScope) : rows
+          let scoped = kind === 'expense' ? rows.filter((r) => r.scope === wantScope) : rows
+          if (filterType && kind === 'expense') scoped = scoped.filter((r) => r.spend_type === filterType)
           const monthly = scoped.reduce((t, r) => t + Number(r.amount || 0), 0)
           return (
             <div className="card">

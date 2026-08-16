@@ -30,8 +30,12 @@ export default function Recurring() {
   }
   const categoryList = scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES
 
-  const expenses = items.filter((i) => i.kind === 'expense')
-  const incomes = items.filter((i) => i.kind === 'income')
+  const expenses = items.filter((i) => i.kind === 'expense' && i.active)
+  const incomes = items.filter((i) => i.kind === 'income' && i.active)
+  // Everything was switched off deliberately so each of you sets this up
+  // again from scratch — but nothing was deleted, so bringing one back is a
+  // single tap rather than retyping it.
+  const fromBefore = items.filter((i) => !i.active)
 
   // This form stays expense-only on purpose: Add is the single way in for
   // anything new, income included. What's here is for reviewing and adjusting
@@ -52,7 +56,7 @@ export default function Recurring() {
 
   return (
     <div className="pb-28">
-      <TopBar title="Repeats monthly" subtitle="Subscriptions" back />
+      <TopBar title="Every month" subtitle="Rent, subscriptions, anything regular" back />
       <div className="mx-auto max-w-md px-4 space-y-4">
         {/* Add form */}
         <div className="card space-y-3">
@@ -113,11 +117,47 @@ export default function Recurring() {
             </ul>
           </div>
         )}
-        {!loading && items.length === 0 && (
+        {!loading && expenses.length === 0 && incomes.length === 0 && (
           <div className="card py-10 text-center">
             <p className="text-4xl">🔁</p>
-            <p className="mt-2 font-semibold">Nothing recurring yet</p>
-            <p className="text-muted text-sm">Add Netflix, gym, a monthly transfer — it'll count every month automatically.</p>
+            <p className="mt-2 font-semibold">Nothing repeating yet</p>
+            <p className="text-muted text-sm">Rent, the gym, Netflix — add them here and they'll count every month on their own.</p>
+          </div>
+        )}
+
+        {fromBefore.length > 0 && (
+          <div className="card">
+            <h2 className="font-semibold text-lg">From before</h2>
+            <p className="mb-2 text-sm text-muted">
+              These were switched off so you could set this up fresh. Nothing was lost — tap to bring one back.
+            </p>
+            <ul className="divide-y divide-slate-100">
+              {fromBefore.map((i) => {
+                const m = categoryMeta(i.category)
+                return (
+                  <li key={i.id} className="flex items-center gap-3 py-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-50 text-base opacity-60">
+                      {i.kind === 'income' ? '💰' : m.emoji}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium text-muted">{i.name}</span>
+                      <span className="block text-xs text-muted">
+                        {money(i.amount)}/mo{i.scope ? ` · ${i.scope}` : ''}
+                      </span>
+                    </span>
+                    <button
+                      onClick={() => toggle(i.id, true)}
+                      className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-600 active:scale-95"
+                    >
+                      Add back
+                    </button>
+                    <button onClick={() => remove(i.id)} className="shrink-0 px-1 text-slate-300 active:text-red-500" aria-label={`Delete ${i.name}`}>
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
           </div>
         )}
       </div>

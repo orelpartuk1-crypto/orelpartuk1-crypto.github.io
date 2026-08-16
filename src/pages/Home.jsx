@@ -30,7 +30,7 @@ const isThisMonth = (d) => {
 // just happened, and what's about to happen.
 export default function Home() {
   const nav = useNavigate()
-  const { members, user, profile, myIncome } = useAuth()
+  const { members, user, profile, myIncome, hasBusiness } = useAuth()
   const [monthDate, setMonthDate] = useState(new Date())
 
   const { expenses: all, loading } = useExpenses(monthDate)
@@ -152,6 +152,15 @@ export default function Home() {
                 <path d="M4 8h3l2-2h6l2 2h3v11H4z" /><circle cx="12" cy="13" r="3.2" />
               </svg>
             </Tap>
+            {hasBusiness && (
+              <Tap
+                onClick={() => nav('/tax')}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card"
+                aria-label="Business"
+              >
+                <span className="text-lg">💼</span>
+              </Tap>
+            )}
             <Tap onClick={() => nav('/profile')} className="rounded-full" aria-label="Profile">
               <Avatar name={profile?.display_name} size={40} />
             </Tap>

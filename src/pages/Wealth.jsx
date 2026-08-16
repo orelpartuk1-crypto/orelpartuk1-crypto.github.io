@@ -1,13 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAccounts } from '../hooks/useAccounts'
 import { useHoldings } from '../hooks/useHoldings'
 import { useSavings } from '../hooks/useSavings'
+import { useNetWorthHistory } from '../hooks/useNetWorthHistory'
 import { useAuth } from '../context/AuthContext'
 import TopBar from '../components/TopBar'
 import Donut from '../components/Donut'
+import NetWorthChart from '../components/NetWorthChart'
 import { Screen, Item, Tap, Counter, Sheet, motion } from '../components/motion'
-import { money } from '../lib/format'
+import { money, isoDay } from '../lib/format'
+
+const RANGE_DAYS = { Week: 7, Month: 31, '3M': 92, '6M': 183, '1Y': 366, All: Infinity }
 
 const num = (s) => parseFloat((String(s) || '0').replace(',', '.')) || 0
 
@@ -27,6 +31,7 @@ export default function Wealth() {
   const { active: accounts, balances, total: liquid, add: addAccount } = useAccounts()
   const { assets, debts, assetsTotal, debtsTotal, loading, add: addHolding, update, remove } = useHoldings()
   const { goals, savedByGoal } = useSavings()
+  const { rows: history, loading: historyLoading, recordToday } = useNetWorthHistory()
 
   const [hidden, setHidden] = useState(false)
   const [range, setRange] = useState('1Y')
@@ -57,6 +62,24 @@ export default function Wealth() {
 
   const shown = slice ? composition.filter((c) => c.key === slice) : composition
   const money$ = (v) => (hidden ? '••••' : money(v))
+
+  // Writes today's figure once everything has actually loaded, so a
+  // half-loaded page never records a false low. Skipped if today is already
+  // there — recordToday is safe to call repeatedly, but there's no reason to.
+  useEffect(() => {
+    if (loading) return
+    const today = isoDay(new Date())
+    if (history.some((h) => h.snapshot_date === today)) return
+    recordToday({ liquid, assets: assetsTotal, debts: debtsTotal })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, liquid, assetsTotal, debtsTotal, history])
+
+  const chartPoints = useMemo(() => {
+    const days = RANGE_DAYS[range] ?? Infinity
+    if (days === Infinity) return history
+    const cutoff = isoDay(new Date(Date.now() - days * 86400000))
+    return history.filter((h) => h.snapshot_date >= cutoff)
+  }, [history, range])
 
   return (
     <div className="pb-28">
@@ -108,10 +131,23 @@ export default function Wealth() {
             {breakdown ? 'Tap to close' : 'Tap to see what it’s made of'}
           </p>
 
-          {/* No net-worth history exists yet, so there is no honest line to draw. */}
-          <p className="mt-4 rounded-2xl bg-white/40 p-2.5 text-center text-xs text-brand-700/70">
-            Charts over {range} start once there's history — nothing is recorded before today.
-          </p>
+          {chartPoints.length >= 2 ? (
+            <div className="mt-3">
+              <NetWorthChart points={hidden ? [] : chartPoints} />
+              <div className="mt-1 flex justify-between text-[11px] text-brand-700/60">
+                <span>{new Date(chartPoints[0].snapshot_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                <span>{new Date(chartPoints[chartPoints.length - 1].snapshot_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+              </div>
+            </div>
+          ) : (
+            // No history over this range yet — recorded once a day from today
+            // on, so there is nothing to draw before it exists.
+            <p className="mt-4 rounded-2xl bg-white/40 p-2.5 text-center text-xs text-brand-700/70">
+              {historyLoading
+                ? 'Loading…'
+                : `The chart fills in day by day from today — check back tomorrow.`}
+            </p>
+          )}
         </div>
 
         {/* Composition */}

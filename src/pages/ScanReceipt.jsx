@@ -9,7 +9,7 @@ import { cloudScan, geminiScan } from '../lib/cloudOcr'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingScan, setPendingReceipt } from '../lib/pendingScan'
 import { uploadReceipt } from '../lib/receipts'
-import { categoryMeta, defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES } from '../lib/categories'
+import { categoryMeta, defaultSpendType, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
 import CategoryPicker from '../components/CategoryPicker'
 import GrocerySelector from '../components/GrocerySelector'
 import Segmented from '../components/Segmented'
@@ -97,6 +97,11 @@ export default function ScanReceipt() {
       setCategory(res.category || 'Other')
       setCategoryId(null)
       setSpendType(defaultSpendType(res.category || 'Other'))
+      // The merchant name becomes the title — every scan reading "Scanned
+      // receipt" is exactly the bug this fixes. Left blank when Gemini
+      // couldn't read a name, so the same "what was it" requirement as typing
+      // an expense by hand kicks in instead of a fake-looking default.
+      setNote(res.merchant || '')
       // Several lines of the same product come back merged, so show the count
       // the same way the regex parser does — "3× Cheese", not a bare "Cheese"
       // whose price looks inexplicably high.
@@ -120,9 +125,16 @@ export default function ScanReceipt() {
       .map((i) => ({ name: i.name.trim(), price: parseFloat((String(i.price) || '0').replace(',', '.')) || 0 }))
 
   const spentAt = result?.date || isoDay(new Date())
+  const needsDescription = !note.trim() && !SELF_EXPLANATORY.has(category)
 
   const confirm = async (editAfter = false, force = false) => {
     if (value <= 0) return
+    // Not gated for editAfter — that path is heading to the Add screen
+    // specifically to fill this in, which has the identical requirement itself.
+    if (needsDescription && !editAfter) {
+      setErr(`What was this ${category.toLowerCase()} for? Give it a name so you'll recognise it later.`)
+      return
+    }
     if (editAfter) {
       // Hand the photo over too, so adjusting the details doesn't drop the receipt.
       setPendingReceipt(imageFile)
@@ -144,7 +156,7 @@ export default function ScanReceipt() {
       scope,
       spend_type: spendType,
       paid_by: user?.id,
-      note: note.trim() || 'Scanned receipt',
+      note: note.trim(),
       account_id: accountId || defaultAccount?.id || null,
       category_id: categoryId,
       items: rows.length ? rows : null,
@@ -324,14 +336,19 @@ export default function ScanReceipt() {
             )}
 
             <div>
-              <label className="label">Note (optional)</label>
+              <label className="label">
+                What was it{SELF_EXPLANATORY.has(category) ? ' (optional)' : ''}
+              </label>
               <input
-                className="field"
+                className={`field ${needsDescription && err ? 'border-spend' : ''}`}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. dinner with Adi"
+                placeholder="e.g. dentist, haircut, massage"
               />
-              <p className="mt-1 text-xs text-muted">Also used as the filename when you save to Dropbox.</p>
+              <p className="mt-1 text-xs text-muted">
+                {result?.merchant ? 'Filled in from the receipt — change it if you prefer. ' : ''}
+                Also used as the filename when you save to Dropbox.
+              </p>
             </div>
 
             {result?.rawText && (

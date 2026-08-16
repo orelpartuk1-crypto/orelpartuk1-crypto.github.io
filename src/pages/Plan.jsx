@@ -1,19 +1,16 @@
 import { Link } from 'react-router-dom'
-import { useMoney } from '../hooks/useMoney'
 import { useRecurring } from '../hooks/useRecurring'
 import { useDates, daysUntil } from '../hooks/useDates'
 import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
 
-// Everything that stands on its own every month, as opposed to the one-off
-// transactions that go through Add. Settings is for how the app behaves; this
-// is for what your money already does before you spend anything.
+// What repeats every month, as opposed to the one-off transactions that go
+// through Add. Rent lives here too now — it's just a recurring expense like
+// any other, split 50/50 automatically because it's a shared need.
 export default function Plan() {
-  const { bills } = useMoney()
   const { items: recurring } = useRecurring()
   const { dates } = useDates()
 
-  const billsTotal = bills.reduce((t, b) => t + Number(b.amount || 0), 0)
   const activeRecurring = recurring.filter((r) => r.active && r.kind === 'expense')
   const recurringTotal = activeRecurring.reduce((t, r) => t + Number(r.amount || 0), 0)
   const soonest = dates
@@ -22,19 +19,13 @@ export default function Plan() {
 
   return (
     <div className="pb-28">
-      <TopBar title="Every month" subtitle="What goes out before you spend a thing" />
+      <TopBar title="Every month" subtitle="What goes out before you spend a thing" back />
       <div className="mx-auto max-w-md px-4 space-y-3">
-        <Row
-          to="/bills"
-          emoji="🏠"
-          title="Rent & bills"
-          sub={bills.length ? `${bills.length} bill${bills.length > 1 ? 's' : ''} · ${money(billsTotal)} a month` : 'Nothing added yet'}
-        />
         <Row
           to="/recurring"
           emoji="🔁"
           title="Monthly expenses"
-          sub={activeRecurring.length ? `${activeRecurring.length} active · ${money(recurringTotal)} a month` : 'Nothing repeating yet'}
+          sub={activeRecurring.length ? `${activeRecurring.length} active · ${money(recurringTotal)} a month` : 'Nothing repeating yet — add rent and subscriptions here'}
         />
         <Row
           to="/dates"

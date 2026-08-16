@@ -42,5 +42,5 @@ export async function geminiScan(file) {
   if (!res.ok) throw new Error('gemini OCR unavailable')
   const j = await res.json()
   if (j.error) throw new Error(j.error)
-  return { amount: j.amount ?? null, date: j.date ?? null, category: j.category || 'Other', items: j.items || [], rawText: '' }
+  return { amount: j.amount ?? null, date: j.date ?? null, merchant: j.merchant ?? null, category: j.category || 'Other', items: j.items || [], rawText: '' }
 }

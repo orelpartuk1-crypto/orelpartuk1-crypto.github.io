@@ -94,6 +94,17 @@ export default function Settings() {
           </span>
         </button>
 
+        <Link to="/plan" className="card flex items-center justify-between active:scale-[0.99]">
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">🔁</span>
+            <span>
+              <span className="block font-semibold">Every month</span>
+              <span className="block text-sm text-muted">Rent, subscriptions and important dates</span>
+            </span>
+          </span>
+          <span className="text-muted">›</span>
+        </Link>
+
         <Link to="/categories" className="card flex items-center justify-between active:scale-[0.99]">
           <span className="flex items-center gap-3">
             <span className="text-2xl">🏷️</span>

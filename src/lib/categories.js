@@ -67,3 +67,9 @@ export function guessCategory(text = '') {
   }
   return 'Other'
 }
+
+// Categories where the category IS the description — nobody needs to type
+// "weekly shop" under Groceries. Everywhere else, a line called "Personal
+// Care" tells you nothing three months later; a real description does.
+// Shared by the Add screen and the scan review screen so the rule can't drift.
+export const SELF_EXPLANATORY = new Set(['Groceries', 'Rent', 'Utilities', 'Taxes', 'Insurance', 'Subscriptions'])

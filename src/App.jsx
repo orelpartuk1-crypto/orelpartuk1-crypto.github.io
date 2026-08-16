@@ -11,6 +11,7 @@ import Couple from './pages/Couple'
 import Profile from './pages/Profile'
 import Movements from './pages/Movements'
 import Upcoming from './pages/Upcoming'
+import GroceryAnalysis from './pages/GroceryAnalysis'
 import Dashboard from './pages/Dashboard'
 import AddExpense from './pages/AddExpense'
 import ScanReceipt from './pages/ScanReceipt'
@@ -24,7 +25,6 @@ import Analytics from './pages/Analytics'
 import ImportBank from './pages/ImportBank'
 import Simulators from './pages/Simulators'
 import Salary from './pages/Salary'
-import Bills from './pages/Bills'
 import Tax from './pages/Tax'
 import Dates from './pages/Dates'
 import Recurring from './pages/Recurring'
@@ -74,6 +74,7 @@ function Shell() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/movements" element={<Movements />} />
           <Route path="/upcoming" element={<Upcoming />} />
+          <Route path="/groceries" element={<GroceryAnalysis />} />
           {/* The money coach and the zone breakdowns still live here until they
               get a proper home on Analytics. */}
           <Route path="/coach" element={<Dashboard />} />
@@ -88,7 +89,8 @@ function Shell() {
           <Route path="/import" element={<ImportBank />} />
           <Route path="/simulators" element={<Simulators />} />
           <Route path="/salary" element={<Salary />} />
-          <Route path="/bills" element={<Bills />} />
+          {/* Rent moved to the normal recurring-expense flow. */}
+          <Route path="/bills" element={<Navigate to="/recurring" replace />} />
           {/* Income & bills split into Salary and Bills; keep the old path
               working so a home-screen icon saved to it still lands somewhere. */}
           <Route path="/money" element={<Navigate to="/plan" replace />} />

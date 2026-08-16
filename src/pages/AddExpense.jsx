@@ -13,7 +13,7 @@ import CategorySheet from '../components/CategorySheet'
 import TopBar from '../components/TopBar'
 import { Screen, Item, Tap, Sheet } from '../components/motion'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
-import { defaultSpendType, categoryMeta, CATEGORIES, BUSINESS_CATEGORIES } from '../lib/categories'
+import { defaultSpendType, categoryMeta, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingReceipt } from '../lib/pendingScan'
 import { uploadReceipt } from '../lib/receipts'
@@ -21,10 +21,6 @@ import { uploadReceipt } from '../lib/receipts'
 const toNumber = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 const todayISO = () => isoDay(new Date())
 
-// Categories where the category IS the description — nobody needs to write
-// "weekly shop" under Groceries. Everywhere else, a line called "Personal Care"
-// tells you nothing three months later; "dentist" does.
-const SELF_EXPLANATORY = new Set(['Groceries', 'Rent', 'Utilities', 'Taxes', 'Insurance', 'Subscriptions'])
 
 export default function AddExpense() {
   const nav = useNavigate()

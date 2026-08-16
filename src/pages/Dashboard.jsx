@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { setPendingScan } from '../lib/pendingScan'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
@@ -36,7 +36,9 @@ export default function Dashboard() {
   const nav = useNavigate()
   const { household, members, user, profile, myIncome, hasBusiness } = useAuth()
   const [monthDate, setMonthDate] = useState(new Date())
-  const [zone, setZone] = useState(() => localStorage.getItem('db_zone') || 'together')
+  // Arriving from "our analysis" pins this to shared, same as Analytics does.
+  const [params] = useSearchParams()
+  const [zone, setZone] = useState(() => params.get('zone') || localStorage.getItem('db_zone') || 'together')
   // Remember the zone so the Add form defaults to it (Shared/Private/Business).
   const persistZone = (z) => { setZone(z); localStorage.setItem('db_zone', z) }
   const prevMonthDate = useMemo(() => new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1), [monthDate])

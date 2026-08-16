@@ -189,7 +189,7 @@ export default function Couple() {
         <Item className="card">
           <div className="flex items-baseline justify-between">
             <h2 className="label mb-0">Recent together</h2>
-            <Link to="/expenses" className="text-sm font-semibold text-brand-600">View all →</Link>
+            <Link to="/movements" className="text-sm font-semibold text-brand-600">View all →</Link>
           </div>
 
           {!loading && movements.length === 0 && (
@@ -219,28 +219,43 @@ export default function Couple() {
           </Stagger>
         </Item>
 
-        <Item className="space-y-2.5">
-          <Link to="/plan" className="card-tap flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">🔁</span>
-              <span>
-                <span className="block font-semibold">Every month</span>
-                <span className="block text-sm text-muted">Rent, subscriptions and dates</span>
+        {/* Our analysis — shared only, never mixed with personal or business */}
+        <Item className="card">
+          <h2 className="label">Our analysis</h2>
+          <div className="divide-y divide-slate-100">
+            <Link to="/analytics?zone=together&lock=1" className="flex items-center gap-3 py-2.5 active:opacity-60">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📊</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">By category</span>
+                <span className="block text-xs text-muted">Where the shared money went, and your budgets</span>
               </span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
-
-          <Link to="/analytics?zone=together" className="card-tap flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">📊</span>
-              <span>
-                <span className="block font-semibold">Shared analysis</span>
-                <span className="block text-sm text-muted">Categories, budgets and trends</span>
+              <span className="text-muted">›</span>
+            </Link>
+            <Link to="/analytics?zone=together&lock=1&filter=need" className="flex items-center gap-3 py-2.5 active:opacity-60">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">🧺</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">Needs</span>
+                <span className="block text-xs text-muted">{money(totals.needs)} this month</span>
               </span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
+              <span className="text-muted">›</span>
+            </Link>
+            <Link to="/analytics?zone=together&lock=1&filter=treat" className="flex items-center gap-3 py-2.5 active:opacity-60">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">🍦</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">Treats</span>
+                <span className="block text-xs text-muted">{money(totals.treats)} this month</span>
+              </span>
+              <span className="text-muted">›</span>
+            </Link>
+            <Link to="/coach?zone=together" className="flex items-center gap-3 py-2.5 active:opacity-60">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">🧭</span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">Money coach</span>
+                <span className="block text-xs text-muted">Trends and where to trim</span>
+              </span>
+              <span className="text-muted">›</span>
+            </Link>
+          </div>
         </Item>
       </Screen>
 

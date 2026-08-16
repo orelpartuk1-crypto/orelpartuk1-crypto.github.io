@@ -14,6 +14,7 @@ const SCHEMA = {
   properties: {
     amount: { type: 'number', description: 'The final total amount paid, in euros. Null if unreadable.', nullable: true },
     date: { type: 'string', description: 'Receipt date as YYYY-MM-DD. Null if not visible.', nullable: true },
+    merchant: { type: 'string', description: 'The shop or business name as printed, title case. Null if unreadable.', nullable: true },
     category: { type: 'string', enum: CATEGORIES },
     items: {
       type: 'array',
@@ -98,6 +99,7 @@ Deno.serve(async (req) => {
     const prompt = `You are reading a shop receipt (likely Spanish, from Madrid). Extract:
 - amount: the FINAL total paid (look for "TOTAL", "TOTAL A PAGAR" — not subtotal, not IVA line alone).
 - date: the receipt's date, as YYYY-MM-DD.
+- merchant: the shop or business name as printed at the top of the receipt (e.g. "Mercadona", "Clínica Dental Ruiz"). This becomes the expense's title, so a real name matters far more than perfect formatting.
 - category: pick the single best fit from the allowed list, based on the shop/items.
 - items: the products bought. Skip barcodes, taxes, payment lines and totals. If the category isn't Groceries you may return an empty array.
 
@@ -161,6 +163,7 @@ product, leave it out of items entirely — the total already reflects it.`
       JSON.stringify({
         amount: parsed.amount ?? null,
         date: parsed.date ?? null,
+        merchant: parsed.merchant ?? null,
         category: parsed.category || 'Other',
         items: mergeItems(parsed.items),
       }),
