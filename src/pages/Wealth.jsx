@@ -101,7 +101,7 @@ export default function Wealth() {
             className="mx-auto block"
           >
             <span className={`figure ${netWorth < 0 ? 'text-spend' : 'text-brand-700'}`}>
-              {hidden ? '••••••' : <Counter value={netWorth} format={(n) => money(n)} />}
+              {hidden ? '••••••' : <Counter id="wealth-net" ready={!loading} value={netWorth} format={(n) => money(n)} />}
             </span>
           </Tap>
           <p className="mt-1 text-center text-xs text-brand-700/60">

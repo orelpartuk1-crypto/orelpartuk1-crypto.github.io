@@ -68,19 +68,38 @@ export function Tap({ children, className = '', as: As = motion.button, ...rest 
 // A figure that counts to its value. Money that simply appears is a number;
 // money that climbs is a result — and it draws the eye to the one thing on the
 // screen that matters most.
-export function Counter({ value, format = (n) => n.toFixed(2), className = '', duration = 750 }) {
+//
+// Given an `id`, the last value shown is remembered for the life of the tab. A
+// screen's data always arrives after its first render, so without this the
+// figure counts up from zero every single time you navigate back to it — which
+// reads as a glitch, not as emphasis. With it, the count happens when the
+// number genuinely changed: on first open, and after you log something.
+const lastShown = new Map()
+
+export function Counter({ id, value, ready = true, format = (n) => n.toFixed(2), className = '', duration = 750 }) {
   const reduced = useReducedMotion()
-  const [shown, setShown] = useState(value)
-  const from = useRef(value)
+  const remembered = id != null && lastShown.has(id) ? lastShown.get(id) : null
+  const [shown, setShown] = useState(remembered ?? value)
+  const from = useRef(remembered ?? value)
   const raf = useRef(null)
 
   useEffect(() => {
-    if (reduced || from.current === value) { setShown(value); from.current = value; return }
-    const start = performance.now()
+    // A screen's data lands after its first render, so an unready value is a
+    // placeholder, not a change. Animating to it would count the figure down to
+    // zero and back every time you navigate here — a glitch, not emphasis.
+    if (!ready) return
+
+    if (id != null) lastShown.set(id, value)
+    if (reduced || from.current === value) {
+      setShown(value)
+      from.current = value
+      return
+    }
+    const t0 = performance.now()
     const a = from.current
     const b = value
     const tick = (now) => {
-      const t = Math.min(1, (now - start) / duration)
+      const t = Math.min(1, (now - t0) / duration)
       // Ease out — fast at first, gently settling, like the springs elsewhere.
       const eased = 1 - Math.pow(1 - t, 3)
       setShown(a + (b - a) * eased)
@@ -89,7 +108,7 @@ export function Counter({ value, format = (n) => n.toFixed(2), className = '', d
     }
     raf.current = requestAnimationFrame(tick)
     return () => raf.current && cancelAnimationFrame(raf.current)
-  }, [value, reduced, duration])
+  }, [value, ready, reduced, duration, id])
 
   return <span className={`tnum ${className}`}>{format(shown)}</span>
 }

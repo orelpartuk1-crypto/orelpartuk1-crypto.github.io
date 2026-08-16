@@ -178,7 +178,7 @@ export default function Home() {
             {over ? 'Overspent this month' : 'Saved this month'}
           </p>
           <p className={`figure mt-1 ${over ? 'text-rose-700' : 'text-brand-700'}`}>
-            {over ? '−' : '+'}<Counter value={Math.abs(saved)} format={(n) => money(n)} />
+            {over ? '−' : '+'}<Counter id="home-saved" ready={!loading} value={Math.abs(saved)} format={(n) => money(n)} />
           </p>
           {balance.pct != null && (
             <motion.span

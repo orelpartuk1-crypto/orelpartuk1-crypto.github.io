@@ -110,7 +110,7 @@ export default function Couple() {
         <div className="rounded-xl3 bg-mint-200 p-5">
           <p className="label mb-0 text-center text-brand-700/70">Spent together</p>
           <p className="figure mt-1 text-center text-brand-700">
-            <Counter value={totals.total} format={(n) => money(n)} />
+            <Counter id="couple-total" ready={!loading} value={totals.total} format={(n) => money(n)} />
           </p>
 
           <div className="mt-5 flex h-3 w-full gap-1 overflow-hidden rounded-full bg-white/50">
