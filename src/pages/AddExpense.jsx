@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
 import { useRecurring } from '../hooks/useRecurring'
+import { useAccounts } from '../hooks/useAccounts'
 import Numpad from '../components/Numpad'
 import CategoryPicker from '../components/CategoryPicker'
 import Segmented from '../components/Segmented'
@@ -33,11 +34,27 @@ export default function AddExpense() {
   const [claimedReceipt] = useState(() => (prefill ? takePendingReceipt() : null))
   const pendingReceipt = useRef(claimedReceipt)
 
-  // Income vs expense — never offered while editing an existing expense.
+  // Income / transfer are only offered for new entries, never while editing.
   const isIncomeCapable = !editing
-  const [mode, setMode] = useState('expense') // 'expense' | 'income'
+  const [mode, setMode] = useState('expense') // 'expense' | 'income' | 'transfer'
   const isIncome = isIncomeCapable && mode === 'income'
+  const isTransfer = isIncomeCapable && mode === 'transfer'
   const [source, setSource] = useState('') // income-only: where the money came from
+
+  // Which of my accounts this came out of (or went into). Every entry gets one;
+  // the default is filled in as soon as the accounts load so it never blocks.
+  const { active: myAccounts, defaultAccount, transfer: makeTransfer } = useAccounts()
+  const [accountId, setAccountId] = useState(editing?.account_id || prefill?.account_id || null)
+  const [toAccountId, setToAccountId] = useState(null) // transfer destination
+  useEffect(() => {
+    if (!accountId && defaultAccount) setAccountId(defaultAccount.id)
+  }, [defaultAccount, accountId])
+  useEffect(() => {
+    if (isTransfer && !toAccountId) {
+      const other = myAccounts.find((a) => a.id !== accountId)
+      if (other) setToAccountId(other.id)
+    }
+  }, [isTransfer, toAccountId, myAccounts, accountId])
 
   const seed = editing || prefill || {}
   // Default the scope to the zone the user was viewing (Shared / Mine / Business).
@@ -75,7 +92,7 @@ export default function AddExpense() {
   // Needs are always split 50/50 automatically — no UI, no question asked.
   // Only treats get a slider, defaulting to "I cover it" (0%) unless dragged.
   const partner = members?.find((m) => m.id !== user?.id)
-  const canSplit = !isIncome && scope === 'shared' && members?.length === 2
+  const canSplit = !isIncome && !isTransfer && scope === 'shared' && members?.length === 2
   const isTreat = !isIncome && spendType === 'treat'
   const initialOwed = editing?.owed_amount ?? prefill?.owed_amount ?? null
   const initialPct = initialOwed != null && Number(seed.amount) > 0
@@ -105,6 +122,25 @@ export default function AddExpense() {
   const save = async (force = false) => {
     if (value <= 0) return
     setErr(null)
+
+    // Moving money between your own accounts isn't spending — it never touches
+    // expenses, categories or the shared split, so it short-circuits here.
+    if (isTransfer) {
+      if (!accountId || !toAccountId) { setErr('Pick both accounts.'); return }
+      if (accountId === toAccountId) { setErr('Pick two different accounts.'); return }
+      setBusy(true)
+      const { error } = await makeTransfer({
+        from_account: accountId,
+        to_account: toAccountId,
+        amount: value,
+        note: note.trim() || null,
+        transferred_at: spentAt,
+      })
+      setBusy(false)
+      if (error) { setErr(error.message); return }
+      nav('/')
+      return
+    }
 
     // Warn if the same person already logged this exact amount+category+date
     // (income has no such concept — bonuses of the same amount aren't unusual).
@@ -145,6 +181,7 @@ export default function AddExpense() {
         month: monthRange(new Date(spentAt)).start,
         note: note.trim() || null,
         recurring_id: recurringId,
+        account_id: accountId,
       })
       setBusy(false)
       if (error) { setErr(error.message); return }
@@ -161,6 +198,8 @@ export default function AddExpense() {
       owed_amount: owedAmount, // null unless it's a shared treat split
       note: note.trim() || null,
       spent_at: spentAt,
+      // Shared or not, it left one person's account — that's whose balance moves.
+      account_id: accountId,
       // Never touch recurring_id when editing — omitting the key leaves
       // whatever link (if any) the row already had untouched.
       ...(!editing ? { recurring_id: recurringId } : {}),
@@ -199,7 +238,7 @@ export default function AddExpense() {
         title={editing ? 'Edit expense' : isIncome ? 'Add income' : 'Add expense'}
         back
         right={
-          !editing && !isIncome && (
+          !editing && !isIncome && !isTransfer && (
             <Link to="/scan" className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3 shadow-sm text-brand-600 font-medium active:scale-95">
               <CameraIcon className="h-5 w-5" /> Scan
             </Link>
@@ -212,16 +251,15 @@ export default function AddExpense() {
         {isIncomeCapable && (
           <div className="flex rounded-full bg-black/[0.04] p-1">
             {[
-              { value: 'expense', label: 'Expense' },
-              { value: 'income', label: 'Income' },
+              { value: 'expense', label: 'Expense', cls: 'text-spend' },
+              { value: 'income', label: 'Income', cls: 'text-earn' },
+              { value: 'transfer', label: 'Transfer', cls: 'text-ink' },
             ].map((o) => (
               <button
                 key={o.value}
                 onClick={() => setMode(o.value)}
                 className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${
-                  mode === o.value
-                    ? `bg-white shadow-card ${o.value === 'income' ? 'text-earn' : 'text-spend'}`
-                    : 'text-muted'
+                  mode === o.value ? `bg-white shadow-card ${o.cls}` : 'text-muted'
                 }`}
               >
                 {o.label}
@@ -242,7 +280,34 @@ export default function AddExpense() {
 
         <Numpad value={amount} onChange={setAmount} />
 
-        {!isIncome && (
+        {/* Which of my accounts this moves. Transfers need two. */}
+        {myAccounts.length > 0 && (
+          <div className={isTransfer ? 'grid grid-cols-2 gap-3' : ''}>
+            <div>
+              <label className="label">{isTransfer ? 'From' : isIncome ? 'Into' : 'Paid from'}</label>
+              <select className="field" value={accountId || ''} onChange={(e) => setAccountId(e.target.value)}>
+                {myAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+            {isTransfer && (
+              <div>
+                <label className="label">To</label>
+                <select className="field" value={toAccountId || ''} onChange={(e) => setToAccountId(e.target.value)}>
+                  {myAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
+        {isTransfer && (
+          <p className="rounded-2xl bg-slate-50 p-3 text-sm text-muted">
+            Moving money between your own accounts. It isn't spending, so it won't appear in
+            expenses, categories or the shared split — only your balances change.
+          </p>
+        )}
+
+        {!isIncome && !isTransfer && (
           <>
             {/* Type / need-treat */}
             <div className="grid grid-cols-1 gap-3">
@@ -345,7 +410,7 @@ export default function AddExpense() {
           </div>
         </div>
 
-        {!editing && (
+        {!editing && !isTransfer && (
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" checked={repeats} onChange={(e) => setRepeats(e.target.checked)} className="h-5 w-5" />
             Repeats monthly
@@ -382,7 +447,7 @@ export default function AddExpense() {
             disabled={busy || value <= 0}
             onClick={() => save()}
           >
-            {busy ? 'Saving…' : editing ? `Update ${money(value)}` : isIncome ? `Save income ${money(value)}` : `Save expense ${money(value)}`}
+            {busy ? 'Saving…' : editing ? `Update ${money(value)}` : isTransfer ? `Move ${money(value)}` : isIncome ? `Save income ${money(value)}` : `Save expense ${money(value)}`}
           </button>
         </div>
       </div>

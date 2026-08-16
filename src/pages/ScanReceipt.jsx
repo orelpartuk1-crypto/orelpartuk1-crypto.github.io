@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
+import { useAccounts } from '../hooks/useAccounts'
 import { scanReceipt, parseReceipt } from '../lib/ocr'
 import { cloudScan, geminiScan } from '../lib/cloudOcr'
 import { findDuplicate } from '../lib/dupCheck'
@@ -18,6 +19,10 @@ export default function ScanReceipt() {
   const nav = useNavigate()
   const { user, household, hasBusiness } = useAuth()
   const { addExpense } = useExpenses()
+  // A scan is still money leaving an account — without this it would be the one
+  // way to create an expense that never touches a balance.
+  const { active: myAccounts, defaultAccount } = useAccounts()
+  const [accountId, setAccountId] = useState(null)
   const fileRef = useRef(null)
 
   const [preview, setPreview] = useState(null)
@@ -115,7 +120,7 @@ export default function ScanReceipt() {
     if (editAfter) {
       // Hand the photo over too, so adjusting the details doesn't drop the receipt.
       setPendingReceipt(imageFile)
-      nav('/add', { state: { prefill: { amount: value, category, scope, date: result?.date || undefined, items: toItems(), note: note.trim() || undefined } } })
+      nav('/add', { state: { prefill: { amount: value, category, scope, date: result?.date || undefined, items: toItems(), note: note.trim() || undefined, account_id: accountId || defaultAccount?.id || undefined } } })
       return
     }
     setErr(null)
@@ -134,6 +139,7 @@ export default function ScanReceipt() {
       spend_type: spendType,
       paid_by: user?.id,
       note: note.trim() || 'Scanned receipt',
+      account_id: accountId || defaultAccount?.id || null,
       items: rows.length ? rows : null,
       ...(result?.date ? { spent_at: result.date } : {}),
     })
@@ -287,6 +293,19 @@ export default function ScanReceipt() {
                   onChange={setItems}
                   onUseTotal={(sum) => setAmount(String(sum.toFixed(2)).replace('.', ','))}
                 />
+              </div>
+            )}
+
+            {myAccounts.length > 0 && (
+              <div>
+                <label className="label">Paid from</label>
+                <select
+                  className="field"
+                  value={accountId || defaultAccount?.id || ''}
+                  onChange={(e) => setAccountId(e.target.value)}
+                >
+                  {myAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
               </div>
             )}
 

@@ -98,7 +98,7 @@ export function myShareOfBills(activeBills, userId) {
 }
 
 // Who owes whom across shared expenses (per-expense owed share) + rent bills.
-export function settlement(expenses, members, activeBills = []) {
+export function settlement(expenses, members, activeBills = [], settlements = []) {
   if (members.length !== 2) return null
   const [a, b] = members
   const shared = expenses.filter((e) => e.scope === 'shared')
@@ -114,6 +114,13 @@ export function settlement(expenses, members, activeBills = []) {
   for (const bill of activeBills) {
     if (bill.payer === a.id) balA += num(bill.other_share)
     else if (bill.payer === b.id) balA -= num(bill.other_share)
+  }
+
+  // Money already handed over cancels the debt it was handed over for —
+  // without this the dashboard would keep asking for a payment that was made.
+  for (const s of settlements) {
+    if (s.payer === a.id) balA += num(s.amount)
+    else if (s.payer === b.id) balA -= num(s.amount)
   }
 
   const needsTotal = sum(shared.filter((e) => e.spend_type === 'need'))

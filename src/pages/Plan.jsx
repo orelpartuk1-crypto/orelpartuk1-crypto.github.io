@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useMoney } from '../hooks/useMoney'
 import { useRecurring } from '../hooks/useRecurring'
 import { useSavings } from '../hooks/useSavings'
+import { useAccounts } from '../hooks/useAccounts'
 import { useDates, daysUntil } from '../hooks/useDates'
 import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
@@ -15,6 +16,7 @@ export default function Plan() {
   const { bills } = useMoney()
   const { items: recurring } = useRecurring()
   const { goals, savedByGoal } = useSavings()
+  const { active: accounts, total: accountsTotal } = useAccounts()
   const { dates } = useDates()
 
   const salary = Number(profile?.monthly_income ?? 0)
@@ -29,6 +31,12 @@ export default function Plan() {
     <div className="pb-28">
       <TopBar title="Every month" subtitle="What repeats, and what you're saving for" />
       <div className="mx-auto max-w-md px-4 space-y-3">
+        <Row
+          to="/accounts"
+          emoji="🏦"
+          title="Accounts"
+          sub={accounts.length ? `${accounts.length} account${accounts.length > 1 ? 's' : ''} · ${money(accountsTotal)}` : 'Not set up yet'}
+        />
         <Row
           to="/salary"
           emoji="💶"

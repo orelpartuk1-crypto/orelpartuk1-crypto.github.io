@@ -11,6 +11,8 @@ import { opportunityInsights } from '../lib/opportunity'
 import { paceForecast, trendInsights, savingsNudges, monthlyTotals } from '../lib/coach'
 import TrendChart from '../components/TrendChart'
 import { useSavings } from '../hooks/useSavings'
+import { useAccounts } from '../hooks/useAccounts'
+import { useSettlements } from '../hooks/useSettlements'
 import { useHistory } from '../hooks/useHistory'
 import { useYearStats } from '../hooks/useYearStats'
 import { categoryMeta } from '../lib/categories'
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const treatPct = useTreatPct(monthDate)
   const { goals, savedByGoal, contribs } = useSavings()
   const { rows: history } = useHistory(6)
+  const { rows: settlements, reload: reloadSettlements } = useSettlements()
 
   // Camera button that opens the camera immediately (dialog runs in the tap).
   const scanInputRef = useRef(null)
@@ -163,7 +166,7 @@ export default function Dashboard() {
         )}
 
         {activeZone === 'together' && (
-          <TogetherZone shared={shared} prevShared={prevShared} history={sharedHist} members={members} activeBills={activeBills} budgets={budgets} nameOf={nameOf} monthLabel={monthLabel(monthDate)} monthDate={monthDate} atCurrentMonth={atCurrentMonth} treatPct={treatPct} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} onReceipt={setReceipt} />
+          <TogetherZone shared={shared} prevShared={prevShared} history={sharedHist} members={members} activeBills={activeBills} budgets={budgets} nameOf={nameOf} monthLabel={monthLabel(monthDate)} monthDate={monthDate} atCurrentMonth={atCurrentMonth} treatPct={treatPct} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} onReceipt={setReceipt} settlements={settlements} onSettled={reloadSettlements} />
         )}
         {activeZone === 'mine' && (
           <MineZone mine={mine} prevMine={prevMine} history={mineHist} myIncome={myIncome} balance={balance} budgets={budgets} budgetMap={budgetMap} monthDate={monthDate} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} nameOf={nameOf} onReceipt={setReceipt} />
@@ -471,6 +474,72 @@ function BalanceCard({ balance, needs = 0, treats = 0 }) {
   )
 }
 
+// The outstanding balance between the two of you, and the button that actually
+// clears it. Recording it moves real money: it comes off one person's account
+// and lands in the other's, which is what makes the two balances agree again.
+function SettleRow({ settle, nameOf, onSettled }) {
+  const { user } = useAuth()
+  const { active: myAccounts, defaultAccount } = useAccounts()
+  const { settle: recordSettlement } = useSettlements()
+  const [open, setOpen] = useState(false)
+  const [accountId, setAccountId] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  const iPay = settle.from === user?.id
+  const account = accountId || defaultAccount?.id || null
+
+  const confirm = async () => {
+    if (!account) return
+    setBusy(true)
+    await recordSettlement({
+      payer: settle.from,
+      payee: settle.to,
+      amount: Math.round(settle.amount * 100) / 100,
+      payer_account: iPay ? account : null,
+      payee_account: iPay ? null : account,
+    })
+    setBusy(false)
+    setOpen(false)
+    onSettled?.()
+  }
+
+  return (
+    <div className="mt-2 rounded-2xl bg-slate-50 p-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted">
+          Settle up (incl. rent) — <b className="text-ink">{nameOf(settle.from)} → {nameOf(settle.to)}</b>
+        </span>
+        <span className="tnum font-bold text-brand-600">{money(settle.amount)}</span>
+      </div>
+
+      {!open ? (
+        <button className="btn-ghost mt-2.5 w-full py-2.5 text-base" onClick={() => setOpen(true)}>
+          {iPay ? 'I paid this' : 'Mark as received'}
+        </button>
+      ) : (
+        <div className="mt-2.5 space-y-2">
+          <div>
+            <label className="label">{iPay ? 'Paid from' : 'Received into'}</label>
+            <select className="field" value={account || ''} onChange={(e) => setAccountId(e.target.value)}>
+              {myAccounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+            </select>
+          </div>
+          <p className="text-xs text-muted">
+            {nameOf(iPay ? settle.to : settle.from)} picks their own account when they open the app,
+            so neither of you sees the other's balance.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button className="btn-ghost py-2.5 text-base" onClick={() => setOpen(false)}>Cancel</button>
+            <button className="btn-primary py-2.5 text-base" disabled={busy || !account} onClick={confirm}>
+              {busy ? 'Saving…' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // How this category is tracking against the same category last month.
 function PaceNote({ pace }) {
   if (!pace) return null
@@ -531,9 +600,9 @@ function CatList({ expenses, prevExpenses = [], empty, nameOf, onReceipt }) {
   )
 }
 
-function TogetherZone({ shared, prevShared, history = [], members, activeBills, budgets, nameOf, monthLabel, monthDate, atCurrentMonth, treatPct = {}, goals = [], savedByGoal = {}, tripAvg = 0, onReceipt }) {
+function TogetherZone({ shared, prevShared, history = [], members, activeBills, budgets, nameOf, monthLabel, monthDate, atCurrentMonth, treatPct = {}, goals = [], savedByGoal = {}, tripAvg = 0, onReceipt, settlements = [], onSettled }) {
   const totals = summarize(shared)
-  const settle = settlement(shared, members, activeBills)
+  const settle = settlement(shared, members, activeBills, settlements)
   const treats = treatBalance(shared, members)
   const needExp = useMemo(() => shared.filter((e) => e.spend_type === 'need'), [shared])
   const treatExp = useMemo(() => shared.filter((e) => e.spend_type === 'treat'), [shared])
@@ -573,10 +642,7 @@ function TogetherZone({ shared, prevShared, history = [], members, activeBills, 
         </div>
         <p className="text-sm text-muted">Split 50/50 · {money(totals.needs / 2)} each</p>
         {settle && !settle.settled ? (
-          <div className="mt-2 flex items-center justify-between rounded-2xl bg-slate-50 p-3">
-            <span className="text-sm text-muted">Settle up (incl. rent) — <b className="text-ink">{nameOf(settle.from)} → {nameOf(settle.to)}</b></span>
-            <span className="font-bold text-brand-600">{money(settle.amount)}</span>
-          </div>
+          <SettleRow settle={settle} nameOf={nameOf} onSettled={onSettled} />
         ) : (
           <p className="mt-2 rounded-2xl bg-green-50 p-2.5 text-sm font-medium text-green-700">All square 🎉</p>
         )}

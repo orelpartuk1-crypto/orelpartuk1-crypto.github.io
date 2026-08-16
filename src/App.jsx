@@ -12,6 +12,7 @@ import ScanReceipt from './pages/ScanReceipt'
 import Savings from './pages/Savings'
 import Settings from './pages/Settings'
 import Plan from './pages/Plan'
+import Accounts from './pages/Accounts'
 import Salary from './pages/Salary'
 import Bills from './pages/Bills'
 import Tax from './pages/Tax'
@@ -64,6 +65,7 @@ function Shell() {
           <Route path="/scan" element={<ScanReceipt />} />
           <Route path="/savings" element={<Savings />} />
           <Route path="/plan" element={<Plan />} />
+          <Route path="/accounts" element={<Accounts />} />
           <Route path="/salary" element={<Salary />} />
           <Route path="/bills" element={<Bills />} />
           {/* Income & bills split into Salary and Bills; keep the old path
