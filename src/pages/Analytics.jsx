@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
@@ -37,7 +37,10 @@ export default function Analytics() {
   const { shared: sharedBudgets, personal: personalBudgets, set: setBudget } = useBudgets()
   const { rows: history } = useHistory(6)
 
-  const [zone, setZone] = useState(() => localStorage.getItem('db_zone') || 'together')
+  // Arriving from the Together screen should land on shared, not on whatever
+  // zone was last used somewhere else.
+  const [params] = useSearchParams()
+  const [zone, setZone] = useState(() => params.get('zone') || localStorage.getItem('db_zone') || 'together')
   const persistZone = (z) => {
     setZone(z)
     localStorage.setItem('db_zone', z)
@@ -295,6 +298,17 @@ export default function Analytics() {
             />
           </div>
         )}
+
+        <Link to="/coach" className="card-tap flex items-center justify-between">
+          <span className="flex items-center gap-3">
+            <span className="text-2xl">🧭</span>
+            <span>
+              <span className="block font-semibold">Money coach</span>
+              <span className="block text-sm text-muted">Trends, nudges and where to trim</span>
+            </span>
+          </span>
+          <span className="text-muted">›</span>
+        </Link>
 
         {/* Six-month trend */}
         {trend.length > 1 && (

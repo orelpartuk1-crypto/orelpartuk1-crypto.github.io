@@ -6,6 +6,8 @@ import InstallPrompt from './components/InstallPrompt'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import Onboarding from './pages/Onboarding'
+import Home from './pages/Home'
+import Couple from './pages/Couple'
 import Dashboard from './pages/Dashboard'
 import AddExpense from './pages/AddExpense'
 import ScanReceipt from './pages/ScanReceipt'
@@ -65,7 +67,11 @@ function Shell() {
     <>
       <main className="mx-auto min-h-full max-w-md">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/together" element={<Couple />} />
+          {/* The money coach and the zone breakdowns still live here until they
+              get a proper home on Analytics. */}
+          <Route path="/coach" element={<Dashboard />} />
           <Route path="/add" element={<AddExpense />} />
           <Route path="/scan" element={<ScanReceipt />} />
           <Route path="/savings" element={<Savings />} />

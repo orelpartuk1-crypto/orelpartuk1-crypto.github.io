@@ -5,12 +5,14 @@ import { NavLink, useLocation } from 'react-router-dom'
 // spent, what repeats every month, and how the app itself behaves.
 // Settings isn't here — it's the gear on the Home header, and a tab is too
 // prominent for something opened a few times a year.
+// Simulators gave up their slot for Together — a couple's app should have the
+// couple on the bar, and a calculator you open twice a year should not.
 const items = [
   { to: '/', label: 'Home', icon: HomeIcon, end: true },
-  { to: '/analytics', label: 'Analytics', icon: PieIcon },
+  { to: '/together', label: 'Together', icon: HeartIcon },
   { to: '/add', label: 'Add', icon: PlusIcon, primary: true },
   { to: '/wealth', label: 'Wealth', icon: ChartIcon },
-  { to: '/plan', label: 'Monthly', icon: RepeatIcon },
+  { to: '/analytics', label: 'Analytics', icon: PieIcon },
 ]
 
 // Focused, full-screen flows (their own back button + action bar) hide the nav
@@ -73,6 +75,13 @@ function PlusIcon(props) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" {...props}>
       <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+function HeartIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M12 20.5S3.5 15 3.5 9.2A4.7 4.7 0 0 1 12 6.6a4.7 4.7 0 0 1 8.5 2.6c0 5.8-8.5 11.3-8.5 11.3Z" />
     </svg>
   )
 }
