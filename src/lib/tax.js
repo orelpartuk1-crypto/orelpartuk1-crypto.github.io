@@ -1,16 +1,28 @@
 // Simplified IRPF estimate for an autónomo resident in the Comunidad de Madrid.
 // ⚠️ ESTIMATE ONLY — for planning, not official tax advice. Real filing depends
 // on many factors (Seguridad Social, reductions, family situation, etc.).
-// Confirm with a gestor. Rates are the approx. combined state + Madrid 2024/25
-// marginal brackets and can be tweaked here as the law changes.
-
+// Confirm with a gestor.
+//
+// Combined marginal rate = the nationwide state general scale + Madrid's own
+// regional scale, added bracket-by-bracket. The two scales don't share
+// threshold points, so the combined table has a break wherever EITHER one
+// does — including two easy-to-miss narrow bands (20.5% and 31.3%) that only
+// exist because one scale changes bracket slightly before the other.
+//   State 2025:  9.5% / 12% / 15% / 18.5% / 22.5% / 24.5%
+//     at  0 · 12,450 · 20,200 · 35,200 · 60,000 · 300,000
+//   Madrid 2025: 8.5% / 10.7% / 12.8% / 17.4% / 20.5%
+//     at  0 · 13,362.22 · 19,004.63 · 35,425.68 · 57,320.40
+// Madrid's regional scale is deflated annually (Ley 5/2024) so its
+// thresholds shift with inflation even when the state scale doesn't —
+// re-verify both scales for the current tax year before trusting this.
 const BRACKETS = [
   { upTo: 12450, rate: 0.18 },
-  { upTo: 17707, rate: 0.227 },
+  { upTo: 13362.22, rate: 0.205 },
+  { upTo: 19004.63, rate: 0.227 },
   { upTo: 20200, rate: 0.248 },
-  { upTo: 33007, rate: 0.278 },
-  { upTo: 35200, rate: 0.324 },
-  { upTo: 53407, rate: 0.359 },
+  { upTo: 35200, rate: 0.278 },
+  { upTo: 35425.68, rate: 0.313 },
+  { upTo: 57320.4, rate: 0.359 },
   { upTo: 60000, rate: 0.39 },
   { upTo: 300000, rate: 0.43 },
   { upTo: Infinity, rate: 0.45 },

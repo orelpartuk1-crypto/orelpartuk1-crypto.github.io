@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import TopBar from '../components/TopBar'
+import { Sheet } from '../components/motion'
 import { money } from '../lib/format'
 import { loanSummary, futureValue, fireNumber, yearsToTarget, realValue, refinance } from '../lib/finance'
 
@@ -15,12 +16,14 @@ const SIMS = [
   { key: 'inflation', emoji: '🔥', title: 'Inflation', sub: 'Your money in X years' },
 ]
 
-export default function Simulators() {
+// `onClose`: present when opened as a sheet from Wealth rather than as its
+// own route.
+export default function Simulators({ onClose }) {
   const [open, setOpen] = useState(null)
 
   return (
-    <div className="pb-28">
-      <TopBar title="Simulators" subtitle="Explore before deciding" back />
+    <div className={onClose ? '' : 'pb-28'}>
+      <TopBar title="Simulators" subtitle="Explore before deciding" back onBack={onClose} />
       <div className="mx-auto max-w-md px-4 space-y-3">
         <div className="card divide-y divide-slate-100">
           {SIMS.map((s) => (
@@ -45,21 +48,21 @@ export default function Simulators() {
         </p>
       </div>
 
-      {open && <Sheet which={open} onClose={() => setOpen(null)} />}
+      <SimSheet which={open} onClose={() => setOpen(null)} />
     </div>
   )
 }
 
-function Sheet({ which, onClose }) {
+// This used to hand-roll its own sheet with animate-fade-in/animate-sheet-up
+// — the second was never actually defined in the Tailwind config, so it
+// snapped open with zero transition. The shared Sheet component gets the
+// real slide-up everything else in the app has.
+function SimSheet({ which, onClose }) {
   const sim = SIMS.find((s) => s.key === which)
   return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/40 animate-fade-in" onClick={onClose}>
-      <div
-        className="max-h-[90vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-4 pb-10 animate-sheet-up"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-300" />
-        <div className="mx-auto max-w-md space-y-4">
+    <Sheet open={!!which} onClose={onClose}>
+      {sim && (
+        <div className="space-y-4">
           <h2 className="text-xl font-bold">{sim.emoji} {sim.title}</h2>
           {which === 'loan' && <LoanSim />}
           {which === 'car' && <CarSim />}
@@ -70,8 +73,8 @@ function Sheet({ which, onClose }) {
           {which === 'inflation' && <InflationSim />}
           <button className="btn-ghost w-full" onClick={onClose}>Close</button>
         </div>
-      </div>
-    </div>
+      )}
+    </Sheet>
   )
 }
 

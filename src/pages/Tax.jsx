@@ -10,7 +10,9 @@ const field = (v, set, ph) => (
   <input className="field" inputMode="decimal" value={v} onChange={(e) => set(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder={ph} />
 )
 
-export default function Tax() {
+// `onClose`: present when opened as a sheet from Wealth rather than as its
+// own route.
+export default function Tax({ onClose }) {
   const { profile, businessThisYear, businessRows, businessByCategory, deductibleThisYear, save, saveCategoryPct } = useTax()
   const [income, setIncome] = useState('')
   const [ss, setSs] = useState('')
@@ -69,8 +71,8 @@ export default function Tax() {
   }
 
   return (
-    <div className="pb-28">
-      <TopBar title="Business tax" subtitle={`Autónomo · Madrid · ${new Date().getFullYear()} projection`} back />
+    <div className={onClose ? '' : 'pb-28'}>
+      <TopBar title="Business tax" subtitle={`Autónomo · Madrid · ${new Date().getFullYear()} projection`} back onBack={onClose} />
       <div className="mx-auto max-w-md px-4 space-y-4">
         {/* Inputs */}
         <div className="card space-y-3">

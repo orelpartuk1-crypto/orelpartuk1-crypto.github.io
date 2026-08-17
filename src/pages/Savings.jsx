@@ -5,7 +5,10 @@ import Segmented from '../components/Segmented'
 import TopBar from '../components/TopBar'
 import { money, isoDay } from '../lib/format'
 
-export default function Savings() {
+// `onClose`: present when opened as a sheet from Wealth rather than as its
+// own route — swaps nav(-1) for actually closing the sheet, and drops the
+// page's own bottom padding, which a sheet doesn't need.
+export default function Savings({ onClose }) {
   const { goals, savedByGoal, loading, addGoal, deleteGoal, addContribution } = useSavings()
   const [showNew, setShowNew] = useState(false)
   const [name, setName] = useState('')
@@ -22,10 +25,12 @@ export default function Savings() {
   }
 
   return (
-    <div className="pb-28">
+    <div className={onClose ? '' : 'pb-28'}>
       <TopBar
         title="Savings"
         subtitle="Private to you"
+        back={!!onClose}
+        onBack={onClose}
         right={
           <button
             onClick={() => setShowNew((s) => !s)}

@@ -4,7 +4,11 @@ import { useNavigate } from 'react-router-dom'
 // `wrap`: let the title break onto a second line instead of ellipsizing —
 // for a title whose length actually varies (Home's time-of-day greeting +
 // name) rather than every other screen's short, fixed word ("Wealth").
-export default function TopBar({ title, subtitle, back = false, right = null, wrap = false }) {
+// `onBack`: override what the back button does — for a page also rendered
+// inside a sheet (Wealth's Savings/Tax/Simulators), nav(-1) would leave the
+// sheet's own screen and navigate the real browser history instead of just
+// closing it.
+export default function TopBar({ title, subtitle, back = false, right = null, wrap = false, onBack }) {
   const nav = useNavigate()
   // Solid, not blurred — backdrop-filter on a sticky header repaints every
   // scroll frame and is one of the heaviest things a phone GPU can be asked
@@ -16,7 +20,7 @@ export default function TopBar({ title, subtitle, back = false, right = null, wr
       <div className="mx-auto flex max-w-md items-center gap-3">
         {back && (
           <button
-            onClick={() => nav(-1)}
+            onClick={onBack || (() => nav(-1))}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-card transition-transform duration-150 active:scale-90"
             aria-label="Back"
           >

@@ -10,6 +10,13 @@ import Donut from '../components/Donut'
 import NetWorthChart from '../components/NetWorthChart'
 import { Screen, Item, Tap, Counter, Sheet, motion } from '../components/motion'
 import { money, isoDay } from '../lib/format'
+// Savings, Tax and Simulators open as sheets from here now instead of
+// navigating away — same components, still reachable at their own routes
+// directly (a saved link still lands somewhere), just not how Wealth links
+// to them any more.
+import Savings from './Savings'
+import Tax from './Tax'
+import Simulators from './Simulators'
 
 const RANGE_DAYS = { Week: 7, Month: 31, '3M': 92, '6M': 183, '1Y': 366, All: Infinity }
 
@@ -40,6 +47,7 @@ export default function Wealth() {
   const [addOpen, setAddOpen] = useState(false)
   const [assetsOpen, setAssetsOpen] = useState(false)
   const [editing, setEditing] = useState(null)
+  const [sheet, setSheet] = useState(null) // 'savings' | 'tax' | 'simulators' | null
 
   const netWorth = liquid + assetsTotal - debtsTotal
   const gross = liquid + assetsTotal
@@ -211,11 +219,12 @@ export default function Wealth() {
         </Item>
 
         {/* Quick links, as icons rather than full rows — salary already lives
-            in Plan/Profile, so it doesn't need a second home here. */}
+            in Plan/Profile, so it doesn't need a second home here. Each opens
+            a sheet instead of navigating to its own page. */}
         <Item className="flex justify-around py-1">
-          <IconLink to="/savings" emoji="🎯" label="Savings" />
-          {hasBusiness && <IconLink to="/tax" emoji="🧾" label="Tax" />}
-          <IconLink to="/simulators" emoji="🧮" label="Simulators" />
+          <IconLink onClick={() => setSheet('savings')} emoji="🎯" label="Savings" />
+          {hasBusiness && <IconLink onClick={() => setSheet('tax')} emoji="🧾" label="Tax" />}
+          <IconLink onClick={() => setSheet('simulators')} emoji="🧮" label="Simulators" />
         </Item>
 
         <p className="px-1 text-xs text-muted">
@@ -269,6 +278,21 @@ export default function Wealth() {
           onDelete={async () => { await remove(editing.id); setEditing(null) }}
         />
       )}
+
+      {/* Savings, Tax and Simulators — the full page, "almost full screen" as
+          a sheet rather than a route. !px-0 because the embedded page brings
+          its own TopBar + content padding; the sheet's own horizontal
+          padding would double up with it. Vertical padding stays — the page
+          doesn't bring its own (its outer div drops pb-28 when embedded). */}
+      <Sheet open={sheet === 'savings'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">
+        {sheet === 'savings' && <Savings onClose={() => setSheet(null)} />}
+      </Sheet>
+      <Sheet open={sheet === 'tax'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">
+        {sheet === 'tax' && <Tax onClose={() => setSheet(null)} />}
+      </Sheet>
+      <Sheet open={sheet === 'simulators'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">
+        {sheet === 'simulators' && <Simulators onClose={() => setSheet(null)} />}
+      </Sheet>
     </div>
   )
 }
@@ -276,12 +300,12 @@ export default function Wealth() {
 // A compact tap target — icon + label, nothing else. For a destination that
 // doesn't need its own summary line here, three of these take the vertical
 // space one full row used to.
-function IconLink({ to, emoji, label }) {
+function IconLink({ onClick, emoji, label }) {
   return (
-    <Link to={to} className="flex flex-col items-center gap-1.5 active:opacity-60">
+    <button onClick={onClick} className="flex flex-col items-center gap-1.5 active:opacity-60">
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl shadow-card">{emoji}</span>
       <span className="text-xs font-medium text-muted">{label}</span>
-    </Link>
+    </button>
   )
 }
 
