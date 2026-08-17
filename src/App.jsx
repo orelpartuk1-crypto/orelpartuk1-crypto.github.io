@@ -1,9 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { isSupabaseConfigured } from './lib/supabase'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
 import InstallPrompt from './components/InstallPrompt'
-import { AnimatePresence, motion } from './components/motion'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import Onboarding from './pages/Onboarding'
@@ -59,7 +58,6 @@ function SetupNeeded() {
 // Shell that decides what to show based on auth state.
 function Shell() {
   const { loading, session, household, recoveryMode } = useAuth()
-  const location = useLocation()
 
   if (loading) return <Splash />
   if (recoveryMode) return <ResetPassword />
@@ -69,60 +67,48 @@ function Shell() {
   return (
     <>
       <main className="mx-auto min-h-full max-w-md">
-        {/* A quick slide-in from the right, not a fade — the next screen
-            arrives like it's the next thing, not a swapped-out page. Kept
-            fast (mode="wait" but a short duration on both ends) so it never
-            reads as a pause between tapping and landing. Routes gets the
-            same `location` the key is built from — without it, the outgoing
-            screen would re-render as the new route mid-exit instead of
-            finishing as itself. */}
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, x: 18 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -18 }}
-            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <Routes location={location}>
-              <Route path="/" element={<Home />} />
-              <Route path="/together" element={<Couple />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/movements" element={<Movements />} />
-              <Route path="/upcoming" element={<Upcoming />} />
-              <Route path="/groceries" element={<GroceryAnalysis />} />
-              {/* The money coach retired as its own page — it's a couple of
-                  inline insight lines on Together and Analytics now. Old
-                  links land somewhere real instead of 404ing. */}
-              <Route path="/coach" element={<Navigate to="/together" replace />} />
-              <Route path="/add" element={<AddExpense />} />
-              <Route path="/scan" element={<ScanReceipt />} />
-              <Route path="/savings" element={<Savings />} />
-              <Route path="/plan" element={<Plan />} />
-              <Route path="/accounts" element={<Accounts />} />
-              <Route path="/wealth" element={<Wealth />} />
-              <Route path="/categories" element={<Categories />} />
-              <Route path="/analytics" element={<Analytics />} />
-              <Route path="/import" element={<ImportBank />} />
-              <Route path="/simulators" element={<Simulators />} />
-              <Route path="/salary" element={<Salary />} />
-              {/* Rent moved to the normal recurring-expense flow. */}
-              <Route path="/bills" element={<Navigate to="/recurring" replace />} />
-              {/* Income & bills split into Salary and Bills; keep the old path
-                  working so a home-screen icon saved to it still lands somewhere. */}
-              <Route path="/money" element={<Navigate to="/plan" replace />} />
-              <Route path="/recurring" element={<Recurring />} />
-              {/* Superseded by /movements, which shows money in as well as out.
-                  Kept as a redirect so old links and saved icons still land. */}
-              <Route path="/expenses" element={<Navigate to="/movements" replace />} />
-              <Route path="/automate" element={<Automate />} />
-              <Route path="/tax" element={<Tax />} />
-              <Route path="/dates" element={<Dates />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </motion.div>
-        </AnimatePresence>
+        {/* A route-level slide sounded nice but stacked on top of every
+            page's own entrance animation — exit, then enter, then that
+            page's own fade-up — and made ordinary navigation feel heavy.
+            Each page's own Screen wrapper already animates in on its own;
+            that's enough. */}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/together" element={<Couple />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/movements" element={<Movements />} />
+          <Route path="/upcoming" element={<Upcoming />} />
+          <Route path="/groceries" element={<GroceryAnalysis />} />
+          {/* The money coach retired as its own page — it's a couple of
+              inline insight lines on Together and Analytics now. Old
+              links land somewhere real instead of 404ing. */}
+          <Route path="/coach" element={<Navigate to="/together" replace />} />
+          <Route path="/add" element={<AddExpense />} />
+          <Route path="/scan" element={<ScanReceipt />} />
+          <Route path="/savings" element={<Savings />} />
+          <Route path="/plan" element={<Plan />} />
+          <Route path="/accounts" element={<Accounts />} />
+          <Route path="/wealth" element={<Wealth />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/import" element={<ImportBank />} />
+          <Route path="/simulators" element={<Simulators />} />
+          <Route path="/salary" element={<Salary />} />
+          {/* Rent moved to the normal recurring-expense flow. */}
+          <Route path="/bills" element={<Navigate to="/recurring" replace />} />
+          {/* Income & bills split into Salary and Bills; keep the old path
+              working so a home-screen icon saved to it still lands somewhere. */}
+          <Route path="/money" element={<Navigate to="/plan" replace />} />
+          <Route path="/recurring" element={<Recurring />} />
+          {/* Superseded by /movements, which shows money in as well as out.
+              Kept as a redirect so old links and saved icons still land. */}
+          <Route path="/expenses" element={<Navigate to="/movements" replace />} />
+          <Route path="/automate" element={<Automate />} />
+          <Route path="/tax" element={<Tax />} />
+          <Route path="/dates" element={<Dates />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
       <BottomNav />
     </>

@@ -6,8 +6,13 @@ import { useNavigate } from 'react-router-dom'
 // name) rather than every other screen's short, fixed word ("Wealth").
 export default function TopBar({ title, subtitle, back = false, right = null, wrap = false }) {
   const nav = useNavigate()
+  // Solid, not blurred — backdrop-filter on a sticky header repaints every
+  // scroll frame and is one of the heaviest things a phone GPU can be asked
+  // to do continuously. Opaque costs nothing and never looks glitchy the way
+  // transparency-without-blur would (text bleeding through crisply instead
+  // of softened).
   return (
-    <header className="safe-top sticky top-0 z-20 bg-surface/85 backdrop-blur-xl px-4 pb-3">
+    <header className="safe-top sticky top-0 z-20 bg-surface px-4 pb-3">
       <div className="mx-auto flex max-w-md items-center gap-3">
         {back && (
           <button

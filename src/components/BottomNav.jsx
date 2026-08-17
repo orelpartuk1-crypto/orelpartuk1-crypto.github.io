@@ -26,7 +26,10 @@ export default function BottomNav() {
   return (
     // Floating, detached from the screen edges — the page scrolls underneath it.
     <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 safe-bottom">
-      <div className="pointer-events-auto mx-auto mb-2 flex max-w-md items-center justify-around rounded-full bg-white/90 px-3 py-2 shadow-nav backdrop-blur-xl">
+      {/* Solid, not blurred — same reasoning as TopBar: a fixed element that's
+          always on screen paying a continuous backdrop-filter cost is a real
+          drag on a phone GPU, and it's paid on every single screen. */}
+      <div className="pointer-events-auto mx-auto mb-2 flex max-w-md items-center justify-around rounded-full bg-white px-3 py-2 shadow-nav">
         {items.map(({ to, label, icon: Icon, end, primary }) =>
           primary ? (
             // Raised above the bar so it reads as the main action, not a tab.
