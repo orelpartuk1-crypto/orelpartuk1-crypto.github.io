@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../hooks/useCategories'
 import TopBar from '../components/TopBar'
@@ -11,14 +11,20 @@ const COLORS = [
 
 export default function Categories() {
   const { hasBusiness } = useAuth()
-  const { rows, tree, loading, add, update, remove } = useCategories()
+  const { rows, loading, add, update, remove } = useCategories()
   const [scope, setScope] = useState('expense')
   const [editing, setEditing] = useState(null)
   const [addingUnder, setAddingUnder] = useState(undefined) // undefined = closed, null = new top level
 
-  const list = tree[scope] || []
-  // Without this, switching a category off would hide it with no way back.
-  const hidden = rows.filter((r) => r.scope === scope && !r.active && !r.parent_id)
+  // One list, active and switched-off together, in the order they were
+  // created — so turning a category off never moves it and there's nowhere
+  // else to go look for it.
+  const list = useMemo(() => {
+    const inScope = rows.filter((r) => r.scope === scope)
+    return inScope
+      .filter((r) => !r.parent_id)
+      .map((parent) => ({ ...parent, children: inScope.filter((c) => c.parent_id === parent.id && c.active) }))
+  }, [rows, scope])
 
   return (
     <div className="pb-28">
@@ -38,7 +44,7 @@ export default function Categories() {
 
         <div className="card divide-y divide-slate-100 py-0">
           {list.map((parent) => (
-            <div key={parent.id} className="py-2">
+            <div key={parent.id} className={`py-2 ${!parent.active ? 'opacity-50' : ''}`}>
               <div className="flex items-center gap-2.5">
                 <span
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base"
@@ -52,17 +58,21 @@ export default function Categories() {
                     <span className="block text-[11px] leading-tight text-muted">Not counted as spending</span>
                   )}
                 </button>
+                {parent.active && (
+                  <button
+                    onClick={() => setAddingUnder(parent)}
+                    aria-label={`Add subcategory to ${parent.name}`}
+                    className="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-brand-600 active:scale-95"
+                  >
+                    +
+                  </button>
+                )}
                 <button
-                  onClick={() => setAddingUnder(parent)}
-                  aria-label={`Add subcategory to ${parent.name}`}
-                  className="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-brand-600 active:scale-95"
-                >
-                  +
-                </button>
-                <button
-                  onClick={() => update(parent.id, { active: false })}
-                  aria-label={`Hide ${parent.name}`}
-                  className="flex h-6 w-10 shrink-0 items-center justify-end rounded-full bg-brand-500 px-0.5"
+                  onClick={() => update(parent.id, { active: !parent.active })}
+                  aria-label={parent.active ? `Turn off ${parent.name}` : `Turn on ${parent.name}`}
+                  className={`flex h-6 w-10 shrink-0 items-center rounded-full px-0.5 transition-colors ${
+                    parent.active ? 'justify-end bg-brand-500' : 'justify-start bg-slate-300'
+                  }`}
                 >
                   <span className="h-5 w-5 rounded-full bg-white shadow" />
                 </button>
@@ -98,28 +108,6 @@ export default function Categories() {
               return error
             }}
           />
-        )}
-
-        {hidden.length > 0 && (
-          <div className="card">
-            <h2 className="label">Hidden</h2>
-            <p className="mb-2 text-sm text-muted">Still on past expenses — just not offered when adding.</p>
-            <ul className="divide-y divide-slate-100">
-              {hidden.map((c) => (
-                <li key={c.id} className="flex items-center gap-3 py-2.5">
-                  <span className="text-lg opacity-50">{c.emoji}</span>
-                  <span className="min-w-0 flex-1 truncate text-muted">{c.name}</span>
-                  <button
-                    onClick={() => update(c.id, { active: true })}
-                    aria-label={`Show ${c.name}`}
-                    className="flex h-7 w-12 shrink-0 items-center justify-start rounded-full bg-slate-200 px-0.5 transition"
-                  >
-                    <span className="h-6 w-6 rounded-full bg-white shadow" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
         )}
 
         <p className="px-1 text-xs text-muted">

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
-import { useMoney } from '../hooks/useMoney'
 import { useSettlements } from '../hooks/useSettlements'
 import { useAccounts } from '../hooks/useAccounts'
 import { summarize, settlement, onlySpending } from '../lib/calc'
@@ -26,7 +25,6 @@ export default function Couple() {
   const { user, members } = useAuth()
   const [monthDate, setMonthDate] = useState(new Date())
   const { expenses: all, loading } = useExpenses(monthDate)
-  const { activeBills } = useMoney(monthDate)
   const { rows: settlements, settle: recordSettlement } = useSettlements()
   const { active: myAccounts, defaultAccount } = useAccounts()
   const { notSpending } = useCategories()
@@ -45,8 +43,8 @@ export default function Couple() {
   const totals = summarize(onlySpending(shared, notSpending))
   const needPct = totals.total > 0 ? (totals.needs / totals.total) * 100 : 0
   const settle = useMemo(
-    () => settlement(shared, members, activeBills, settlements),
-    [shared, members, activeBills, settlements]
+    () => settlement(shared, members, settlements),
+    [shared, members, settlements]
   )
 
   const movements = useMemo(

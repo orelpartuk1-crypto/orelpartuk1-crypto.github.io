@@ -1,6 +1,5 @@
 import { useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { useMoney } from '../hooks/useMoney'
 import { useRecurring } from '../hooks/useRecurring'
 import { useDates } from '../hooks/useDates'
 import { upcomingPayments } from '../lib/upcoming'
@@ -8,19 +7,18 @@ import { money, dayLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
 import { Screen, Stagger, Item } from '../components/motion'
 
-const ICON = { bill: '🏠', date: '🎁', income: '💰', recurring: '🔁' }
+const ICON = { date: '🎁', income: '💰', recurring: '🔁' }
 
 // Everything still to come, in and out, over the next three months. Home shows
 // the next week; this is the whole runway.
 export default function Upcoming() {
   const { user } = useAuth()
-  const { activeBills } = useMoney()
   const { items: recurringItems } = useRecurring()
   const { dates } = useDates()
 
   const rows = useMemo(
-    () => upcomingPayments({ bills: activeBills, recurring: recurringItems, dates, myId: user?.id, withinDays: 92 }),
-    [activeBills, recurringItems, dates, user?.id]
+    () => upcomingPayments({ recurring: recurringItems, dates, myId: user?.id, withinDays: 92 }),
+    [recurringItems, dates, user?.id]
   )
 
   const totalOut = rows.filter((r) => r.direction === 'out').reduce((t, r) => t + r.amount, 0)
@@ -60,7 +58,7 @@ export default function Upcoming() {
         </div>
 
         {rows.length === 0 && (
-          <p className="py-12 text-center text-muted">Nothing scheduled. Add a bill or a monthly charge and it'll show up here.</p>
+          <p className="py-12 text-center text-muted">Nothing scheduled. Add a recurring charge and it'll show up here.</p>
         )}
 
         {buckets.map((b) => (

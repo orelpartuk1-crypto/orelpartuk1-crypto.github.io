@@ -51,8 +51,9 @@ export default function Movements() {
       viewerId: user?.id,
       raw: e,
     }))
+    // Unlike Home's preview, this is the full picture — both of your incomes,
+    // filterable by the "who" toggle below same as expenses.
     const inn = bonuses
-      .filter((b) => b.owner === user?.id)
       .map((b) => ({
         id: `i-${b.id}`,
         type: 'income',
@@ -147,7 +148,7 @@ export default function Movements() {
                 const meta = m.direction === 'in' ? { emoji: '💰', color: '#0f7a3e' } : categoryMeta(m.category)
                 return (
                   <Item key={m.id}>
-                    <Tap onClick={() => setMovement(m)} className="flex w-full items-center gap-3 py-2.5 text-left">
+                    <Tap onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left active:bg-slate-100">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
                         {meta.emoji}
                       </span>

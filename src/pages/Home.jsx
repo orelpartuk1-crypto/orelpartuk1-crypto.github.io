@@ -9,7 +9,7 @@ import { useRecurring } from '../hooks/useRecurring'
 import { useDates } from '../hooks/useDates'
 import { useBudgets } from '../hooks/useBudgets'
 import { useSettlements } from '../hooks/useSettlements'
-import { byCategory, settlement, myShareOfShared, myShareOfBills, summarize, onlySpending } from '../lib/calc'
+import { byCategory, settlement, myShareOfShared, summarize, onlySpending } from '../lib/calc'
 import { upcomingPayments, buildAlerts } from '../lib/upcoming'
 import { setPendingScan } from '../lib/pendingScan'
 import { categoryMeta } from '../lib/categories'
@@ -26,15 +26,23 @@ const isThisMonth = (d) => {
   return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth()
 }
 
+const greeting = () => {
+  const h = new Date().getHours()
+  if (h < 5) return 'Good night'
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
 // Three questions, in the order they get asked: how did this month go, what
 // just happened, and what's about to happen.
 export default function Home() {
   const nav = useNavigate()
-  const { members, user, profile, myIncome, hasBusiness } = useAuth()
+  const { members, user, profile, myIncome } = useAuth()
   const [monthDate, setMonthDate] = useState(new Date())
 
   const { expenses: all, loading } = useExpenses(monthDate)
-  const { activeBills, bonuses } = useMoney(monthDate)
+  const { bonuses } = useMoney(monthDate)
   const { accounts } = useAccounts()
   const { items: recurringItems } = useRecurring()
   const { dates } = useDates()
@@ -60,14 +68,15 @@ export default function Home() {
     const income = (myIncome || 0) + myBonuses
     const spent =
       summarize(onlySpending(mine, notSpending)).total +
-      myShareOfShared(onlySpending(shared, notSpending), user?.id) +
-      myShareOfBills(activeBills, user?.id)
+      myShareOfShared(onlySpending(shared, notSpending), user?.id)
     return { income, spent, saved: income - spent, pct: income > 0 ? ((income - spent) / income) * 100 : null }
-  }, [bonuses, myIncome, mine, shared, activeBills, user?.id, notSpending])
+  }, [bonuses, myIncome, mine, shared, user?.id, notSpending])
 
-  // 2 — Everything that moved, money out and money in together, newest first.
+  // 2 — Everything YOU moved, money out and money in together, newest first —
+  // private, shared or business alike. Your partner's own movements belong on
+  // Movements, not squeezed into your glance-at-it preview.
   const movements = useMemo(() => {
-    const visible = all.filter((e) => e.scope === 'shared' || e.paid_by === user?.id)
+    const visible = all.filter((e) => e.paid_by === user?.id)
     const out = visible.map((e) => ({
       id: `e-${e.id}`,
       type: 'expense',
@@ -102,10 +111,11 @@ export default function Home() {
     return [...out, ...inn].sort((a, b) => String(b.date).localeCompare(String(a.date)))
   }, [all, bonuses, user?.id])
 
-  // 3 — What is still to come, in or out.
+  // 3 — What is still to come, in or out. A week was too tight to ever catch
+  // a salary or a quarterly charge — 25 days reaches into next month too.
   const due = useMemo(
-    () => upcomingPayments({ bills: activeBills, recurring: recurringItems, dates, myId: user?.id, withinDays: 7 }),
-    [activeBills, recurringItems, dates, user?.id]
+    () => upcomingPayments({ recurring: recurringItems, dates, myId: user?.id, withinDays: 25 }),
+    [recurringItems, dates, user?.id]
   )
 
   const alerts = useMemo(() => {
@@ -114,12 +124,12 @@ export default function Home() {
       budgetMap: { ...sharedBudgets, ...personalBudgets },
       spendByCategory,
       upcoming: due,
-      settle: settlement(shared, members, activeBills, settlements),
+      settle: settlement(shared, members, settlements),
       nameOf,
       myId: user?.id,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shared, sharedBudgets, personalBudgets, due, members, activeBills, settlements, user?.id])
+  }, [shared, sharedBudgets, personalBudgets, due, members, settlements, user?.id])
 
   const saved = balance.saved
   const over = saved < 0
@@ -127,10 +137,10 @@ export default function Home() {
   return (
     <div className="pb-28">
       <TopBar
-        title={`Hi, ${profile?.display_name || ''}`}
+        title={`${greeting()}, ${profile?.display_name || ''}`}
         subtitle={new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
         right={
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <AlertBell alerts={alerts} />
             <input
               ref={scanInputRef}
@@ -145,23 +155,17 @@ export default function Home() {
             />
             <Tap
               onClick={() => scanInputRef.current?.click()}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab"
               aria-label="Scan receipt"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 8h3l2-2h6l2 2h3v11H4z" /><circle cx="12" cy="13" r="3.2" />
               </svg>
             </Tap>
-            {hasBusiness && (
-              <Tap
-                onClick={() => nav('/tax')}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card"
-                aria-label="Business"
-              >
-                <span className="text-lg">💼</span>
-              </Tap>
-            )}
-            <Tap onClick={() => nav('/profile')} className="rounded-full" aria-label="Profile">
+            {/* Business already has a proper entry point on Wealth ("Business
+                tax" card) — no need to duplicate it here, and one fewer icon
+                keeps this row from crowding the bell off a narrow screen. */}
+            <Tap onClick={() => nav('/profile')} className="shrink-0 rounded-full" aria-label="Profile">
               <Avatar name={profile?.display_name} size={40} />
             </Tap>
           </div>
@@ -240,7 +244,7 @@ export default function Home() {
               const meta = m.direction === 'in' ? { emoji: '💰', color: '#0f7a3e' } : categoryMeta(m.category)
               return (
                 <Item key={m.id}>
-                  <Tap onClick={() => setMovement(m)} className="flex w-full items-center gap-3 py-2.5 text-left">
+                  <Tap onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left active:bg-slate-100">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
                       {meta.emoji}
                     </span>
@@ -263,12 +267,12 @@ export default function Home() {
         {/* 3 — Upcoming */}
         <Item className="card">
             <div className="flex items-baseline justify-between">
-              <h2 className="label mb-0">Next 7 days</h2>
+              <h2 className="label mb-0">Coming up</h2>
               <Link to="/upcoming" className="text-sm font-semibold text-brand-600">View all →</Link>
             </div>
           {due.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              Nothing due in the next week. Rent and monthly charges appear here as their date comes round.
+              Nothing due in the next 25 days. Rent and monthly charges appear here as their date comes round.
             </p>
           ) : (
             <Stagger className="divide-y divide-slate-100">
@@ -276,7 +280,7 @@ export default function Home() {
                 <Item key={u.id}>
                   <div className="flex items-center gap-3 py-2.5">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-50 text-base">
-                      {u.kind === 'bill' ? '🏠' : u.kind === 'date' ? '🎁' : u.direction === 'in' ? '💰' : '🔁'}
+                      {u.kind === 'date' ? '🎁' : u.direction === 'in' ? '💰' : '🔁'}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{u.label}</span>

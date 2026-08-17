@@ -3,11 +3,13 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { monthRange } from '../lib/format'
 
-// Bonuses (this month) + recurring bills (e.g. rent) for the household.
+// Bonuses (this month) for the household. Recurring bills (e.g. rent) used to
+// live here too, but that mechanism was retired — rent is now a normal
+// recurring expense (see src/pages/Recurring.jsx) and the `recurring_bills`
+// table is no longer read or written anywhere in the app.
 export function useMoney(base = new Date()) {
   const { household, user } = useAuth()
   const [bonuses, setBonuses] = useState([])
-  const [bills, setBills] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
@@ -15,17 +17,13 @@ export function useMoney(base = new Date()) {
     setLoading(true)
     const { start } = monthRange(base)
     const monthStart = start // first day of the month, YYYY-MM-01
-    const [{ data: b }, { data: bl }] = await Promise.all([
-      supabase
-        .from('incomes')
-        .select('*')
-        .eq('household_id', household.id)
-        .eq('month', monthStart)
-        .order('created_at', { ascending: false }),
-      supabase.from('recurring_bills').select('*').eq('household_id', household.id),
-    ])
+    const { data: b } = await supabase
+      .from('incomes')
+      .select('*')
+      .eq('household_id', household.id)
+      .eq('month', monthStart)
+      .order('created_at', { ascending: false })
     setBonuses(b || [])
-    setBills(bl || [])
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [household?.id, base.getFullYear(), base.getMonth()])
@@ -62,29 +60,5 @@ export function useMoney(base = new Date()) {
     [load]
   )
 
-  const saveBill = useCallback(
-    async (bill) => {
-      // upsert-ish: update when id present, else insert
-      const payload = { household_id: household.id, ...bill }
-      const { error } = bill.id
-        ? await supabase.from('recurring_bills').update(payload).eq('id', bill.id)
-        : await supabase.from('recurring_bills').insert(payload)
-      if (!error) await load()
-      return { error }
-    },
-    [household?.id, load]
-  )
-
-  const deleteBill = useCallback(
-    async (id) => {
-      const { error } = await supabase.from('recurring_bills').delete().eq('id', id)
-      if (!error) await load()
-      return { error }
-    },
-    [load]
-  )
-
-  const activeBills = bills.filter((b) => b.active)
-
-  return { bonuses, bills, activeBills, loading, reload: load, addBonus, deleteBonus, saveBill, deleteBill }
+  return { bonuses, loading, reload: load, addBonus, deleteBonus }
 }

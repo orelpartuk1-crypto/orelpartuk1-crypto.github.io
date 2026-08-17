@@ -13,13 +13,14 @@ import CategorySheet from '../components/CategorySheet'
 import TopBar from '../components/TopBar'
 import { Screen, Item, Tap, Sheet } from '../components/motion'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
-import { defaultSpendType, categoryMeta, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
+import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingReceipt } from '../lib/pendingScan'
 import { uploadReceipt } from '../lib/receipts'
 
 const toNumber = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 const todayISO = () => isoDay(new Date())
+const ACCOUNT_EMOJI = { cash: '💶', bank: '🏦', card: '💳', savings: '🐷' }
 
 
 export default function AddExpense() {
@@ -31,7 +32,7 @@ export default function AddExpense() {
   const { addExpense, updateExpense, deleteExpense } = useExpenses()
   const { addBonus } = useMoney()
   const { items: recurringItems, add: addRecurring } = useRecurring()
-  const { active: myAccounts, defaultAccount } = useAccounts()
+  const { active: myAccounts, defaultAccount, balances } = useAccounts()
   const { pickList } = useCategories()
   const { expenses: history } = useAllExpenses()
 
@@ -61,10 +62,14 @@ export default function AddExpense() {
     Array.isArray(seed.items) ? seed.items.map((i) => ({ name: i.name, price: String(i.price ?? '').replace('.', ',') })) : []
   )
   const [note, setNote] = useState(seed.note || '')
+  // Once you've picked a category yourself — by hand or via a shortcut — the
+  // guesser backs off. It only fills in a category you haven't chosen yet.
+  const [categoryTouched, setCategoryTouched] = useState(!!editing || !!seed.category)
   const [spentAt, setSpentAt] = useState(seed.date || editing?.spent_at || todayISO())
   const [repeats, setRepeats] = useState(false)
   const [accountId, setAccountId] = useState(editing?.account_id || prefill?.account_id || null)
   const [catOpen, setCatOpen] = useState(false)
+  const [acctOpen, setAcctOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const [dupWarn, setDupWarn] = useState(false)
@@ -79,6 +84,7 @@ export default function AddExpense() {
   const fallback = scope === 'business' ? BUSINESS_CATEGORIES : CATEGORIES
   const catItems = dbCategories.length ? dbCategories : fallback
   const chosenCat = catItems.find((c) => (c.id ?? c.key) === (categoryId || category))
+  const currentAccount = myAccounts.find((a) => a.id === accountId)
 
   // Shortcuts: what you actually log again and again. Your own monthly items
   // first, then anything the history shows you repeat — so the list is useful
@@ -120,6 +126,7 @@ export default function AddExpense() {
     setNote(s.label)
     setCategory(s.category)
     setCategoryId(null)
+    setCategoryTouched(true)
     if (s.scope) setScope(s.scope)
     if (s.spend_type) setSpendType(s.spend_type)
   }
@@ -145,6 +152,7 @@ export default function AddExpense() {
   }
 
   const pickCategory = (c) => {
+    setCategoryTouched(true)
     if (typeof c === 'string' || c.key) {
       setCategoryId(null)
       setCategory(c.key ?? c)
@@ -157,6 +165,20 @@ export default function AddExpense() {
       setSpendType(c.spend_type || defaultSpendType(c.parentName || c.name))
     }
   }
+
+  // Guess the category from what you typed — the same keyword list the
+  // scanned-receipt flow uses, so a description and a receipt agree. Backs off
+  // the moment you've chosen a category yourself.
+  useEffect(() => {
+    if (isIncome || categoryTouched || scope === 'business' || !note.trim()) return
+    const guess = guessCategory(note)
+    if (guess !== 'Other' && guess !== category) {
+      setCategory(guess)
+      setCategoryId(null)
+      setSpendType(defaultSpendType(guess))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note])
 
   const needsDescription = !isIncome && !note.trim() && !SELF_EXPLANATORY.has(category)
 
@@ -359,6 +381,25 @@ export default function AddExpense() {
           </Tap>
         </div>
 
+        {/* Account — which pot this moves, so its balance stays honest. Only
+            worth a tap when there's more than one to choose between. */}
+        {currentAccount && (
+          <div>
+            <label className="label">Account</label>
+            <Tap
+              onClick={() => myAccounts.length > 1 && setAcctOpen(true)}
+              className="flex w-full items-center gap-3 rounded-2xl border border-black/5 bg-white px-4 py-3.5 text-left dark:border-white/10"
+            >
+              <span className="text-2xl">{ACCOUNT_EMOJI[currentAccount.kind] || '🏦'}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-lg">{currentAccount.name}</span>
+                <span className="block text-xs text-muted">Balance: {money(balances[currentAccount.id] ?? 0)}</span>
+              </span>
+              {myAccounts.length > 1 && <span className="text-muted">›</span>}
+            </Tap>
+          </div>
+        )}
+
         {/* Date */}
         <div>
           <label className="label">Date</label>
@@ -447,6 +488,27 @@ export default function AddExpense() {
         onPick={pickCategory}
         title={isIncome ? 'Where from' : 'Category'}
       />
+
+      <Sheet open={acctOpen} onClose={() => setAcctOpen(false)}>
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold">Account</h2>
+          <div className="space-y-2">
+            {myAccounts.map((a) => (
+              <Tap
+                key={a.id}
+                onClick={() => { setAccountId(a.id); setAcctOpen(false) }}
+                className={`flex w-full items-center gap-3 rounded-2xl border px-4 py-3.5 text-left ${
+                  accountId === a.id ? 'border-brand-500 bg-brand-50' : 'border-black/5 bg-white dark:border-white/10'
+                }`}
+              >
+                <span className="text-2xl">{ACCOUNT_EMOJI[a.kind] || '🏦'}</span>
+                <span className="min-w-0 flex-1 truncate font-medium">{a.name}</span>
+                <span className="tnum text-sm text-muted">{money(balances[a.id] ?? 0)}</span>
+              </Tap>
+            ))}
+          </div>
+        </div>
+      </Sheet>
 
       <Sheet open={dupWarn} onClose={() => setDupWarn(false)}>
         <div className="space-y-3">

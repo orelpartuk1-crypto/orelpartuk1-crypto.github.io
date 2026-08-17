@@ -6,7 +6,7 @@ import { useExpenses } from '../hooks/useExpenses'
 import { useMoney } from '../hooks/useMoney'
 import { useDates, daysUntil } from '../hooks/useDates'
 import { useTreatPct } from '../hooks/useTreatPct'
-import { summarize, byCategory, paidByMember, settlement, treatBalance, budgetStatus, insights, groceryBreakdown, myShareOfShared, myShareOfBills, vsLastMonth } from '../lib/calc'
+import { summarize, byCategory, paidByMember, settlement, treatBalance, budgetStatus, insights, groceryBreakdown, myShareOfShared, vsLastMonth } from '../lib/calc'
 import { opportunityInsights } from '../lib/opportunity'
 import { paceForecast, trendInsights, savingsNudges, monthlyTotals } from '../lib/coach'
 import TrendChart from '../components/TrendChart'
@@ -45,7 +45,7 @@ export default function Dashboard() {
 
   const { expenses: all, budgets, loading, deleteExpense } = useExpenses(monthDate)
   const { expenses: prevAll } = useExpenses(prevMonthDate)
-  const { activeBills, bonuses, deleteBonus } = useMoney(monthDate)
+  const { bonuses, deleteBonus } = useMoney(monthDate)
   const { dates } = useDates()
   const treatPct = useTreatPct(monthDate)
   const { goals, savedByGoal, contribs } = useSavings()
@@ -82,7 +82,7 @@ export default function Dashboard() {
   const balance = useMemo(() => {
     const myBonuses = bonuses.filter((b) => b.owner === user?.id).reduce((t, b) => t + Number(b.amount), 0)
     const income = (myIncome || 0) + myBonuses
-    const spent = summarize(mine).total + myShareOfShared(shared, user?.id) + myShareOfBills(activeBills, user?.id)
+    const spent = summarize(mine).total + myShareOfShared(shared, user?.id)
     const goalKind = Object.fromEntries(goals.map((g) => [g.id, g.kind || 'saving']))
     let saved = 0, invested = 0
     for (const c of contribs) {
@@ -93,13 +93,13 @@ export default function Dashboard() {
       else saved += Number(c.amount)
     }
     return { income, spent, saved, invested, left: income - spent - saved - invested }
-  }, [bonuses, myIncome, mine, shared, activeBills, goals, contribs, user?.id, monthDate])
+  }, [bonuses, myIncome, mine, shared, goals, contribs, user?.id, monthDate])
 
   const upcoming = useMemo(() => dates.filter((d) => daysUntil(d._next) <= 45).slice(0, 3), [dates])
 
   const duePayments = useMemo(
-    () => upcomingPayments({ bills: activeBills, recurring: recurringItems, dates, myId: user?.id }),
-    [activeBills, recurringItems, dates, user?.id]
+    () => upcomingPayments({ recurring: recurringItems, dates, myId: user?.id }),
+    [recurringItems, dates, user?.id]
   )
 
   const budgetMap = useMemo(() => Object.fromEntries(budgets.map((b) => [b.category, Number(b.monthly_limit)])), [budgets])
@@ -125,12 +125,12 @@ export default function Dashboard() {
       budgetMap: zoneIsShared ? sharedBudgets : personalBudgets,
       spendByCategory,
       upcoming: duePayments,
-      settle: settlement(shared, members, activeBills, settlements),
+      settle: settlement(shared, members, settlements),
       nameOf,
       myId: user?.id,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeZone, shared, mine, sharedBudgets, personalBudgets, duePayments, members, activeBills, settlements, user?.id])
+  }, [activeZone, shared, mine, sharedBudgets, personalBudgets, duePayments, members, settlements, user?.id])
 
   return (
     <div className="pb-28">
@@ -180,7 +180,7 @@ export default function Dashboard() {
               {duePayments.slice(0, 6).map((u) => (
                 <li key={u.id} className="flex items-center gap-3 py-2.5">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-50 text-base">
-                    {u.kind === 'bill' ? '🏠' : u.kind === 'date' ? '🎁' : u.direction === 'in' ? '💰' : '🔁'}
+                    {u.kind === 'date' ? '🎁' : u.direction === 'in' ? '💰' : '🔁'}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-medium">{u.label}</span>
@@ -223,7 +223,7 @@ export default function Dashboard() {
         )}
 
         {activeZone === 'together' && (
-          <TogetherZone shared={shared} prevShared={prevShared} history={sharedHist} members={members} activeBills={activeBills} budgets={budgets} nameOf={nameOf} monthLabel={monthLabel(monthDate)} monthDate={monthDate} atCurrentMonth={atCurrentMonth} treatPct={treatPct} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} onReceipt={setReceipt} settlements={settlements} onSettled={reloadSettlements} />
+          <TogetherZone shared={shared} prevShared={prevShared} history={sharedHist} members={members} budgets={budgets} nameOf={nameOf} monthLabel={monthLabel(monthDate)} monthDate={monthDate} atCurrentMonth={atCurrentMonth} treatPct={treatPct} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} onReceipt={setReceipt} settlements={settlements} onSettled={reloadSettlements} />
         )}
         {activeZone === 'mine' && (
           <MineZone mine={mine} prevMine={prevMine} history={mineHist} myIncome={myIncome} balance={balance} budgets={budgets} budgetMap={budgetMap} monthDate={monthDate} goals={goals} savedByGoal={savedByGoal} tripAvg={tripAvg} nameOf={nameOf} onReceipt={setReceipt} />
@@ -657,9 +657,9 @@ function CatList({ expenses, prevExpenses = [], empty, nameOf, onReceipt }) {
   )
 }
 
-function TogetherZone({ shared, prevShared, history = [], members, activeBills, budgets, nameOf, monthLabel, monthDate, atCurrentMonth, treatPct = {}, goals = [], savedByGoal = {}, tripAvg = 0, onReceipt, settlements = [], onSettled }) {
+function TogetherZone({ shared, prevShared, history = [], members, budgets, nameOf, monthLabel, monthDate, atCurrentMonth, treatPct = {}, goals = [], savedByGoal = {}, tripAvg = 0, onReceipt, settlements = [], onSettled }) {
   const totals = summarize(shared)
-  const settle = settlement(shared, members, activeBills, settlements)
+  const settle = settlement(shared, members, settlements)
   const treats = treatBalance(shared, members)
   const needExp = useMemo(() => shared.filter((e) => e.spend_type === 'need'), [shared])
   const treatExp = useMemo(() => shared.filter((e) => e.spend_type === 'treat'), [shared])

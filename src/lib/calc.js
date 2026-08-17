@@ -95,18 +95,11 @@ export function myShareOfShared(sharedExpenses, userId) {
   return mine
 }
 
-// What `userId` bears of the recurring bills (rent): payer bears the rest,
-// the other bears their agreed share.
-export function myShareOfBills(activeBills, userId) {
-  let mine = 0
-  for (const b of activeBills) {
-    mine += b.payer === userId ? num(b.amount) - num(b.other_share) : num(b.other_share)
-  }
-  return mine
-}
-
-// Who owes whom across shared expenses (per-expense owed share) + rent bills.
-export function settlement(expenses, members, activeBills = [], settlements = []) {
+// Who owes whom across shared expenses (per-expense owed share). Rent used to
+// be a separate "bill" mechanism added in here — it's now just a normal
+// shared recurring expense, so it flows through the loop above like anything
+// else and needs no special-casing.
+export function settlement(expenses, members, settlements = []) {
   if (members.length !== 2) return null
   const [a, b] = members
   const shared = expenses.filter((e) => e.scope === 'shared')
@@ -117,11 +110,6 @@ export function settlement(expenses, members, activeBills = [], settlements = []
     const owed = owedShare(e) // what the non-payer owes the payer
     if (e.paid_by === a.id) balA += owed
     else if (e.paid_by === b.id) balA -= owed
-  }
-
-  for (const bill of activeBills) {
-    if (bill.payer === a.id) balA += num(bill.other_share)
-    else if (bill.payer === b.id) balA -= num(bill.other_share)
   }
 
   // Money already handed over cancels the debt it was handed over for —

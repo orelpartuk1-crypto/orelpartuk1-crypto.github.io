@@ -1,14 +1,14 @@
 import { isoDay } from './format'
 
 // What is still due this month, worked out from things you already told the app
-// about: standing bills, monthly charges, and important dates. Nothing new is
+// about: recurring charges (rent included) and important dates. Nothing new is
 // stored — this is a reading of existing data, not a second copy of it.
 
 const num = (v) => Number(v) || 0
 
-// A monthly item lands on the same day each month. Bills and recurring charges
-// don't carry a day of their own, so they're treated as due on the 1st, which
-// is when materialize_recurring actually creates them.
+// A monthly item lands on the same day each month. Recurring charges don't
+// carry a day of their own, so they're treated as due on the 1st, which is
+// when materialize_recurring actually creates them.
 function nextOccurrence(dayOfMonth, from = new Date()) {
   const d = new Date(from.getFullYear(), from.getMonth(), dayOfMonth)
   if (d < new Date(from.getFullYear(), from.getMonth(), from.getDate())) {
@@ -18,34 +18,14 @@ function nextOccurrence(dayOfMonth, from = new Date()) {
 }
 
 export function upcomingPayments({
-  bills = [],
   recurring = [],
   dates = [],
-  myId = null,
   now = new Date(),
   withinDays = 45,
 } = {}) {
   const out = []
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const daysTo = (d) => Math.round((d - today) / 86400000)
-
-  for (const b of bills) {
-    if (b.active === false) continue
-    const when = nextOccurrence(1, now)
-    // You feel a bill either as the whole amount you pay out, or as the share
-    // you reimburse — never both.
-    const amount = b.payer === myId ? num(b.amount) : num(b.other_share)
-    if (amount <= 0) continue
-    out.push({
-      id: `bill-${b.id}`,
-      kind: 'bill',
-      label: b.name || 'Bill',
-      amount,
-      direction: 'out',
-      date: isoDay(when),
-      days: daysTo(when),
-    })
-  }
 
   for (const r of recurring) {
     if (!r.active) continue
