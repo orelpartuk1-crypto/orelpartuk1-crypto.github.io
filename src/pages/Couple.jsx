@@ -10,7 +10,6 @@ import { summarize, settlement, onlySpending, byCategory, vsLastMonth, budgetSta
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel, dayLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
-import Segmented from '../components/Segmented'
 import Donut from '../components/Donut'
 import Ring from '../components/Ring'
 import ReceiptViewer from '../components/ReceiptViewer'
@@ -137,15 +136,22 @@ export default function Couple() {
 
   return (
     <div className="pb-32">
-      <TopBar title="Together" subtitle="What the two of you spend" />
+      <TopBar
+        title="Together"
+        subtitle="What the two of you spend"
+        right={
+          // One button, one job: open the analysis, then take you back — not
+          // a bar you pick a side of.
+          <Tap
+            onClick={() => setTab(tab === 'together' ? 'analysis' : 'together')}
+            className="flex h-10 items-center gap-1.5 rounded-full bg-brand-500 px-4 text-sm font-semibold text-white shadow-fab"
+          >
+            {tab === 'together' ? '📊 Analysis' : '← Together'}
+          </Tap>
+        }
+      />
 
       <Screen className="mx-auto max-w-md px-4 space-y-4">
-        <Segmented
-          options={[{ value: 'together', label: 'Together' }, { value: 'analysis', label: 'Analysis' }]}
-          value={tab}
-          onChange={setTab}
-        />
-
         <div className="flex items-center justify-between">
           <Tap onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card" aria-label="Previous month">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
