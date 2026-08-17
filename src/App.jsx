@@ -69,17 +69,20 @@ function Shell() {
   return (
     <>
       <main className="mx-auto min-h-full max-w-md">
-        {/* A brief crossfade so tapping between tabs reads as one app moving,
-            not a page reloading. Routes gets the same `location` the key is
-            built from — without it, the outgoing screen would re-render as
-            the new route mid-exit instead of finishing as itself. */}
+        {/* A quick slide-in from the right, not a fade — the next screen
+            arrives like it's the next thing, not a swapped-out page. Kept
+            fast (mode="wait" but a short duration on both ends) so it never
+            reads as a pause between tapping and landing. Routes gets the
+            same `location` the key is built from — without it, the outgoing
+            screen would re-render as the new route mid-exit instead of
+            finishing as itself. */}
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.14, ease: 'easeOut' }}
+            initial={{ opacity: 0, x: 18 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -18 }}
+            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
           >
             <Routes location={location}>
               <Route path="/" element={<Home />} />
