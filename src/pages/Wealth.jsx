@@ -27,7 +27,7 @@ const kindEmoji = (k) => ACCOUNT_KINDS.find((x) => x.value === k)?.emoji || '�
 const SLICE_COLORS = ['#0f7a3e', '#6d8fd6', '#d946ef', '#ca8a04', '#0891b2', '#7c3aed', '#16a34a', '#db2777']
 
 export default function Wealth() {
-  const { profile, hasBusiness } = useAuth()
+  const { hasBusiness } = useAuth()
   const { active: accounts, balances, total: liquid, add: addAccount } = useAccounts()
   const { assets, debts, assetsTotal, debtsTotal, loading, add: addHolding, update, remove } = useHoldings()
   const { goals, savedByGoal } = useSavings()
@@ -44,7 +44,6 @@ export default function Wealth() {
   const netWorth = liquid + assetsTotal - debtsTotal
   const gross = liquid + assetsTotal
   const pct = (v) => (gross > 0 ? Math.round((v / gross) * 100) : 0)
-  const salary = Number(profile?.monthly_income ?? 0)
   const savedTotal = Object.values(savedByGoal).reduce((t, v) => t + Number(v || 0), 0)
 
   // What net worth is actually made of: every account by name, then every
@@ -211,51 +210,12 @@ export default function Wealth() {
             color="#d24a3c" flat />
         </Item>
 
-        <Item className="space-y-2.5">
-          <Link to="/salary" className="card-tap flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">💶</span>
-              <span>
-                <span className="block font-semibold">Salary</span>
-                <span className="block text-sm text-muted">{salary > 0 ? `${money$(salary)} a month` : 'Not set yet'}</span>
-              </span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
-          <Link to="/savings" className="card-tap flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">🎯</span>
-              <span>
-                <span className="block font-semibold">Savings goals</span>
-                <span className="block text-sm text-muted">
-                  {goals.length ? `${goals.length} goal${goals.length === 1 ? '' : 's'} · ${money$(savedTotal)}` : 'No goals yet'}
-                </span>
-              </span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
-          {hasBusiness && (
-            <Link to="/tax" className="card-tap flex items-center justify-between">
-              <span className="flex items-center gap-3">
-                <span className="text-2xl">🧮</span>
-                <span>
-                  <span className="block font-semibold">Business tax</span>
-                  <span className="block text-sm text-muted">Autónomo estimate and what's deductible</span>
-                </span>
-              </span>
-              <span className="text-muted">›</span>
-            </Link>
-          )}
-          <Link to="/simulators" className="card-tap flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">🧮</span>
-              <span>
-                <span className="block font-semibold">Simulators</span>
-                <span className="block text-sm text-muted">Loan, house, retirement, inflation</span>
-              </span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
+        {/* Quick links, as icons rather than full rows — salary already lives
+            in Plan/Profile, so it doesn't need a second home here. */}
+        <Item className="flex justify-around py-1">
+          <IconLink to="/savings" emoji="🎯" label="Savings" />
+          {hasBusiness && <IconLink to="/tax" emoji="🧾" label="Tax" />}
+          <IconLink to="/simulators" emoji="🧮" label="Simulators" />
         </Item>
 
         <p className="px-1 text-xs text-muted">
@@ -310,6 +270,18 @@ export default function Wealth() {
         />
       )}
     </div>
+  )
+}
+
+// A compact tap target — icon + label, nothing else. For a destination that
+// doesn't need its own summary line here, three of these take the vertical
+// space one full row used to.
+function IconLink({ to, emoji, label }) {
+  return (
+    <Link to={to} className="flex flex-col items-center gap-1.5 active:opacity-60">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-xl shadow-card">{emoji}</span>
+      <span className="text-xs font-medium text-muted">{label}</span>
+    </Link>
   )
 }
 
