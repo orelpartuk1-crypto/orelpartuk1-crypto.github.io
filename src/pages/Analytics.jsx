@@ -179,11 +179,10 @@ export default function Analytics() {
 
         {/* Donut */}
         <div className="card">
+          {/* One hero number, not two — this used to repeat the same total
+              a second time in the donut's own center the moment it loaded. */}
           <div className="flex items-start justify-between">
-            <div>
-              <p className="label mb-0">{showingIncome ? 'Income' : 'Expenses'} by {showingIncome ? 'source' : 'category'}</p>
-              <p className={`tnum mt-0.5 text-2xl font-bold ${showingIncome ? 'text-earn' : 'text-spend'}`}>{money(total)}</p>
-            </div>
+            <p className="label mb-0">{showingIncome ? 'Income' : 'Expenses'} by {showingIncome ? 'source' : 'category'}</p>
             {activeZone === 'mine' && (
               <div className="flex rounded-full bg-black/[0.04] p-1 text-xs">
                 {[{ k: 'out', l: 'Out' }, { k: 'in', l: 'In' }].map((o) => (
@@ -214,7 +213,7 @@ export default function Analytics() {
                   center={
                     <>
                       <span className="text-xs text-muted">{openCat || 'total'}</span>
-                      <span className="tnum text-xl font-bold">
+                      <span className={`tnum text-2xl font-bold ${!openCat && !showingIncome ? 'text-spend' : !openCat ? 'text-earn' : ''}`}>
                         {money(openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total)}
                       </span>
                       {openCat && total > 0 && (

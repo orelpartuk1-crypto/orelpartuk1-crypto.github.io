@@ -1,4 +1,12 @@
 // Expense categories, with an emoji + colour for the mobile UI.
+// Colors validated as a set (fixed order matters — it's the adjacency the
+// donut and legend actually show): lightness band, chroma floor, CVD
+// separation (deutan/protan/tritan ≥8 ΔE OKLab), and normal-vision floor
+// (≥15 ΔE) all pass. The two greys here used to both fail the chroma floor
+// (read as the same washed-out non-color), and Personal Care sat 3.9 ΔE from
+// Health — indistinguishable even with full-color vision, let alone for
+// anyone colorblind. Re-run scripts/validate_palette.js from the dataviz
+// skill before changing any of these.
 export const CATEGORIES = [
   { key: 'Groceries', emoji: '🛒', color: '#16a34a' },
   { key: 'Rent', emoji: '🏠', color: '#2563eb' },
@@ -8,29 +16,31 @@ export const CATEGORIES = [
   { key: 'Transport', emoji: '🚌', color: '#0891b2' },
   { key: 'Utilities', emoji: '💡', color: '#ca8a04' },
   { key: 'Health', emoji: '💊', color: '#dc2626' },
-  { key: 'Personal Care', emoji: '🧴', color: '#e11d48' },
+  { key: 'Personal Care', emoji: '🧴', color: '#0369a1' },
   { key: 'Shopping', emoji: '🛍️', color: '#7c3aed' },
   { key: 'Travel', emoji: '✈️', color: '#0d9488' },
   { key: 'Coffee', emoji: '☕', color: '#92400e' },
-  { key: 'Home', emoji: '🛠️', color: '#4b5563' },
-  { key: 'Other', emoji: '📦', color: '#64748b' },
+  { key: 'Home', emoji: '🛠️', color: '#4338ca' },
+  { key: 'Other', emoji: '📦', color: '#9f1239' },
 ]
 
 // Business-specific categories (shown only when logging a Business expense).
+// Same validated-set rule as CATEGORIES above — Equipment and Office used to
+// both fail the chroma floor, and Office/Other were the exact same hex.
 export const BUSINESS_CATEGORIES = [
   { key: 'Meeting', emoji: '🤝', color: '#2563eb' },
   { key: 'Business Meal', emoji: '🍽️', color: '#f97316' },
   { key: 'Transport', emoji: '🚕', color: '#0891b2' },
-  { key: 'Flight', emoji: '✈️', color: '#0d9488' },
-  { key: 'Hotel', emoji: '🏨', color: '#7c3aed' },
-  { key: 'Work Tools', emoji: '🛠️', color: '#6366f1' },
-  { key: 'Subscriptions', emoji: '🔁', color: '#0ea5e9' },
-  { key: 'Marketing', emoji: '📣', color: '#db2777' },
-  { key: 'Equipment', emoji: '💻', color: '#4b5563' },
-  { key: 'Office', emoji: '🏢', color: '#64748b' },
+  { key: 'Flight', emoji: '✈️', color: '#7c3aed' },
+  { key: 'Hotel', emoji: '🏨', color: '#db2777' },
+  { key: 'Work Tools', emoji: '🛠️', color: '#d946ef' },
+  { key: 'Subscriptions', emoji: '🔁', color: '#65a30d' },
+  { key: 'Marketing', emoji: '📣', color: '#4338ca' },
+  { key: 'Equipment', emoji: '💻', color: '#0d9488' },
+  { key: 'Office', emoji: '🏢', color: '#92400e' },
   { key: 'Fees', emoji: '🧾', color: '#ca8a04' },
-  { key: 'Education', emoji: '🎓', color: '#16a34a' },
-  { key: 'Other', emoji: '📦', color: '#64748b' },
+  { key: 'Education', emoji: '🎓', color: '#9f1239' },
+  { key: 'Other', emoji: '📦', color: '#16a34a' },
 ]
 
 const ALL = [...CATEGORIES, ...BUSINESS_CATEGORIES]
