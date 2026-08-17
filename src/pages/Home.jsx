@@ -137,7 +137,7 @@ export default function Home() {
   return (
     <div className="pb-28">
       <TopBar
-        title={`${greeting()}, ${profile?.display_name || ''}`}
+        title={`${greeting()}, ${(profile?.display_name || '').split(' ')[0]}`}
         subtitle={new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
         right={
           <div className="flex shrink-0 items-center gap-2">

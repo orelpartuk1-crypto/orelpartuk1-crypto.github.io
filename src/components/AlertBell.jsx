@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { Sheet } from './motion'
 
 // Alerts are derived on every render from the live numbers, so they can never
 // drift out of sync with what they describe. Only "I've seen this" is stored,
@@ -70,59 +70,43 @@ export default function AlertBell({ alerts = [] }) {
         )}
       </button>
 
-      {/* Portalled straight to <body> — this button sits inside TopBar's
-          backdrop-blur header, and Safari treats that blur as a containing
-          block for position:fixed descendants, trapping the sheet inside the
-          header's own thin strip instead of the real viewport. A portal
-          sidesteps the ancestor chain entirely instead of relying on no
-          future ancestor ever adding a filter/transform. */}
-      {open &&
-        createPortal(
-          <div className="fixed inset-0 z-50 flex items-end bg-black/40 animate-fade-in" onClick={() => setOpen(false)}>
+      <Sheet open={open} onClose={() => setOpen(false)}>
+        <div className="space-y-2">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-xl font-bold">Worth knowing</h2>
+            {alerts.length > 0 && (
+              <button className="text-sm font-semibold text-brand-600" onClick={dismissAll}>
+                Mark all seen
+              </button>
+            )}
+          </div>
+
+          {alerts.length === 0 && (
+            <p className="py-10 text-center text-muted">Nothing needs you right now.</p>
+          )}
+
+          {alerts.map((a) => (
             <div
-              className="max-h-[80vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-4 pb-8 animate-sheet-up"
-              onClick={(e) => e.stopPropagation()}
+              key={a.id}
+              className={`flex items-start gap-3 rounded-2xl p-3 ${tone[a.tone] || tone.info} ${
+                dismissed.has(a.id) ? 'opacity-50' : ''
+              }`}
             >
-              <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-300" />
-              <div className="mx-auto max-w-md space-y-2">
-                <div className="flex items-baseline justify-between">
-                  <h2 className="text-xl font-bold">Worth knowing</h2>
-                  {alerts.length > 0 && (
-                    <button className="text-sm font-semibold text-brand-600" onClick={dismissAll}>
-                      Mark all seen
-                    </button>
-                  )}
-                </div>
-
-                {alerts.length === 0 && (
-                  <p className="py-10 text-center text-muted">Nothing needs you right now.</p>
-                )}
-
-                {alerts.map((a) => (
-                  <div
-                    key={a.id}
-                    className={`flex items-start gap-3 rounded-2xl p-3 ${tone[a.tone] || tone.info} ${
-                      dismissed.has(a.id) ? 'opacity-50' : ''
-                    }`}
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold">{a.title}</p>
-                      <p className="text-sm opacity-80">{a.body}</p>
-                    </div>
-                    {!dismissed.has(a.id) && (
-                      <button onClick={() => dismiss(a.id)} className="shrink-0 text-sm font-semibold underline">
-                        Seen
-                      </button>
-                    )}
-                  </div>
-                ))}
-
-                <button className="btn-ghost mt-2 w-full" onClick={() => setOpen(false)}>Close</button>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold">{a.title}</p>
+                <p className="text-sm opacity-80">{a.body}</p>
               </div>
+              {!dismissed.has(a.id) && (
+                <button onClick={() => dismiss(a.id)} className="shrink-0 text-sm font-semibold underline">
+                  Seen
+                </button>
+              )}
             </div>
-          </div>,
-          document.body
-        )}
+          ))}
+
+          <button className="btn-ghost mt-2 w-full" onClick={() => setOpen(false)}>Close</button>
+        </div>
+      </Sheet>
     </>
   )
 }

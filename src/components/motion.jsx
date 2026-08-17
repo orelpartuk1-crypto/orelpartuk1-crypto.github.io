@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
 
 // One place for how motion feels, so every screen moves the same way.
@@ -130,7 +131,13 @@ export function Sheet({ open, onClose, children, className = '' }) {
     }
   }, [open, onClose])
 
-  return (
+  // Portalled to <body> — a caller nested inside a blurred or transformed
+  // ancestor (TopBar's backdrop-blur header, say) would otherwise trap this
+  // fixed-position sheet inside that ancestor's own small box instead of the
+  // real viewport, on browsers that treat those properties as a containing
+  // block. Every Sheet gets the same real-viewport guarantee, not just the
+  // ones whose author happened to think about it.
+  return createPortal(
     <AnimatePresenceShim show={open}>
       <motion.div
         className="fixed inset-0 z-50 flex items-end bg-black/40"
@@ -157,7 +164,8 @@ export function Sheet({ open, onClose, children, className = '' }) {
           <div className="mx-auto max-w-md">{children}</div>
         </motion.div>
       </motion.div>
-    </AnimatePresenceShim>
+    </AnimatePresenceShim>,
+    document.body
   )
 }
 
