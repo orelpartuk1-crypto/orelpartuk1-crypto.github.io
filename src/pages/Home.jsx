@@ -139,6 +139,7 @@ export default function Home() {
       <TopBar
         title={`${greeting()}, ${(profile?.display_name || '').split(' ')[0]}`}
         subtitle={new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())}
+        wrap
         right={
           <div className="flex shrink-0 items-center gap-2">
             <AlertBell alerts={alerts} />

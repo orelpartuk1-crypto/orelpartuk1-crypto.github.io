@@ -8,25 +8,32 @@ import { categoryMeta } from '../lib/categories'
 // without navigating away and losing your place.
 export default function MovementSheet({ movement, accountName, nameOf, onClose, onReceipt }) {
   const nav = useNavigate()
+  // Keep <Sheet> mounted at all times so its AnimatePresence never remounts —
+  // remounting on every open used to skip the slide-up animation every single
+  // time (AnimatePresence's initial={false} only means "don't animate what's
+  // already there when I first appear", which was every single open when this
+  // whole tree unmounted between them). Only the content below is guarded.
   const m = movement
-  if (!m) return null
 
-  const isIncome = m.direction === 'in'
-  const meta = isIncome ? { emoji: '💰', color: '#0f7a3e' } : categoryMeta(m.category)
-  const canEdit = m.type === 'expense' && m.paid_by === m.viewerId
+  const isIncome = m?.direction === 'in'
+  const meta = m ? (isIncome ? { emoji: '💰', color: '#0f7a3e' } : categoryMeta(m.category)) : null
+  const canEdit = m?.type === 'expense' && m?.paid_by === m?.viewerId
 
-  const rows = [
-    ['When', dayLabel(m.date)],
-    m.category && ['Category', m.category],
-    m.scope && ['Type', m.scope === 'shared' ? 'Shared' : m.scope === 'business' ? 'Business' : 'Private'],
-    m.spend_type && m.scope !== 'business' && ['Need or treat', m.spend_type === 'treat' ? 'Treat' : 'Need'],
-    accountName && ['Account', accountName],
-    m.paid_by && nameOf && ['Paid by', nameOf(m.paid_by)],
-    m.owed_amount > 0 && ['Owed back', money(m.owed_amount)],
-  ].filter(Boolean)
+  const rows = m
+    ? [
+        ['When', dayLabel(m.date)],
+        m.category && ['Category', m.category],
+        m.scope && ['Type', m.scope === 'shared' ? 'Shared' : m.scope === 'business' ? 'Business' : 'Private'],
+        m.spend_type && m.scope !== 'business' && ['Need or treat', m.spend_type === 'treat' ? 'Treat' : 'Need'],
+        accountName && ['Account', accountName],
+        m.paid_by && nameOf && ['Paid by', nameOf(m.paid_by)],
+        m.owed_amount > 0 && ['Owed back', money(m.owed_amount)],
+      ].filter(Boolean)
+    : []
 
   return (
     <Sheet open={!!m} onClose={onClose}>
+      {m && (
       <div className="space-y-4">
         <div className="text-center">
           <span
@@ -77,6 +84,7 @@ export default function MovementSheet({ movement, accountName, nameOf, onClose, 
           )}
         </div>
       </div>
+      )}
     </Sheet>
   )
 }
