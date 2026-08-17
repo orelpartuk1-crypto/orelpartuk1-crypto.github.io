@@ -13,7 +13,6 @@ import Profile from './pages/Profile'
 import Movements from './pages/Movements'
 import Upcoming from './pages/Upcoming'
 import GroceryAnalysis from './pages/GroceryAnalysis'
-import Dashboard from './pages/Dashboard'
 import AddExpense from './pages/AddExpense'
 import ScanReceipt from './pages/ScanReceipt'
 import Savings from './pages/Savings'
@@ -89,9 +88,10 @@ function Shell() {
               <Route path="/movements" element={<Movements />} />
               <Route path="/upcoming" element={<Upcoming />} />
               <Route path="/groceries" element={<GroceryAnalysis />} />
-              {/* The money coach and the zone breakdowns still live here until they
-                  get a proper home on Analytics. */}
-              <Route path="/coach" element={<Dashboard />} />
+              {/* The money coach retired as its own page — it's a couple of
+                  inline insight lines on Together and Analytics now. Old
+                  links land somewhere real instead of 404ing. */}
+              <Route path="/coach" element={<Navigate to="/together" replace />} />
               <Route path="/add" element={<AddExpense />} />
               <Route path="/scan" element={<ScanReceipt />} />
               <Route path="/savings" element={<Savings />} />

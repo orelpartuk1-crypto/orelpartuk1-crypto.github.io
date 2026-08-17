@@ -5,6 +5,7 @@ import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
 import { useSettlements } from '../hooks/useSettlements'
 import { useAccounts } from '../hooks/useAccounts'
+import { useBudgets } from '../hooks/useBudgets'
 import { summarize, settlement, onlySpending, byCategory } from '../lib/calc'
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel, dayLabel } from '../lib/format'
@@ -12,6 +13,8 @@ import TopBar from '../components/TopBar'
 import ReceiptViewer from '../components/ReceiptViewer'
 import MovementSheet from '../components/MovementSheet'
 import MiniExpenseList from '../components/MiniExpenseList'
+import GroceryItemList from '../components/GroceryItemList'
+import CoachInsights from '../components/CoachInsights'
 import { Screen, Stagger, Item, Tap, Counter, Sheet, motion } from '../components/motion'
 
 const isThisMonth = (d) => {
@@ -25,10 +28,13 @@ const isThisMonth = (d) => {
 export default function Couple() {
   const { user, members } = useAuth()
   const [monthDate, setMonthDate] = useState(new Date())
+  const prevMonthDate = useMemo(() => new Date(monthDate.getFullYear(), monthDate.getMonth() - 1, 1), [monthDate])
   const { expenses: all, loading } = useExpenses(monthDate)
+  const { expenses: prevAll } = useExpenses(prevMonthDate)
   const { rows: settlements, settle: recordSettlement } = useSettlements()
   const { active: myAccounts, defaultAccount } = useAccounts()
   const { notSpending } = useCategories()
+  const { shared: sharedBudgets } = useBudgets()
 
   const [receipt, setReceipt] = useState(null)
   const [movement, setMovement] = useState(null)
@@ -45,6 +51,7 @@ export default function Couple() {
   const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
 
   const shared = useMemo(() => onlySpending(all.filter((e) => e.scope === 'shared'), notSpending), [all, notSpending])
+  const prevShared = useMemo(() => onlySpending(prevAll.filter((e) => e.scope === 'shared'), notSpending), [prevAll, notSpending])
   const totals = summarize(shared)
   const needPct = totals.total > 0 ? (totals.needs / totals.total) * 100 : 0
   const settle = useMemo(
@@ -61,6 +68,10 @@ export default function Couple() {
   )
   const typeCats = useMemo(() => byCategory(typeExpenses), [typeExpenses])
   const typeTotal = openType === 'need' ? totals.needs : openType === 'treat' ? totals.treats : 0
+  const sharedBudgetRows = useMemo(
+    () => Object.entries(sharedBudgets).map(([category, monthly_limit]) => ({ category, monthly_limit })),
+    [sharedBudgets]
+  )
 
   const openTypeSheet = (t) => {
     setOpenType(t)
@@ -257,16 +268,10 @@ export default function Couple() {
               </span>
               <span className="text-muted">›</span>
             </Link>
-            <Link to="/coach?zone=together" className="flex items-center gap-3 py-2.5 active:opacity-60">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">🧭</span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold">Money coach</span>
-                <span className="block text-xs text-muted">Trends and where to trim</span>
-              </span>
-              <span className="text-muted">›</span>
-            </Link>
           </div>
         </Item>
+
+        <CoachInsights thisMonth={shared} lastMonth={prevShared} budgets={sharedBudgetRows} summary={totals} />
       </Screen>
 
       <MovementSheet
@@ -308,12 +313,19 @@ export default function Couple() {
                         <span className="tnum shrink-0 font-semibold">{money(t)}</span>
                         <span className={`shrink-0 text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
                       </button>
-                      {isOpen && (
-                        <MiniExpenseList
-                          expenses={typeExpenses.filter((e) => e.category === category)}
-                          nameOf={nameOf}
-                          onReceipt={(raw) => { setOpenType(null); setReceipt(raw) }}
-                        />
+                      {/* Groceries: what was actually bought, ranked by price
+                          with repeat items (steak, chicken, ...) merged into
+                          one line each — not the shopping trips themselves. */}
+                      {isOpen && category === 'Groceries' ? (
+                        <GroceryItemList expenses={typeExpenses.filter((e) => e.category === category)} />
+                      ) : (
+                        isOpen && (
+                          <MiniExpenseList
+                            expenses={typeExpenses.filter((e) => e.category === category)}
+                            nameOf={nameOf}
+                            onReceipt={(raw) => { setOpenType(null); setReceipt(raw) }}
+                          />
+                        )
                       )}
                     </div>
                   )

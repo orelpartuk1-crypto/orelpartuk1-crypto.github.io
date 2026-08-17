@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
@@ -16,6 +16,8 @@ import Donut from '../components/Donut'
 import Ring from '../components/Ring'
 import TrendChart from '../components/TrendChart'
 import MiniExpenseList from '../components/MiniExpenseList'
+import GroceryItemList from '../components/GroceryItemList'
+import CoachInsights from '../components/CoachInsights'
 import ReceiptViewer from '../components/ReceiptViewer'
 import { Sheet } from '../components/motion'
 
@@ -27,7 +29,6 @@ const isThisMonth = (d) => {
 // One screen that answers "where did it go", for whichever slice of money you
 // mean. The zone toggle matches the dashboard's, so the two never disagree.
 export default function Analytics() {
-  const nav = useNavigate()
   const { user, members, hasBusiness } = useAuth()
   const [monthDate, setMonthDate] = useState(new Date())
   const prevMonthDate = useMemo(
@@ -117,6 +118,10 @@ export default function Analytics() {
   const budgetScope = activeZone === 'together' ? 'shared' : activeZone === 'mine' ? 'private' : null
   const budgetMap = budgetScope === 'shared' ? sharedBudgets : budgetScope === 'private' ? personalBudgets : {}
   const budgeted = cats.filter((c) => (budgetMap[c.category] || 0) > 0)
+  const budgetRows = useMemo(
+    () => Object.entries(budgetMap).map(([category, monthly_limit]) => ({ category, monthly_limit })),
+    [budgetMap]
+  )
 
   const trend = useMemo(() => {
     const slice = history.filter((e) => {
@@ -133,16 +138,7 @@ export default function Analytics() {
     ...(hasBusiness ? [{ key: 'business', label: '💼 Business' }] : []),
   ]
 
-  // A category total doesn't say whether the money went on produce or on
-  // something that only looks like groceries — Groceries gets its own screen
-  // instead of just narrowing the list below.
-  const selectCategory = (label) => {
-    if (label === 'Groceries' && !showingIncome) {
-      nav('/groceries', { state: { monthDate: monthDate.toISOString(), zone: activeZone } })
-      return
-    }
-    setOpenCat(label)
-  }
+  const selectCategory = (label) => setOpenCat(label)
 
   return (
     <div className="pb-28">
@@ -333,19 +329,11 @@ export default function Analytics() {
           </div>
         )}
 
-        {/* A dedicated destination when arriving from "our analysis" already
-            covers this — no need to offer it again inside a needs/treats slice. */}
-        {!filterType && (
-          <Link to={`/coach${activeZone === 'together' ? '?zone=together' : ''}`} className="card-tap flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">🧭</span>
-              <span>
-                <span className="block font-semibold">Money coach</span>
-                <span className="block text-sm text-muted">Trends, nudges and where to trim</span>
-              </span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
+        {/* Inline rather than its own page — and, same as the needs-vs-treats
+            split above, skipped inside an already-narrowed needs/treats slice
+            where "what's worth knowing" is just repeating the filter. */}
+        {!filterType && !showingIncome && (
+          <CoachInsights thisMonth={expenses} lastMonth={prevExpenses} budgets={budgetRows} summary={totals} />
         )}
 
         {/* What repeats every month, in whichever direction is being shown */}
@@ -427,11 +415,15 @@ export default function Analytics() {
                     : `${money(p.left)} left before last month's ${money(p.prev)}`}
                 </p>
               )}
-              <MiniExpenseList
-                expenses={expenses.filter((e) => e.category === openCat)}
-                nameOf={nameOf}
-                onReceipt={(raw) => { setOpenCat(null); setReceipt(raw) }}
-              />
+              {openCat === 'Groceries' ? (
+                <GroceryItemList expenses={expenses.filter((e) => e.category === openCat)} />
+              ) : (
+                <MiniExpenseList
+                  expenses={expenses.filter((e) => e.category === openCat)}
+                  nameOf={nameOf}
+                  onReceipt={(raw) => { setOpenCat(null); setReceipt(raw) }}
+                />
+              )}
             </div>
           )
         })()}
