@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useAllExpenses } from '../hooks/useAllExpenses'
 import { useMoney } from '../hooks/useMoney'
@@ -22,6 +23,11 @@ export default function Movements() {
   const { expenses, loading } = useAllExpenses()
   const { bonuses } = useMoney()
   const { accounts } = useAccounts()
+  const [params] = useSearchParams()
+
+  // Arriving from Together: shared spending only, nothing personal or
+  // business, and no incomes — there's no such thing as shared income.
+  const scopeLocked = params.get('scope') === 'shared'
 
   const [dir, setDir] = useState('all') // all | out | in
   const [who, setWho] = useState('all')
@@ -33,7 +39,8 @@ export default function Movements() {
   const others = members.filter((m) => m.id !== user?.id)
 
   const rows = useMemo(() => {
-    const out = expenses.map((e) => ({
+    const scoped = scopeLocked ? expenses.filter((e) => e.scope === 'shared') : expenses
+    const out = scoped.map((e) => ({
       id: `e-${e.id}`,
       type: 'expense',
       direction: 'out',
@@ -51,6 +58,7 @@ export default function Movements() {
       viewerId: user?.id,
       raw: e,
     }))
+    if (scopeLocked) return out.sort((a, b) => String(b.date).localeCompare(String(a.date)))
     // Unlike Home's preview, this is the full picture — both of your incomes,
     // filterable by the "who" toggle below same as expenses.
     const inn = bonuses
@@ -67,10 +75,10 @@ export default function Movements() {
         raw: b,
       }))
     return [...out, ...inn].sort((a, b) => String(b.date).localeCompare(String(a.date)))
-  }, [expenses, bonuses, user?.id])
+  }, [expenses, bonuses, user?.id, scopeLocked])
 
   const filtered = rows.filter((r) => {
-    if (dir !== 'all' && r.direction !== dir) return false
+    if (!scopeLocked && dir !== 'all' && r.direction !== dir) return false
     if (who !== 'all' && r.paid_by !== who) return false
     return true
   })
@@ -94,25 +102,31 @@ export default function Movements() {
 
   return (
     <div className="pb-28">
-      <TopBar title="All movements" subtitle={`${filtered.length} entries`} back />
+      <TopBar
+        title={scopeLocked ? 'Shared movements' : 'All movements'}
+        subtitle={scopeLocked ? `${filtered.length} entries · shared only` : `${filtered.length} entries`}
+        back
+      />
       <Screen className="mx-auto max-w-md px-4 space-y-4">
-        <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
-          {[
-            { k: 'all', l: 'All' },
-            { k: 'out', l: 'Out' },
-            { k: 'in', l: 'In' },
-          ].map((o) => (
-            <button
-              key={o.k}
-              onClick={() => setDir(o.k)}
-              className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${
-                dir === o.k ? `bg-white shadow-card ${o.k === 'in' ? 'text-earn' : o.k === 'out' ? 'text-spend' : 'text-ink'}` : 'text-muted'
-              }`}
-            >
-              {o.l}
-            </button>
-          ))}
-        </div>
+        {!scopeLocked && (
+          <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+            {[
+              { k: 'all', l: 'All' },
+              { k: 'out', l: 'Out' },
+              { k: 'in', l: 'In' },
+            ].map((o) => (
+              <button
+                key={o.k}
+                onClick={() => setDir(o.k)}
+                className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${
+                  dir === o.k ? `bg-white shadow-card ${o.k === 'in' ? 'text-earn' : o.k === 'out' ? 'text-spend' : 'text-ink'}` : 'text-muted'
+                }`}
+              >
+                {o.l}
+              </button>
+            ))}
+          </div>
+        )}
 
         {members.length > 1 && (
           <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">

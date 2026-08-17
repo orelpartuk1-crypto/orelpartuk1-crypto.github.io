@@ -17,6 +17,7 @@ import Ring from '../components/Ring'
 import TrendChart from '../components/TrendChart'
 import MiniExpenseList from '../components/MiniExpenseList'
 import ReceiptViewer from '../components/ReceiptViewer'
+import { Sheet } from '../components/motion'
 
 const isThisMonth = (d) => {
   const n = new Date()
@@ -204,12 +205,6 @@ export default function Analytics() {
             <p className="py-8 text-center text-muted">Nothing here for {monthLabel(monthDate)}.</p>
           )}
 
-          {openCat && (
-            <button onClick={() => setOpenCat(null)} className="mt-2 w-full rounded-full bg-slate-50 py-2 text-sm font-semibold text-brand-600">
-              ← Show all categories
-            </button>
-          )}
-
           {cats.length > 0 && (
             <>
               <div className="my-4 flex justify-center">
@@ -236,16 +231,17 @@ export default function Analytics() {
                 />
               </div>
 
+              {/* Tapping a category opens its own analysis below, rather than
+                  narrowing this same list down to one row. */}
               <div className="divide-y divide-slate-100">
-                {(openCat ? cats.filter((c) => c.category === openCat) : cats).map(({ category, total: t }) => {
+                {cats.map(({ category, total: t }) => {
                   const m = categoryMeta(category)
                   const share = total > 0 ? Math.round((t / total) * 100) : 0
-                  const isOpen = openCat === category
                   const p = pace[category]
                   return (
                     <div key={category} className="py-2">
                       <button
-                        onClick={() => !showingIncome && selectCategory(isOpen ? null : category)}
+                        onClick={() => !showingIncome && selectCategory(category)}
                         disabled={showingIncome}
                         className="flex w-full items-center gap-2.5 text-left active:opacity-60 disabled:active:opacity-100"
                       >
@@ -253,7 +249,7 @@ export default function Analytics() {
                         <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
                         <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
                         <span className="tnum shrink-0 font-semibold">{money(t)}</span>
-                        {!showingIncome && <span className={`shrink-0 text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>}
+                        {!showingIncome && <span className="shrink-0 text-muted">›</span>}
                       </button>
                       {p && (
                         <p className={`mt-0.5 pl-5 text-xs font-medium ${p.status === 'over' ? 'text-spend' : 'text-amber-600'}`}>
@@ -261,13 +257,6 @@ export default function Analytics() {
                             ? `Past last month's ${money(p.prev)}`
                             : `${money(p.left)} left before last month's ${money(p.prev)}`}
                         </p>
-                      )}
-                      {isOpen && (
-                        <MiniExpenseList
-                          expenses={expenses.filter((e) => e.category === category)}
-                          nameOf={nameOf}
-                          onReceipt={setReceipt}
-                        />
                       )}
                     </div>
                   )
@@ -315,18 +304,18 @@ export default function Analytics() {
                   const m = categoryMeta(category)
                   const color = st.status === 'over' ? '#d24a3c' : st.status === 'warn' ? '#b06a12' : m.color
                   return (
-                    <div key={category} className="rounded-2xl bg-slate-50 p-3 text-center">
+                    <div key={category} className="rounded-2xl bg-slate-50 p-4 text-center">
                       <div className="flex justify-center">
-                        <Ring ratio={st.ratio} color={color}>
-                          <span className="text-lg">{m.emoji}</span>
+                        <Ring ratio={st.ratio} color={color} size={84} stroke={8}>
+                          <span className="text-2xl">{m.emoji}</span>
                         </Ring>
                       </div>
-                      <p className="mt-2 truncate text-sm font-semibold">{category}</p>
-                      <p className="tnum text-xs text-muted">
+                      <p className="mt-3 text-sm font-semibold leading-tight">{category}</p>
+                      <p className="tnum mt-1 text-base">
                         <span className={st.status === 'over' ? 'font-bold text-spend' : 'font-bold text-ink'}>{money(t)}</span>
-                        {' / '}{money(limit)}
+                        <span className="text-muted"> / {money(limit)}</span>
                       </p>
-                      <p className={`tnum text-xs ${st.status === 'over' ? 'text-spend' : 'text-muted'}`}>
+                      <p className={`tnum mt-0.5 text-sm ${st.status === 'over' ? 'font-medium text-spend' : 'text-muted'}`}>
                         {st.status === 'over' ? `${money(t - limit)} over` : `${money(limit - t)} left`}
                       </p>
                     </div>
@@ -412,6 +401,41 @@ export default function Analytics() {
       </div>
 
       {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
+
+      <Sheet open={!!openCat && !showingIncome} onClose={() => setOpenCat(null)}>
+        {openCat && (() => {
+          const m = categoryMeta(openCat)
+          const t = cats.find((c) => c.category === openCat)?.total ?? 0
+          const share = total > 0 ? Math.round((t / total) * 100) : 0
+          const p = pace[openCat]
+          return (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl" style={{ backgroundColor: m.color + '22' }}>
+                  {m.emoji}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-xl font-bold">{openCat}</h2>
+                  <p className="text-sm text-muted">{share}% of {monthLabel(monthDate)}</p>
+                </div>
+                <span className="tnum shrink-0 text-lg font-bold">{money(t)}</span>
+              </div>
+              {p && (
+                <p className={`text-sm font-medium ${p.status === 'over' ? 'text-spend' : 'text-amber-600'}`}>
+                  {p.status === 'over'
+                    ? `Past last month's ${money(p.prev)}`
+                    : `${money(p.left)} left before last month's ${money(p.prev)}`}
+                </p>
+              )}
+              <MiniExpenseList
+                expenses={expenses.filter((e) => e.category === openCat)}
+                nameOf={nameOf}
+                onReceipt={(raw) => { setOpenCat(null); setReceipt(raw) }}
+              />
+            </div>
+          )
+        })()}
+      </Sheet>
     </div>
   )
 }

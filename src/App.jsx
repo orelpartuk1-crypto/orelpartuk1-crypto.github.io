@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { isSupabaseConfigured } from './lib/supabase'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
 import InstallPrompt from './components/InstallPrompt'
+import { AnimatePresence, motion } from './components/motion'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import Onboarding from './pages/Onboarding'
@@ -59,6 +60,7 @@ function SetupNeeded() {
 // Shell that decides what to show based on auth state.
 function Shell() {
   const { loading, session, household, recoveryMode } = useAuth()
+  const location = useLocation()
 
   if (loading) return <Splash />
   if (recoveryMode) return <ResetPassword />
@@ -68,42 +70,56 @@ function Shell() {
   return (
     <>
       <main className="mx-auto min-h-full max-w-md">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/together" element={<Couple />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/movements" element={<Movements />} />
-          <Route path="/upcoming" element={<Upcoming />} />
-          <Route path="/groceries" element={<GroceryAnalysis />} />
-          {/* The money coach and the zone breakdowns still live here until they
-              get a proper home on Analytics. */}
-          <Route path="/coach" element={<Dashboard />} />
-          <Route path="/add" element={<AddExpense />} />
-          <Route path="/scan" element={<ScanReceipt />} />
-          <Route path="/savings" element={<Savings />} />
-          <Route path="/plan" element={<Plan />} />
-          <Route path="/accounts" element={<Accounts />} />
-          <Route path="/wealth" element={<Wealth />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/import" element={<ImportBank />} />
-          <Route path="/simulators" element={<Simulators />} />
-          <Route path="/salary" element={<Salary />} />
-          {/* Rent moved to the normal recurring-expense flow. */}
-          <Route path="/bills" element={<Navigate to="/recurring" replace />} />
-          {/* Income & bills split into Salary and Bills; keep the old path
-              working so a home-screen icon saved to it still lands somewhere. */}
-          <Route path="/money" element={<Navigate to="/plan" replace />} />
-          <Route path="/recurring" element={<Recurring />} />
-          {/* Superseded by /movements, which shows money in as well as out.
-              Kept as a redirect so old links and saved icons still land. */}
-          <Route path="/expenses" element={<Navigate to="/movements" replace />} />
-          <Route path="/automate" element={<Automate />} />
-          <Route path="/tax" element={<Tax />} />
-          <Route path="/dates" element={<Dates />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        {/* A brief crossfade so tapping between tabs reads as one app moving,
+            not a page reloading. Routes gets the same `location` the key is
+            built from — without it, the outgoing screen would re-render as
+            the new route mid-exit instead of finishing as itself. */}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.14, ease: 'easeOut' }}
+          >
+            <Routes location={location}>
+              <Route path="/" element={<Home />} />
+              <Route path="/together" element={<Couple />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/movements" element={<Movements />} />
+              <Route path="/upcoming" element={<Upcoming />} />
+              <Route path="/groceries" element={<GroceryAnalysis />} />
+              {/* The money coach and the zone breakdowns still live here until they
+                  get a proper home on Analytics. */}
+              <Route path="/coach" element={<Dashboard />} />
+              <Route path="/add" element={<AddExpense />} />
+              <Route path="/scan" element={<ScanReceipt />} />
+              <Route path="/savings" element={<Savings />} />
+              <Route path="/plan" element={<Plan />} />
+              <Route path="/accounts" element={<Accounts />} />
+              <Route path="/wealth" element={<Wealth />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/import" element={<ImportBank />} />
+              <Route path="/simulators" element={<Simulators />} />
+              <Route path="/salary" element={<Salary />} />
+              {/* Rent moved to the normal recurring-expense flow. */}
+              <Route path="/bills" element={<Navigate to="/recurring" replace />} />
+              {/* Income & bills split into Salary and Bills; keep the old path
+                  working so a home-screen icon saved to it still lands somewhere. */}
+              <Route path="/money" element={<Navigate to="/plan" replace />} />
+              <Route path="/recurring" element={<Recurring />} />
+              {/* Superseded by /movements, which shows money in as well as out.
+                  Kept as a redirect so old links and saved icons still land. */}
+              <Route path="/expenses" element={<Navigate to="/movements" replace />} />
+              <Route path="/automate" element={<Automate />} />
+              <Route path="/tax" element={<Tax />} />
+              <Route path="/dates" element={<Dates />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </motion.div>
+        </AnimatePresence>
       </main>
       <BottomNav />
     </>

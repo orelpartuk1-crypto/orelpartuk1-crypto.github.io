@@ -5,13 +5,14 @@ import { useCategories } from '../hooks/useCategories'
 import { useExpenses } from '../hooks/useExpenses'
 import { useSettlements } from '../hooks/useSettlements'
 import { useAccounts } from '../hooks/useAccounts'
-import { summarize, settlement, onlySpending } from '../lib/calc'
+import { summarize, settlement, onlySpending, byCategory } from '../lib/calc'
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel, dayLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
 import ReceiptViewer from '../components/ReceiptViewer'
 import MovementSheet from '../components/MovementSheet'
-import { Screen, Stagger, Item, Tap, Counter, motion } from '../components/motion'
+import MiniExpenseList from '../components/MiniExpenseList'
+import { Screen, Stagger, Item, Tap, Counter, Sheet, motion } from '../components/motion'
 
 const isThisMonth = (d) => {
   const n = new Date()
@@ -34,18 +35,37 @@ export default function Couple() {
   const [settling, setSettling] = useState(false)
   const [settleAccount, setSettleAccount] = useState(null)
   const [busy, setBusy] = useState(false)
+  // Which of Needs/Treats is open in the sheet below, and which category
+  // inside it (if any) is expanded to its own mini list.
+  const [openType, setOpenType] = useState(null)
+  const [openCat, setOpenCat] = useState(null)
 
   const shiftMonth = (d) => setMonthDate((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))
   const atCurrentMonth = isThisMonth(monthDate)
   const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
 
-  const shared = useMemo(() => all.filter((e) => e.scope === 'shared'), [all])
-  const totals = summarize(onlySpending(shared, notSpending))
+  const shared = useMemo(() => onlySpending(all.filter((e) => e.scope === 'shared'), notSpending), [all, notSpending])
+  const totals = summarize(shared)
   const needPct = totals.total > 0 ? (totals.needs / totals.total) * 100 : 0
   const settle = useMemo(
     () => settlement(shared, members, settlements),
     [shared, members, settlements]
   )
+
+  // Categories behind whichever of Needs/Treats is open — the same shape
+  // Analytics builds, just pre-sliced to one spend type so there's no second
+  // "needs vs treats" split to show inside a view that's already one of them.
+  const typeExpenses = useMemo(
+    () => (openType ? shared.filter((e) => e.spend_type === openType) : []),
+    [shared, openType]
+  )
+  const typeCats = useMemo(() => byCategory(typeExpenses), [typeExpenses])
+  const typeTotal = openType === 'need' ? totals.needs : openType === 'treat' ? totals.treats : 0
+
+  const openTypeSheet = (t) => {
+    setOpenType(t)
+    setOpenCat(null)
+  }
 
   const movements = useMemo(
     () =>
@@ -127,16 +147,22 @@ export default function Couple() {
           </div>
 
           <div className="mt-3 grid grid-cols-2 divide-x divide-brand-500/15">
-            <div className="text-center">
+            <Tap
+              onClick={() => openTypeSheet('need')}
+              className={`rounded-xl2 py-1 text-center transition-colors ${openType === 'need' ? 'bg-white/60' : ''}`}
+            >
               <p className="text-xs font-medium text-brand-700/70">🧺 Needs</p>
               <p className="tnum font-bold text-brand-700">{money(totals.needs)}</p>
               <p className="text-xs text-brand-700/60">{Math.round(needPct)}%</p>
-            </div>
-            <div className="text-center">
+            </Tap>
+            <Tap
+              onClick={() => openTypeSheet('treat')}
+              className={`rounded-xl2 py-1 text-center transition-colors ${openType === 'treat' ? 'bg-white/60' : ''}`}
+            >
               <p className="text-xs font-medium text-brand-700/70">🍦 Treats</p>
               <p className="tnum font-bold text-brand-700">{money(totals.treats)}</p>
               <p className="text-xs text-brand-700/60">{Math.round(100 - needPct)}%</p>
-            </div>
+            </Tap>
           </div>
         </div>
 
@@ -187,7 +213,7 @@ export default function Couple() {
         <Item className="card">
           <div className="flex items-baseline justify-between">
             <h2 className="label mb-0">Recent together</h2>
-            <Link to="/movements" className="text-sm font-semibold text-brand-600">View all →</Link>
+            <Link to="/movements?scope=shared" className="text-sm font-semibold text-brand-600">View all →</Link>
           </div>
 
           {!loading && movements.length === 0 && (
@@ -199,7 +225,7 @@ export default function Couple() {
               const meta = categoryMeta(m.category)
               return (
                 <Item key={m.id}>
-                  <Tap onClick={() => setMovement(m)} className="flex w-full items-center gap-3 py-2.5 text-left">
+                  <Tap onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left active:bg-slate-100">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
                       {meta.emoji}
                     </span>
@@ -217,7 +243,9 @@ export default function Couple() {
           </Stagger>
         </Item>
 
-        {/* Our analysis — shared only, never mixed with personal or business */}
+        {/* Our analysis — shared only, never mixed with personal or business.
+            Needs and Treats moved to the hero above — tapping either opens
+            straight into its breakdown instead of navigating away for it. */}
         <Item className="card">
           <h2 className="label">Our analysis</h2>
           <div className="divide-y divide-slate-100">
@@ -226,22 +254,6 @@ export default function Couple() {
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold">By category</span>
                 <span className="block text-xs text-muted">Where the shared money went, and your budgets</span>
-              </span>
-              <span className="text-muted">›</span>
-            </Link>
-            <Link to="/analytics?zone=together&lock=1&filter=need" className="flex items-center gap-3 py-2.5 active:opacity-60">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">🧺</span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold">Needs</span>
-                <span className="block text-xs text-muted">{money(totals.needs)} this month</span>
-              </span>
-              <span className="text-muted">›</span>
-            </Link>
-            <Link to="/analytics?zone=together&lock=1&filter=treat" className="flex items-center gap-3 py-2.5 active:opacity-60">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">🍦</span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-semibold">Treats</span>
-                <span className="block text-xs text-muted">{money(totals.treats)} this month</span>
               </span>
               <span className="text-muted">›</span>
             </Link>
@@ -264,6 +276,53 @@ export default function Couple() {
         onReceipt={(raw) => { setMovement(null); setReceipt(raw) }}
       />
       {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
+
+      <Sheet open={!!openType} onClose={() => setOpenType(null)}>
+        {openType && (
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-xl font-bold">{openType === 'need' ? '🧺 Needs' : '🍦 Treats'}</h2>
+              <span className="tnum text-lg font-bold">{money(typeTotal)}</span>
+            </div>
+            <p className="text-sm text-muted">
+              {openType === 'need' ? 'What you had to spend, together.' : 'What you chose to spend, together.'}
+            </p>
+
+            {typeCats.length === 0 ? (
+              <p className="py-8 text-center text-muted">Nothing here yet in {monthLabel(monthDate)}.</p>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {typeCats.map(({ category, total: t }) => {
+                  const m = categoryMeta(category)
+                  const share = typeTotal > 0 ? Math.round((t / typeTotal) * 100) : 0
+                  const isOpen = openCat === category
+                  return (
+                    <div key={category} className="py-2">
+                      <button
+                        onClick={() => setOpenCat(isOpen ? null : category)}
+                        className="flex w-full items-center gap-2.5 text-left active:opacity-60"
+                      >
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: m.color }} />
+                        <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
+                        <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
+                        <span className="tnum shrink-0 font-semibold">{money(t)}</span>
+                        <span className={`shrink-0 text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
+                      </button>
+                      {isOpen && (
+                        <MiniExpenseList
+                          expenses={typeExpenses.filter((e) => e.category === category)}
+                          nameOf={nameOf}
+                          onReceipt={(raw) => { setOpenType(null); setReceipt(raw) }}
+                        />
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </Sheet>
     </div>
   )
 }
