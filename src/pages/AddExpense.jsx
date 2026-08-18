@@ -7,11 +7,10 @@ import { useRecurring } from '../hooks/useRecurring'
 import { useAccounts } from '../hooks/useAccounts'
 import { useCategories } from '../hooks/useCategories'
 import { useAllExpenses } from '../hooks/useAllExpenses'
-import Segmented from '../components/Segmented'
 import GrocerySelector from '../components/GrocerySelector'
 import CategorySheet from '../components/CategorySheet'
 import TopBar from '../components/TopBar'
-import { Screen, Item, Tap, Sheet } from '../components/motion'
+import { Screen, Tap, Sheet } from '../components/motion'
 import { useKeyboardInset } from '../hooks/useKeyboardInset'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
 import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
@@ -359,66 +358,90 @@ export default function AddExpense() {
           />
         </div>
 
-        {/* Who it belongs to, and whether it was a choice */}
+        {/* Whose is it / need or treat — the two questions this app exists to
+            answer, so they stay front and centre. They just don't need a
+            stacked label + full-height segmented control each any more: two
+            compact pill rows say the same thing in roughly a third of the
+            height. */}
         {!isIncome && (
-          <>
-            <div>
-              <label className="label">Whose is it</label>
-              <Segmented options={scopeOptions} value={scope} onChange={changeScope} />
+          <div className="space-y-2">
+            <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+              {scopeOptions.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => changeScope(o.value)}
+                  className={`flex-1 rounded-full py-2 text-sm font-semibold transition-transform duration-100 active:scale-[0.96] ${
+                    scope === o.value ? 'bg-white text-ink shadow-card' : 'text-muted'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
             </div>
             {scope !== 'business' && (
-              <div>
-                <label className="label">Need or treat</label>
-                <Segmented
-                  options={[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }]}
-                  value={spendType}
-                  onChange={setSpendType}
-                />
+              <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+                {[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }].map((o) => (
+                  <button
+                    key={o.value}
+                    type="button"
+                    onClick={() => setSpendType(o.value)}
+                    className={`flex-1 rounded-full py-2 text-sm font-semibold transition-transform duration-100 active:scale-[0.96] ${
+                      spendType === o.value ? 'bg-white text-ink shadow-card' : 'text-muted'
+                    }`}
+                  >
+                    {o.label}
+                  </button>
+                ))}
               </div>
             )}
-          </>
-        )}
-
-        {/* Category — opens its own screen */}
-        <div>
-          <label className="label">Category</label>
-          <Tap onClick={() => setCatOpen(true)} className="flex w-full items-center gap-3 rounded-2xl border border-black/5 bg-white px-4 py-3.5 text-left dark:border-white/10">
-            <span className="text-2xl">{chosenCat?.emoji || categoryMeta(category).emoji}</span>
-            <span className="min-w-0 flex-1 truncate text-lg">{chosenCat?.name || chosenCat?.key || category}</span>
-            <span className="text-muted">›</span>
-          </Tap>
-        </div>
-
-        {/* Account — which pot this moves, so its balance stays honest. Only
-            worth a tap when there's more than one to choose between. */}
-        {currentAccount && (
-          <div>
-            <label className="label">Account</label>
-            <Tap
-              onClick={() => myAccounts.length > 1 && setAcctOpen(true)}
-              className="flex w-full items-center gap-3 rounded-2xl border border-black/5 bg-white px-4 py-3.5 text-left dark:border-white/10"
-            >
-              <span className="text-2xl">{ACCOUNT_EMOJI[currentAccount.kind] || '🏦'}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-lg">{currentAccount.name}</span>
-                <span className="block text-xs text-muted">Balance: {money(balances[currentAccount.id] ?? 0)}</span>
-              </span>
-              {myAccounts.length > 1 && <span className="text-muted">›</span>}
-            </Tap>
           </div>
         )}
 
-        {/* Date */}
-        <div>
-          <label className="label">Date</label>
-          <input
-            className="field"
-            type="date"
-            value={spentAt}
-            max={todayISO()}
-            onChange={(e) => setSpentAt(e.target.value)}
-          />
-          <p className="mt-1 text-xs text-muted">{dayLabel(spentAt)}</p>
+        {/* Category, account and date as one grouped card of compact rows —
+            they used to be three separate label-above-a-big-box blocks, which
+            is most of why this screen needed so much scrolling. Same three
+            taps, a third of the height. */}
+        <div className="card divide-y divide-slate-100 !py-0">
+          <button
+            type="button"
+            onClick={() => setCatOpen(true)}
+            className="flex w-full items-center gap-3 py-3 text-left transition-transform duration-100 active:scale-[0.99]"
+          >
+            <span className="text-xl">{chosenCat?.emoji || categoryMeta(category).emoji}</span>
+            <span className="text-sm text-muted">Category</span>
+            <span className="min-w-0 flex-1 truncate text-right font-medium">{chosenCat?.name || chosenCat?.key || category}</span>
+            <span className="shrink-0 text-muted">›</span>
+          </button>
+
+          {/* Which pot this moves, so its balance stays honest. Only worth a
+              tap when there's more than one to choose between. */}
+          {currentAccount && (
+            <button
+              type="button"
+              onClick={() => myAccounts.length > 1 && setAcctOpen(true)}
+              className="flex w-full items-center gap-3 py-3 text-left transition-transform duration-100 active:scale-[0.99]"
+            >
+              <span className="text-xl">{ACCOUNT_EMOJI[currentAccount.kind] || '🏦'}</span>
+              <span className="shrink-0 text-sm text-muted">Account</span>
+              <span className="min-w-0 flex-1 truncate text-right font-medium">{currentAccount.name}</span>
+              {myAccounts.length > 1 && <span className="shrink-0 text-muted">›</span>}
+            </button>
+          )}
+
+          <label className="flex w-full items-center gap-3 py-3 text-left">
+            <span className="text-xl">📅</span>
+            <span className="shrink-0 text-sm text-muted">Date</span>
+            <span className="min-w-0 flex-1 text-right">
+              <input
+                className="w-full bg-transparent text-right font-medium outline-none"
+                type="date"
+                value={spentAt}
+                max={todayISO()}
+                onChange={(e) => setSpentAt(e.target.value)}
+              />
+            </span>
+          </label>
         </div>
 
         {category === 'Groceries' && !isIncome && (

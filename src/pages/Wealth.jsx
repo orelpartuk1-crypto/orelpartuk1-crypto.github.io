@@ -35,8 +35,15 @@ const SLICE_COLORS = ['#0f7a3e', '#6d8fd6', '#d946ef', '#ca8a04', '#0891b2', '#7
 
 export default function Wealth() {
   const { hasBusiness } = useAuth()
-  const { active: accounts, balances, total: liquid, add: addAccount } = useAccounts()
+  const { active: accounts, balances, total: liquid, loading: accountsLoading, add: addAccount } = useAccounts()
   const { assets, debts, assetsTotal, debtsTotal, loading, add: addHolding, update, remove } = useHoldings()
+  // Net worth is liquid + assets − debts, and those come from two hooks that
+  // resolve independently. Keying the counter on holdings alone meant that
+  // whenever holdings won the race, the figure was declared "ready" while
+  // `liquid` was still 0 — so it counted DOWN to a partial number first and
+  // only then back up once accounts landed. Money appearing to drop on open
+  // is the one thing this screen must never do.
+  const figureReady = !loading && !accountsLoading
   const { goals, savedByGoal } = useSavings()
   const { rows: history, loading: historyLoading, recordToday } = useNetWorthHistory()
 
@@ -73,13 +80,18 @@ export default function Wealth() {
   // Writes today's figure once everything has actually loaded, so a
   // half-loaded page never records a false low. Skipped if today is already
   // there — recordToday is safe to call repeatedly, but there's no reason to.
+  //
+  // This checked `loading` (holdings) only, which did NOT actually deliver
+  // what that comment promises: if holdings resolved before accounts, it
+  // wrote a snapshot with `liquid` still 0 — a permanently wrong low point
+  // in the net-worth history, not just a flicker on screen.
   useEffect(() => {
-    if (loading) return
+    if (!figureReady) return
     const today = isoDay(new Date())
     if (history.some((h) => h.snapshot_date === today)) return
     recordToday({ liquid, assets: assetsTotal, debts: debtsTotal })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, liquid, assetsTotal, debtsTotal, history])
+  }, [figureReady, liquid, assetsTotal, debtsTotal, history])
 
   const chartPoints = useMemo(() => {
     const days = RANGE_DAYS[range] ?? Infinity
@@ -130,7 +142,7 @@ export default function Wealth() {
             className="mx-auto block"
           >
             <span className={`figure ${netWorth < 0 ? 'text-spend' : 'text-brand-700'}`}>
-              {hidden ? '••••••' : <Counter id="wealth-net" ready={!loading} value={netWorth} format={(n) => money(n)} />}
+              {hidden ? '••••••' : <Counter id="wealth-net" ready={figureReady} value={netWorth} format={(n) => money(n)} />}
             </span>
           </Tap>
           <p className="mt-1 text-center text-xs text-brand-700/60">
