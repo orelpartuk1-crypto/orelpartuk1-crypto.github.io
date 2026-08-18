@@ -82,6 +82,16 @@ body,
   height: 100%;
 }
 
+html {
+  /* overscroll-behavior-x below stops the rubber-band bounce, but does
+     nothing about genuine overflow — a big tnum figure (the amount field,
+     6xl and growing with every digit typed) can end up a hair wider than
+     a narrow phone, and the browser was scrolling the whole page sideways
+     to keep the caret in view instead of just clipping inside the input.
+     Nothing in this layout is meant to scroll horizontally at all. */
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   background: rgb(var(--c-surface));

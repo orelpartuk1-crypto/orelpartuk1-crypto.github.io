@@ -459,7 +459,11 @@ export default function Couple() {
           rather than growing in place inside a sheet that's already
           capped at half the screen. Scrolls normally like any other list,
           however long it is. */}
-      <Sheet open={!!openCat && !!openType} onClose={() => setOpenCat(null)} className="!max-h-[55vh]">
+      {/* Closing this takes you all the way back to Together, not just back
+          to the Needs/Treats list underneath — a category is already two
+          taps deep, and needing a third just to leave entirely was one too
+          many. */}
+      <Sheet open={!!openCat && !!openType} onClose={() => { setOpenCat(null); setOpenType(null) }} className="!max-h-[55vh]">
         {openCat && openType && (() => {
           const m = categoryMeta(openCat)
           const t = typeCats.find((c) => c.category === openCat)?.total ?? 0
