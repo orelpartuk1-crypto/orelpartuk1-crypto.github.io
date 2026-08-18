@@ -281,17 +281,18 @@ export default function Analytics() {
                   const p = pace[category]
                   return (
                     <Item key={category} className="py-2">
-                      <Tap
+                      <button
+                        type="button"
                         onClick={() => !showingIncome && selectCategory(category)}
                         disabled={showingIncome}
-                        className="flex w-full items-center gap-2.5 text-left disabled:active:scale-100"
+                        className="flex w-full items-center gap-2.5 text-left transition-transform duration-100 active:scale-[0.98] disabled:active:scale-100"
                       >
                         <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: m.color }} />
                         <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
                         <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
                         <span className="tnum shrink-0 font-semibold">{money(t)}</span>
                         {!showingIncome && <span className="shrink-0 text-muted">›</span>}
-                      </Tap>
+                      </button>
                       {p && (
                         <p className={`mt-0.5 pl-5 text-xs font-medium ${p.status === 'over' ? 'text-spend' : 'text-amber-600'}`}>
                           {p.status === 'over'

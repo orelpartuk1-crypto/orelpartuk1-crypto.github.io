@@ -2,9 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- user-scalable=no matters specifically for the installed PWA: iOS
+         ignores it in normal Safari tabs, but honours it in standalone mode,
+         which is how this app is actually used. Without it the viewport
+         could end up zoomed (a stray pinch, or an auto-zoom that never got
+         reset) and STAY zoomed across navigations — and a zoomed viewport
+         pans sideways, which is exactly the "typing moves the whole screen
+         left" report: the page wasn't shifting, it was ~15% zoomed in with
+         the left edge panned off-screen. -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <meta name="theme-color" content="#eff3ed" />
     <meta name="mobile-web-app-capable" content="yes" />

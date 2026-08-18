@@ -9,7 +9,7 @@ import { money, dayLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
 import ReceiptViewer from '../components/ReceiptViewer'
 import MovementSheet from '../components/MovementSheet'
-import { Screen, Stagger, Item, Tap } from '../components/motion'
+import { Screen, Stagger, Item } from '../components/motion'
 
 const monthTitle = (key) => {
   const [y, m] = key.split('-')
@@ -107,6 +107,13 @@ export default function Movements() {
         back
       />
       <Screen className="mx-auto max-w-md px-4 space-y-4">
+        {/* Plain buttons with a CSS :active press, NOT the shared Tap
+            (framer-motion) component these used to be. Inside a long
+            scrolling list, framer's pointer-gesture handling treats a touch
+            that drifts even slightly as a scroll and drops the tap — which
+            is why these needed several stabs to register. The browser's own
+            click handling has no such ambiguity, and active:scale gives the
+            same press feedback. */}
         {!scopeLocked && (
           <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
             {[
@@ -114,15 +121,16 @@ export default function Movements() {
               { k: 'out', l: 'Out' },
               { k: 'in', l: 'In' },
             ].map((o) => (
-              <Tap
+              <button
                 key={o.k}
+                type="button"
                 onClick={() => setDir(o.k)}
-                className={`flex-1 rounded-full py-2.5 text-sm font-semibold ${
+                className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-transform duration-100 active:scale-[0.96] ${
                   dir === o.k ? `bg-white shadow-card ${o.k === 'in' ? 'text-earn' : o.k === 'out' ? 'text-spend' : 'text-ink'}` : 'text-muted'
                 }`}
               >
                 {o.l}
-              </Tap>
+              </button>
             ))}
           </div>
         )}
@@ -133,15 +141,16 @@ export default function Movements() {
         {members.length > 1 && (
           <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
             {[{ k: 'all', l: 'Both' }, { k: user?.id, l: 'You' }].map((o) => (
-              <Tap
+              <button
                 key={o.k}
+                type="button"
                 onClick={() => setWho(o.k)}
-                className={`flex-1 rounded-full py-2 text-sm font-semibold ${
+                className={`flex-1 rounded-full py-2 text-sm font-semibold transition-transform duration-100 active:scale-[0.96] ${
                   who === o.k ? 'bg-white text-ink shadow-card' : 'text-muted'
                 }`}
               >
                 {o.l}
-              </Tap>
+              </button>
             ))}
           </div>
         )}
@@ -164,7 +173,7 @@ export default function Movements() {
                 const meta = m.direction === 'in' ? { emoji: '💰', color: '#0f7a3e' } : categoryMeta(m.category)
                 return (
                   <Item key={m.id}>
-                    <Tap onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left active:bg-slate-100">
+                    <button type="button" onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left transition-transform duration-100 active:scale-[0.98] active:bg-slate-100">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
                         {meta.emoji}
                       </span>
@@ -180,7 +189,7 @@ export default function Movements() {
                       <span className={`tnum shrink-0 font-semibold ${m.direction === 'in' ? 'text-earn' : 'text-spend'}`}>
                         {m.direction === 'in' ? '+' : '−'}{money(m.amount)}
                       </span>
-                    </Tap>
+                    </button>
                   </Item>
                 )
               })}

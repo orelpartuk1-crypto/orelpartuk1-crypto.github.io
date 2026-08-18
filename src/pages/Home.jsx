@@ -53,6 +53,9 @@ export default function Home() {
 
   const [receipt, setReceipt] = useState(null)
   const [movement, setMovement] = useState(null)
+  // Tapping Income / Expenses on the hero card narrows Recent below to just
+  // that direction — null means show both, which is the default.
+  const [dirFilter, setDirFilter] = useState(null) // 'in' | 'out' | null
   const scanInputRef = useRef(null)
 
   const shiftMonth = (d) => setMonthDate((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))
@@ -111,6 +114,13 @@ export default function Home() {
       }))
     return [...out, ...inn].sort((a, b) => String(b.date).localeCompare(String(a.date)))
   }, [all, bonuses, user?.id])
+
+  // What Recent actually renders — everything, or just one direction when
+  // Income/Expenses on the hero card above is tapped.
+  const shownMovements = useMemo(
+    () => (dirFilter ? movements.filter((m) => m.direction === dirFilter) : movements),
+    [movements, dirFilter]
+  )
 
   // 3 — What is still to come, in or out. A week was too tight to ever catch
   // a salary or a quarterly charge — 25 days reaches into next month too.
@@ -206,15 +216,23 @@ export default function Home() {
             </motion.span>
           )}
 
+          {/* Tapping either side filters Recent below to just that
+              direction; tapping the active one again clears it. */}
           <div className={`mt-4 grid grid-cols-2 divide-x border-t pt-3 ${over ? 'divide-rose-300/60 border-rose-300/60' : 'divide-brand-500/15 border-brand-500/15'}`}>
-            <div>
+            <button
+              onClick={() => setDirFilter((d) => (d === 'in' ? null : 'in'))}
+              className={`rounded-xl2 py-1 transition-transform duration-100 active:scale-[0.96] ${dirFilter === 'in' ? 'bg-white/60' : ''}`}
+            >
               <p className="text-xs font-medium text-muted">Income</p>
               <p className="tnum font-bold text-earn">{money(balance.income)}</p>
-            </div>
-            <div>
+            </button>
+            <button
+              onClick={() => setDirFilter((d) => (d === 'out' ? null : 'out'))}
+              className={`rounded-xl2 py-1 transition-transform duration-100 active:scale-[0.96] ${dirFilter === 'out' ? 'bg-white/60' : ''}`}
+            >
               <p className="text-xs font-medium text-muted">Expenses</p>
               <p className="tnum font-bold text-spend">{money(balance.spent)}</p>
-            </div>
+            </button>
           </div>
 
           {/* Rises into view on a fresh open — there's nothing to compare
@@ -236,21 +254,29 @@ export default function Home() {
         {/* 2 — Recent movements */}
         <Item className="card">
           <div className="flex items-baseline justify-between">
-            <h2 className="label mb-0">Recent</h2>
+            <h2 className="label mb-0">
+              {dirFilter === 'in' ? 'Recent income' : dirFilter === 'out' ? 'Recent expenses' : 'Recent'}
+            </h2>
             <Link to="/movements" className="text-sm font-semibold text-brand-600">View all →</Link>
           </div>
 
-          {loading && movements.length === 0 && <SkeletonRows />}
-          {!loading && movements.length === 0 && (
-            <p className="py-8 text-center text-muted">Nothing logged in {monthLabel(monthDate)} yet.</p>
+          {loading && shownMovements.length === 0 && <SkeletonRows />}
+          {!loading && shownMovements.length === 0 && (
+            <p className="py-8 text-center text-muted">
+              {dirFilter === 'in'
+                ? `No income logged in ${monthLabel(monthDate)} yet.`
+                : dirFilter === 'out'
+                  ? `Nothing spent in ${monthLabel(monthDate)} yet.`
+                  : `Nothing logged in ${monthLabel(monthDate)} yet.`}
+            </p>
           )}
 
           <Stagger className="divide-y divide-slate-100">
-            {movements.slice(0, 4).map((m) => {
+            {shownMovements.slice(0, 4).map((m) => {
               const meta = m.direction === 'in' ? { emoji: '💰', color: '#0f7a3e' } : categoryMeta(m.category)
               return (
                 <Item key={m.id}>
-                  <Tap onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left active:bg-slate-100">
+                  <button type="button" onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left transition-transform duration-100 active:scale-[0.98] active:bg-slate-100">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
                       {meta.emoji}
                     </span>
@@ -263,7 +289,7 @@ export default function Home() {
                     <span className={`tnum shrink-0 font-semibold ${m.direction === 'in' ? 'text-earn' : 'text-spend'}`}>
                       {m.direction === 'in' ? '+' : '−'}{money(m.amount)}
                     </span>
-                  </Tap>
+                  </button>
                 </Item>
               )
             })}
