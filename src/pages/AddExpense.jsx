@@ -302,7 +302,14 @@ export default function AddExpense() {
         )}
 
         {/* Amount — a real input, so the phone's own keypad appears and the
-            screen keeps the room a custom pad would have taken. */}
+            screen keeps the room a custom pad would have taken. No longer
+            autofocused: the keyboard used to slam open the instant this
+            screen appeared, and with it covering something like half the
+            display, everything else — the Save button included — had to
+            cram into whatever was left before you'd even looked at the
+            form. Now the keyboard only shows up once you actually tap in
+            to type an amount, which is a deliberate action instead of a
+            surprise. */}
         <div className="flex items-center justify-center gap-2 pt-2">
           <input
             className={`tnum w-full bg-transparent text-center text-6xl font-bold tracking-tight outline-none placeholder:text-slate-300 ${
@@ -312,7 +319,6 @@ export default function AddExpense() {
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, '').replace('.', ','))}
             placeholder="0"
-            autoFocus={!editing}
             aria-label="Amount"
           />
           <span className="shrink-0 text-2xl text-muted">€</span>
