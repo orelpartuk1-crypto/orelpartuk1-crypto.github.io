@@ -55,7 +55,13 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
+        // `ui-rounded` is a real CSS generic family (CSS Fonts Level 4) that
+        // Safari/WebKit resolves to SF Pro Rounded — the softer, friendlier
+        // face iOS itself uses for things like widgets and the App Store,
+        // versus the sharper SF Pro Text every app gets by default. Every
+        // other browser doesn't know the keyword and just falls through to
+        // the same stack as before.
+        sans: ['ui-rounded', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Text', 'Inter', 'Segoe UI', 'Roboto', 'sans-serif'],
       },
       boxShadow: {
         card: '0 1px 2px rgba(18,36,26,0.04), 0 6px 20px rgba(18,36,26,0.045)',

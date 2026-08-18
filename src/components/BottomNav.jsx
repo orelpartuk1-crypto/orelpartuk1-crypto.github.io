@@ -46,24 +46,27 @@ export default function BottomNav() {
               </span>
             </NavLink>
           ) : (
+            // Icon only, no caption underneath — five distinct icons don't
+            // need a label each to stay readable, and the extra text was
+            // the one thing still making this bar look like a website's
+            // nav instead of a native tab bar. The active tab gets a full
+            // pill behind the icon rather than a label change, so "where
+            // am I" is still obvious at a glance.
             <NavLink
               key={to}
               to={to}
               end={end}
               aria-label={label}
-              className={({ isActive }) =>
-                `flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10px] font-semibold transition-colors duration-200 ${
-                  isActive ? 'text-brand-500' : 'text-muted'
-                }`
-              }
+              className="flex flex-1 items-center justify-center py-1.5"
             >
               {({ isActive }) => (
-                <>
-                  <span className={`rounded-xl px-3 py-1 transition-colors duration-200 ${isActive ? 'bg-brand-50' : ''}`}>
-                    <Icon className="h-[22px] w-[22px]" />
-                  </span>
-                  {label}
-                </>
+                <span
+                  className={`flex items-center justify-center rounded-2xl px-5 py-2.5 transition-colors duration-200 ${
+                    isActive ? 'bg-brand-50 text-brand-500' : 'text-muted'
+                  }`}
+                >
+                  <Icon className="h-[22px] w-[22px]" />
+                </span>
               )}
             </NavLink>
           )
