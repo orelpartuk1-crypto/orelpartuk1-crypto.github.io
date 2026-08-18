@@ -1,6 +1,6 @@
 // Minimal service worker: makes the app installable + fast + offline-tolerant.
 // It only caches our own files — Supabase API calls always go to the network.
-const CACHE = 'duo-budget-v8'
+const CACHE = 'duo-budget-v9'
 const SHELL = ['/', '/index.html', '/icon.svg', '/apple-touch-icon.png', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
