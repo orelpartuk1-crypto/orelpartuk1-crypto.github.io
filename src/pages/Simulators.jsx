@@ -82,7 +82,7 @@ function Field({ label, value, onChange, suffix, step }) {
   return (
     <div>
       <label className="label">{label}</label>
-      <div className="flex items-center gap-2 rounded-2xl border border-black/5 bg-white px-4 py-3">
+      <div className="flex items-center gap-2 rounded-2xl border border-black/5 bg-white px-4 py-3.5 transition focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-50 dark:border-white/10">
         <input
           className="tnum min-w-0 flex-1 bg-transparent text-lg outline-none"
           inputMode="decimal"

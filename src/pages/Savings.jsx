@@ -34,7 +34,7 @@ export default function Savings({ onClose }) {
         right={
           <button
             onClick={() => setShowNew((s) => !s)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-sm active:scale-95"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab active:scale-95"
             aria-label="New goal"
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -99,7 +99,7 @@ export default function Savings({ onClose }) {
 
         {goals.some((g) => (g.kind || 'saving') === 'saving') && (
           <div className="space-y-4">
-            <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-muted">🐷 Savings</h2>
+            <h2 className="label px-1">🐷 Savings</h2>
             {goals.filter((g) => (g.kind || 'saving') === 'saving').map((g) => (
               <GoalCard
                 key={g.id}
@@ -114,7 +114,7 @@ export default function Savings({ onClose }) {
 
         {goals.some((g) => g.kind === 'investment') && (
           <div className="space-y-4">
-            <h2 className="px-1 text-sm font-semibold uppercase tracking-wide text-muted">📈 Investments</h2>
+            <h2 className="label px-1">📈 Investments</h2>
             {goals.filter((g) => g.kind === 'investment').map((g) => (
               <GoalCard
                 key={g.id}

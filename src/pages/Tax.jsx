@@ -106,18 +106,20 @@ export default function Tax({ onClose }) {
           </div>
         )}
 
-        {/* Projection hero */}
-        <div className="card bg-gradient-to-br from-brand-500 to-brand-700 text-white">
-          <p className="text-white/80 text-sm">Projected net in your pocket this year</p>
-          <p className="mt-1 text-4xl font-bold">{money(netInPocket)}</p>
-          <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-2xl bg-white/15 p-3">
-              <p className="text-white/80">Est. income tax (IRPF)</p>
-              <p className="text-lg font-semibold">{money(est.tax)}</p>
+        {/* Projection hero — the same mint-200 treatment as every other
+            hero number in the app (Wealth, Home, Together…), not the old
+            one-off brand gradient this used to be. */}
+        <div className="rounded-xl3 bg-mint-200 p-5">
+          <p className="label mb-0 text-center text-brand-700/70">Projected net in your pocket this year</p>
+          <p className="figure mt-1 text-center text-brand-700">{money(netInPocket)}</p>
+          <div className="mt-4 grid grid-cols-2 divide-x divide-brand-500/15 border-t border-brand-500/15 pt-3">
+            <div className="text-center">
+              <p className="text-xs font-medium text-brand-700/70">Est. income tax (IRPF)</p>
+              <p className="tnum font-bold text-brand-700">{money(est.tax)}</p>
             </div>
-            <div className="rounded-2xl bg-white/15 p-3">
-              <p className="text-white/80">Effective rate</p>
-              <p className="text-lg font-semibold">{Math.round(est.effectiveRate * 100)}%</p>
+            <div className="text-center">
+              <p className="text-xs font-medium text-brand-700/70">Effective rate</p>
+              <p className="tnum font-bold text-brand-700">{Math.round(est.effectiveRate * 100)}%</p>
             </div>
           </div>
         </div>
