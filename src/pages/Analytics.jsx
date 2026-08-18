@@ -81,15 +81,14 @@ export default function Analytics() {
   const [receipt, setReceipt] = useState(null)
   // Needs/treats folded into the donut card itself instead of a separate
   // card below it — tapping either re-slices the same donut and list rather
-  // than opening yet another view of the same month. A single mark slides
-  // between the two (one tap moves it, it never toggles off on its own) —
-  // double-tapping the active one is what actually clears it.
+  // than opening yet another view of the same month. First tap marks it,
+  // a second tap on the same one unmarks it — an ordinary second tap, not
+  // a fast double-click gesture.
   const [spendFilter, setSpendFilter] = useState(null) // 'need' | 'treat' | null
-  const pickSpendFilter = (v) => {
-    setSpendFilter(v)
+  const toggleSpendFilter = (v) => {
+    setSpendFilter((cur) => (cur === v ? null : v))
     setOpenCat(null)
   }
-  const clearSpendFilter = () => setSpendFilter(null)
 
   const shiftMonth = (d) => setMonthDate((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))
   const atCurrentMonth = isThisMonth(monthDate)
@@ -308,30 +307,31 @@ export default function Analytics() {
               {/* Needs vs treats, folded into this same card — tapping
                   either re-slices the donut and list above instead of
                   opening a whole separate card just to show the same split
-                  another way. One mark slides between the two, same muted
-                  color for both rather than a green one and an amber one —
-                  this is a single toggle, not two unrelated buttons. Tap
-                  the active side again (or double-tap) to clear it. */}
+                  another way. Same visual mark Together already uses for
+                  this exact split: both sides the same brand green, a
+                  quiet background tint for whichever is active. */}
               {!showingIncome && !filterType && activeZone !== 'business' && totals.total > 0 && (
                 <div className="mt-4 border-t border-slate-100 pt-3">
                   <div className="flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-slate-100">
                     <div className="h-full rounded-full bg-brand-500 transition-[width] duration-500 ease-out" style={{ width: `${(totals.needs / totals.total) * 100}%` }} />
                     <div className="h-full flex-1 rounded-full bg-amber-400" />
                   </div>
-                  <div className="mt-2 flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+                  <div className="mt-2 grid grid-cols-2 divide-x divide-slate-100">
                     <Tap
-                      onClick={() => pickSpendFilter('need')}
-                      onDoubleClick={clearSpendFilter}
-                      className={`flex-1 rounded-full py-1.5 text-center text-sm font-semibold ${spendFilter === 'need' ? 'bg-white text-amber-700 shadow-card' : 'text-muted'}`}
+                      onClick={() => toggleSpendFilter('need')}
+                      className={`rounded-xl2 py-1 text-center transition-colors ${spendFilter === 'need' ? 'bg-brand-50' : ''}`}
                     >
-                      🧺 {money(totals.needs)}
+                      <p className="text-xs font-medium text-muted">🧺 Needs</p>
+                      <p className="tnum font-bold text-brand-700">{money(totals.needs)}</p>
+                      <p className="text-xs text-muted">{totals.total > 0 ? Math.round((totals.needs / totals.total) * 100) : 0}%</p>
                     </Tap>
                     <Tap
-                      onClick={() => pickSpendFilter('treat')}
-                      onDoubleClick={clearSpendFilter}
-                      className={`flex-1 rounded-full py-1.5 text-center text-sm font-semibold ${spendFilter === 'treat' ? 'bg-white text-amber-700 shadow-card' : 'text-muted'}`}
+                      onClick={() => toggleSpendFilter('treat')}
+                      className={`rounded-xl2 py-1 text-center transition-colors ${spendFilter === 'treat' ? 'bg-brand-50' : ''}`}
                     >
-                      🍦 {money(totals.treats)}
+                      <p className="text-xs font-medium text-muted">🍦 Treats</p>
+                      <p className="tnum font-bold text-brand-700">{money(totals.treats)}</p>
+                      <p className="text-xs text-muted">{totals.total > 0 ? Math.round((totals.treats / totals.total) * 100) : 0}%</p>
                     </Tap>
                   </div>
                 </div>
