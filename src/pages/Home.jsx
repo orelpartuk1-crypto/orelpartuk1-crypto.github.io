@@ -217,12 +217,16 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Drains as you spend, rather than filling up — this card is
+              about money going down, and a bar that grew with every
+              expense read as the opposite of that no matter how correct
+              the number above it was. */}
           {balance.income > 0 && (
             <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/50">
               <motion.div
                 className={`h-full rounded-full ${over ? 'bg-rose-500' : 'bg-brand-500'}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, (balance.spent / balance.income) * 100)}%` }}
+                initial={{ width: '100%' }}
+                animate={{ width: `${Math.max(0, Math.min(100, (balance.saved / balance.income) * 100))}%` }}
                 transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
               />
             </div>

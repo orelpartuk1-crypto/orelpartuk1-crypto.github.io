@@ -20,7 +20,7 @@ import GroceryItemList from '../components/GroceryItemList'
 import CoachInsights from '../components/CoachInsights'
 import ReceiptViewer from '../components/ReceiptViewer'
 import SkeletonRows from '../components/SkeletonRows'
-import { Sheet } from '../components/motion'
+import { Screen, Item, Stagger, Tap, Counter, Sheet } from '../components/motion'
 
 const isThisMonth = (d) => {
   const n = new Date()
@@ -156,15 +156,15 @@ export default function Analytics() {
           </Link>
         }
       />
-      <div className="mx-auto max-w-md px-4 space-y-4">
+      <Screen className="mx-auto max-w-md px-4 space-y-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card transition-transform duration-150 active:scale-90" aria-label="Previous month">
+          <Tap onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card" aria-label="Previous month">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-          </button>
+          </Tap>
           <span className="rounded-full bg-white px-6 py-2.5 font-semibold shadow-card">{monthLabel(monthDate)}</span>
-          <button onClick={() => !atCurrentMonth && shiftMonth(1)} disabled={atCurrentMonth} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card transition-transform duration-150 active:scale-90 disabled:opacity-30 disabled:active:scale-100" aria-label="Next month">
+          <Tap onClick={() => !atCurrentMonth && shiftMonth(1)} disabled={atCurrentMonth} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card disabled:opacity-30" aria-label="Next month">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
-          </button>
+          </Tap>
         </div>
 
         {!locked && (
@@ -179,7 +179,7 @@ export default function Analytics() {
         )}
 
         {/* Donut */}
-        <div className="card">
+        <Item className="card">
           {/* One hero number, not two — this used to repeat the same total
               a second time in the donut's own center the moment it loaded. */}
           <div className="flex items-start justify-between">
@@ -215,7 +215,12 @@ export default function Analytics() {
                     <>
                       <span className="text-xs text-muted">{openCat || 'total'}</span>
                       <span className={`tnum text-2xl font-bold ${!openCat && !showingIncome ? 'text-spend' : !openCat ? 'text-earn' : ''}`}>
-                        {money(openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total)}
+                        <Counter
+                          id="analytics-donut"
+                          ready={!loading}
+                          value={openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total}
+                          format={(n) => money(n)}
+                        />
                       </span>
                       {openCat && total > 0 && (
                         <span className="text-xs text-muted">
@@ -229,24 +234,24 @@ export default function Analytics() {
 
               {/* Tapping a category opens its own analysis below, rather than
                   narrowing this same list down to one row. */}
-              <div className="divide-y divide-slate-100">
+              <Stagger className="divide-y divide-slate-100">
                 {cats.map(({ category, total: t }) => {
                   const m = categoryMeta(category)
                   const share = total > 0 ? Math.round((t / total) * 100) : 0
                   const p = pace[category]
                   return (
-                    <div key={category} className="py-2">
-                      <button
+                    <Item key={category} className="py-2">
+                      <Tap
                         onClick={() => !showingIncome && selectCategory(category)}
                         disabled={showingIncome}
-                        className="flex w-full items-center gap-2.5 text-left active:opacity-60 disabled:active:opacity-100"
+                        className="flex w-full items-center gap-2.5 text-left disabled:active:scale-100"
                       >
                         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: m.color }} />
                         <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
                         <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
                         <span className="tnum shrink-0 font-semibold">{money(t)}</span>
                         {!showingIncome && <span className="shrink-0 text-muted">›</span>}
-                      </button>
+                      </Tap>
                       {p && (
                         <p className={`mt-0.5 pl-5 text-xs font-medium ${p.status === 'over' ? 'text-spend' : 'text-amber-600'}`}>
                           {p.status === 'over'
@@ -254,18 +259,18 @@ export default function Analytics() {
                             : `${money(p.left)} left before last month's ${money(p.prev)}`}
                         </p>
                       )}
-                    </div>
+                    </Item>
                   )
                 })}
-              </div>
+              </Stagger>
             </>
           )}
-        </div>
+        </Item>
 
         {/* Needs vs treats — only meaningful for spending, and redundant once
             this view is already narrowed to one of the two */}
         {!showingIncome && !filterType && activeZone !== 'business' && totals.total > 0 && (
-          <div className="card">
+          <Item className="card">
             <h2 className="label">Needs vs treats</h2>
             <div className="mt-1 flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-slate-100">
               <div className="h-full rounded-full bg-brand-500 transition-[width] duration-500 ease-out" style={{ width: `${(totals.needs / totals.total) * 100}%` }} />
@@ -275,12 +280,12 @@ export default function Analytics() {
               <span>🧺 {money(totals.needs)}</span>
               <span>🍦 {money(totals.treats)}</span>
             </div>
-          </div>
+          </Item>
         )}
 
         {/* Budgets */}
         {budgetScope && !showingIncome && (
-          <div className="card">
+          <Item className="card">
             <div className="flex items-baseline justify-between">
               <h2 className="label mb-0">{budgetScope === 'shared' ? 'Shared budgets' : 'Your budgets'}</h2>
               <span className="text-xs text-muted">
@@ -326,7 +331,7 @@ export default function Analytics() {
               scope={budgetScope}
               onSet={(category, limit) => setBudget(category, limit, budgetScope)}
             />
-          </div>
+          </Item>
         )}
 
         {/* Inline rather than its own page — and, same as the needs-vs-treats
@@ -346,7 +351,7 @@ export default function Analytics() {
           if (filterType && kind === 'expense') scoped = scoped.filter((r) => r.spend_type === filterType)
           const monthly = scoped.reduce((t, r) => t + Number(r.amount || 0), 0)
           return (
-            <div className="card">
+            <Item className="card">
               <div className="flex items-baseline justify-between">
                 <h2 className="label mb-0">Every month</h2>
                 <span className={`tnum font-bold ${showingIncome ? 'text-earn' : 'text-spend'}`}>{money(monthly)}</span>
@@ -356,11 +361,11 @@ export default function Analytics() {
                   Nothing repeating here yet. Tick “Repeats monthly” when you add something.
                 </p>
               ) : (
-                <ul className="divide-y divide-slate-100">
+                <Stagger className="divide-y divide-slate-100">
                   {scoped.map((r) => {
                     const m = categoryMeta(r.category)
                     return (
-                      <li key={r.id} className="flex items-center gap-3 py-2.5">
+                      <Item key={r.id} className="flex items-center gap-3 py-2.5">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: m.color + '22' }}>
                           {showingIncome ? '💰' : m.emoji}
                         </span>
@@ -369,13 +374,13 @@ export default function Analytics() {
                           <span className="block text-xs text-muted">{r.category || r.source || 'Monthly'}</span>
                         </span>
                         <span className="tnum shrink-0 font-semibold">{money(r.amount)}</span>
-                      </li>
+                      </Item>
                     )
                   })}
-                </ul>
+                </Stagger>
               )}
               <Link to="/recurring" className="mt-2 block text-sm font-semibold text-brand-600">Manage →</Link>
-            </div>
+            </Item>
           )
         })()}
 
@@ -393,12 +398,12 @@ export default function Analytics() {
           </div>
         )}
         {trend.length > 1 && (
-          <div className="card">
+          <Item className="card">
             <h2 className="label">Last 6 months</h2>
             <TrendChart data={trend} />
-          </div>
+          </Item>
         )}
-      </div>
+      </Screen>
 
       {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
 
