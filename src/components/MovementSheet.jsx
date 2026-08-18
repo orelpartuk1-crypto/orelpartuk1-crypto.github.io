@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Sheet } from './motion'
+import { Sheet, Tap } from './motion'
 import { money, dayLabel } from '../lib/format'
 import { categoryMeta } from '../lib/categories'
 
@@ -73,14 +73,14 @@ export default function MovementSheet({ movement, accountName, nameOf, onClose, 
 
         <div className="grid grid-cols-2 gap-2">
           {m.receipt_path ? (
-            <button className="btn-ghost py-3 text-base" onClick={() => onReceipt(m.raw)}>🧾 Receipt</button>
+            <Tap className="btn-ghost py-3 text-base" onClick={() => onReceipt(m.raw)}>🧾 Receipt</Tap>
           ) : (
             <span />
           )}
           {canEdit && (
-            <button className="btn-primary py-3 text-base" onClick={() => nav('/add', { state: { edit: m.raw } })}>
+            <Tap className="btn-primary py-3 text-base" onClick={() => nav('/add', { state: { edit: m.raw } })}>
               Edit
-            </button>
+            </Tap>
           )}
         </div>
       </div>

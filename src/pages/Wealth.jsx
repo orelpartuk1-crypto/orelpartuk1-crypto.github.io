@@ -92,7 +92,6 @@ export default function Wealth() {
     <div className="pb-28">
       <TopBar
         title="Wealth"
-        subtitle="Yours — not shared with anyone"
         right={
           <Tap onClick={() => setAddOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab" aria-label="Add">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -287,13 +286,19 @@ export default function Wealth() {
       <Sheet open={sheet === 'savings'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">
         {sheet === 'savings' && <Savings onClose={() => setSheet(null)} />}
       </Sheet>
-      {/* No fixed height here on purpose — Tax's own hero + inputs card is
-          short enough to open at roughly half the screen on its own, and
-          growing it further (tapping "See the full breakdown" inside Tax
-          itself) just lets the sheet grow with it, up to the normal 90vh
-          cap every sheet has, with scroll past that. A second height toggle
-          here on top of that one was two controls for the same thing. */}
-      <Sheet open={sheet === 'tax'} onClose={() => setSheet(null)} className="!px-0">
+      {/* Opens at half height — Tax is genuinely a lot to take in at once —
+          with the expand control next to the handle for the full picture.
+          The height change itself animates (Sheet's own layout animation),
+          so it reads as a real expansion, not a snap. Closing (the back
+          button inside Tax) still does the normal slide-down, back to
+          Wealth underneath. */}
+      <Sheet
+        open={sheet === 'tax'}
+        onClose={() => setSheet(null)}
+        expandable
+        className="!px-0 !max-h-[55vh]"
+        expandedClassName="!px-0 !max-h-[94vh]"
+      >
         {sheet === 'tax' && <Tax onClose={() => setSheet(null)} />}
       </Sheet>
       <Sheet open={sheet === 'simulators'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">

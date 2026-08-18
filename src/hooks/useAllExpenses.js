@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { isoDay } from '../lib/format'
 
 // Survives unmounting, so coming back to the list shows the rows you were just
 // looking at instead of an empty screen while the whole table is refetched.
 const cache = new Map() // household id -> rows
+
+// This used to fetch every expense a household had ever logged, no date
+// bound at all — a genuinely unbounded query that only gets slower the
+// longer anyone uses the app. 12 months back covers "all movements" and the
+// shortcuts list (AddExpense's "you buy this often") for any real usage
+// pattern, without the request growing forever.
+const LOOKBACK_DAYS = 366
 
 // All expenses you're allowed to see (your own + shared), newest first.
 export function useAllExpenses() {
@@ -25,10 +33,12 @@ export function useAllExpenses() {
     if (!hid) return
     if (!cache.has(hid)) setLoading(true)
     try {
+      const since = isoDay(new Date(Date.now() - LOOKBACK_DAYS * 86400000))
       const { data } = await supabase
         .from('expenses')
         .select('*')
         .eq('household_id', hid)
+        .gte('spent_at', since)
         .order('spent_at', { ascending: false })
         .order('created_at', { ascending: false })
       const rows = data || []

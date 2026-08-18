@@ -68,6 +68,7 @@ export default function Analytics() {
     // income with no way back.
     if (z !== 'mine' && z !== 'business') setDirection('out')
     setOpenCat(null)
+    setSpendFilter(null)
   }
   const activeZone = !locked && (zone === 'together' || (zone === 'business' && !hasBusiness)) ? 'mine' : zone
 
@@ -78,6 +79,14 @@ export default function Analytics() {
   const [direction, setDirection] = useState('out') // 'out' | 'in'
   const [openCat, setOpenCat] = useState(null)
   const [receipt, setReceipt] = useState(null)
+  // Needs/treats folded into the donut card itself instead of a separate
+  // card below it — tapping either re-slices the same donut and list rather
+  // than opening yet another view of the same month.
+  const [spendFilter, setSpendFilter] = useState(null) // 'need' | 'treat' | null
+  const toggleSpendFilter = (v) => {
+    setSpendFilter((cur) => (cur === v ? null : v))
+    setOpenCat(null)
+  }
 
   const shiftMonth = (d) => setMonthDate((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))
   const atCurrentMonth = isThisMonth(monthDate)
@@ -130,6 +139,14 @@ export default function Analytics() {
   const total = cats.reduce((t, c) => t + c.total, 0)
   const totals = summarize(expenses)
   const pace = useMemo(() => vsLastMonth(expenses, prevExpenses), [expenses, prevExpenses])
+
+  // The donut + list re-slice to just Needs or just Treats when one is
+  // tapped below — same category shape, a different (smaller) total.
+  const displayCats = useMemo(() => {
+    if (showingIncome || !spendFilter) return cats
+    return byCategory(expenses.filter((e) => e.spend_type === spendFilter))
+  }, [showingIncome, spendFilter, cats, expenses])
+  const displayTotal = displayCats.reduce((t, c) => t + c.total, 0)
 
   // Shared spending is measured against the joint budget; anything personal
   // against your own. Business has no budget concept.
@@ -208,7 +225,7 @@ export default function Analytics() {
             {(activeZone === 'mine' || activeZone === 'business') && (
               <div className="flex rounded-full bg-black/[0.04] p-1 text-xs">
                 {[{ k: 'out', l: 'Out' }, { k: 'in', l: 'In' }].map((o) => (
-                  <Tap key={o.k} onClick={() => { setDirection(o.k); setOpenCat(null) }}
+                  <Tap key={o.k} onClick={() => { setDirection(o.k); setOpenCat(null); setSpendFilter(null) }}
                     className={`rounded-full px-3 py-1.5 font-semibold ${direction === o.k ? `bg-white shadow-card ${o.k === 'in' ? 'text-earn' : 'text-spend'}` : 'text-muted'}`}>
                     {o.l}
                   </Tap>
@@ -228,24 +245,24 @@ export default function Analytics() {
                 <Donut
                   size={190}
                   stroke={26}
-                  data={cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
-                  total={total}
+                  data={displayCats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
+                  total={displayTotal}
                   selected={openCat}
                   onSelect={(label) => selectCategory(label)}
                   center={
                     <>
-                      <span className="text-xs text-muted">{openCat || 'total'}</span>
+                      <span className="text-xs text-muted">{openCat || (spendFilter ? (spendFilter === 'need' ? '🧺 needs' : '🍦 treats') : 'total')}</span>
                       <span className={`tnum text-2xl font-bold ${!openCat && !showingIncome ? 'text-spend' : !openCat ? 'text-earn' : ''}`}>
                         <Counter
                           id="analytics-donut"
                           ready={!loading}
-                          value={openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total}
+                          value={openCat ? (displayCats.find((c) => c.category === openCat)?.total ?? 0) : displayTotal}
                           format={(n) => money(n)}
                         />
                       </span>
-                      {openCat && total > 0 && (
+                      {openCat && displayTotal > 0 && (
                         <span className="text-xs text-muted">
-                          {Math.round(((cats.find((c) => c.category === openCat)?.total ?? 0) / total) * 100)}%
+                          {Math.round(((displayCats.find((c) => c.category === openCat)?.total ?? 0) / displayTotal) * 100)}%
                         </span>
                       )}
                     </>
@@ -256,9 +273,9 @@ export default function Analytics() {
               {/* Tapping a category opens its own analysis below, rather than
                   narrowing this same list down to one row. */}
               <Stagger className="divide-y divide-slate-100">
-                {cats.map(({ category, total: t }) => {
+                {displayCats.map(({ category, total: t }) => {
                   const m = categoryMeta(category)
-                  const share = total > 0 ? Math.round((t / total) * 100) : 0
+                  const share = displayTotal > 0 ? Math.round((t / displayTotal) * 100) : 0
                   const p = pace[category]
                   return (
                     <Item key={category} className="py-2">
@@ -284,25 +301,36 @@ export default function Analytics() {
                   )
                 })}
               </Stagger>
+
+              {/* Needs vs treats, folded into this same card — tapping
+                  either re-slices the donut and list above instead of
+                  opening a whole separate card just to show the same split
+                  another way. */}
+              {!showingIncome && !filterType && activeZone !== 'business' && totals.total > 0 && (
+                <div className="mt-4 border-t border-slate-100 pt-3">
+                  <div className="flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-full rounded-full bg-brand-500 transition-[width] duration-500 ease-out" style={{ width: `${(totals.needs / totals.total) * 100}%` }} />
+                    <div className="h-full flex-1 rounded-full bg-amber-400" />
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Tap
+                      onClick={() => toggleSpendFilter('need')}
+                      className={`rounded-xl2 py-1.5 text-center text-sm font-medium transition-colors ${spendFilter === 'need' ? 'bg-brand-50' : ''}`}
+                    >
+                      🧺 {money(totals.needs)}
+                    </Tap>
+                    <Tap
+                      onClick={() => toggleSpendFilter('treat')}
+                      className={`rounded-xl2 py-1.5 text-center text-sm font-medium transition-colors ${spendFilter === 'treat' ? 'bg-amber-50' : ''}`}
+                    >
+                      🍦 {money(totals.treats)}
+                    </Tap>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </Item>
-
-        {/* Needs vs treats — only meaningful for spending, and redundant once
-            this view is already narrowed to one of the two */}
-        {!showingIncome && !filterType && activeZone !== 'business' && totals.total > 0 && (
-          <Item className="card">
-            <h2 className="label">Needs vs treats</h2>
-            <div className="mt-1 flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-slate-100">
-              <div className="h-full rounded-full bg-brand-500 transition-[width] duration-500 ease-out" style={{ width: `${(totals.needs / totals.total) * 100}%` }} />
-              <div className="h-full flex-1 rounded-full bg-amber-400" />
-            </div>
-            <div className="mt-2 flex justify-between text-sm font-medium">
-              <span>🧺 {money(totals.needs)}</span>
-              <span>🍦 {money(totals.treats)}</span>
-            </div>
-          </Item>
-        )}
 
         {/* Budgets */}
         {budgetScope && !showingIncome && (
@@ -444,9 +472,10 @@ export default function Analytics() {
       <Sheet open={!!openCat && !showingIncome} onClose={() => setOpenCat(null)} className="!max-h-[55vh]">
         {openCat && (() => {
           const m = categoryMeta(openCat)
-          const t = cats.find((c) => c.category === openCat)?.total ?? 0
-          const share = total > 0 ? Math.round((t / total) * 100) : 0
+          const t = displayCats.find((c) => c.category === openCat)?.total ?? 0
+          const share = displayTotal > 0 ? Math.round((t / displayTotal) * 100) : 0
           const p = pace[openCat]
+          const catExpenses = expenses.filter((e) => e.category === openCat && (!spendFilter || e.spend_type === spendFilter))
           return (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -467,10 +496,10 @@ export default function Analytics() {
                 </p>
               )}
               {openCat === 'Groceries' ? (
-                <GroceryItemList expenses={expenses.filter((e) => e.category === openCat)} />
+                <GroceryItemList expenses={catExpenses} />
               ) : (
                 <MiniExpenseList
-                  expenses={expenses.filter((e) => e.category === openCat)}
+                  expenses={catExpenses}
                   nameOf={nameOf}
                   onReceipt={(raw) => { setOpenCat(null); setReceipt(raw) }}
                 />

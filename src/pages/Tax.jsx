@@ -110,63 +110,53 @@ export default function Tax({ onClose }) {
           <button className="btn-primary w-full" onClick={doSave}>{saved ? 'Saved ✓' : 'Save'}</button>
         </div>
 
-        {/* Everything past this point is detail, not the headline — the
-            line-by-line ledger, the per-category % editor, the gestor
-            export. One tap away instead of five cards of scrolling past
-            things that only matter once you've already seen the number
-            above. */}
-        <details className="card open:pb-1">
-          <summary className="cursor-pointer list-none font-semibold text-lg marker:content-none">
-            <span className="inline-flex items-center gap-1.5">
-              See the full breakdown
-              <svg viewBox="0 0 24 24" className="h-4 w-4 text-muted transition-transform [details[open]_&]:rotate-180" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-            </span>
-          </summary>
+        {/* Full-year breakdown */}
+        <div className="card">
+          <h2 className="font-semibold text-lg mb-1">Projected year</h2>
+          <div className="flex justify-between py-1"><span className="text-muted">Revenue</span><b>{money(num(income))}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">− Deductible business expenses</span><b>{money(projectedDeductible)}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">− Social security</span><b>{money(ssAnnual)}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">− Accountant</span><b>{money(num(accountant))}</b></div>
+          {num(extra) > 0 && <div className="flex justify-between py-1"><span className="text-muted">− Other deductibles</span><b>{money(num(extra))}</b></div>}
+          <div className="flex justify-between py-1 border-t border-slate-100 mt-1 pt-2"><span className="text-muted">= Taxable profit</span><b>{money(est.profit)}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">− Estimated IRPF</span><b>{money(est.tax)}</b></div>
+          <div className="flex justify-between py-1 border-t border-slate-100 mt-1 pt-2"><span className="font-medium">= Net in your pocket</span><b className="text-brand-600">{money(netInPocket)}</b></div>
+        </div>
 
-          <div className="mt-3 space-y-4">
-            <div>
-              <div className="flex justify-between py-1"><span className="text-muted">Revenue</span><b>{money(num(income))}</b></div>
-              <div className="flex justify-between py-1"><span className="text-muted">− Deductible business expenses</span><b>{money(projectedDeductible)}</b></div>
-              <div className="flex justify-between py-1"><span className="text-muted">− Social security</span><b>{money(ssAnnual)}</b></div>
-              <div className="flex justify-between py-1"><span className="text-muted">− Accountant</span><b>{money(num(accountant))}</b></div>
-              {num(extra) > 0 && <div className="flex justify-between py-1"><span className="text-muted">− Other deductibles</span><b>{money(num(extra))}</b></div>}
-              <div className="flex justify-between py-1 border-t border-slate-100 mt-1 pt-2"><span className="text-muted">= Taxable profit</span><b>{money(est.profit)}</b></div>
-              <div className="flex justify-between py-1"><span className="text-muted">− Estimated IRPF</span><b>{money(est.tax)}</b></div>
-              <div className="flex justify-between py-1 border-t border-slate-100 mt-1 pt-2"><span className="font-medium">= Net in your pocket</span><b className="text-brand-600">{money(netInPocket)}</b></div>
-            </div>
+        {/* Recommendation */}
+        <div className="card">
+          <h2 className="font-semibold text-lg">💡 What this means</h2>
+          <ul className="mt-2 space-y-2 text-sm">
+            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-green-500" />Your deductions cut your tax by about <b>{money(est.taxSaved)}</b> this year.</li>
+            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />Every extra €100 of legitimate business expense saves you ~<b>{money(est.marginalRate * 100)}</b> in tax (your {Math.round(est.marginalRate * 100)}% marginal rate).</li>
+            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />Set aside roughly <b>{money(est.tax)}</b> for IRPF{ssAnnual > 0 ? ` plus ${money(ssAnnual)} for social security` : ''} across the year.</li>
+          </ul>
+        </div>
 
-            <ul className="space-y-2 text-sm border-t border-slate-100 pt-3">
-              <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-green-500" />Your deductions cut your tax by about <b>{money(est.taxSaved)}</b> this year.</li>
-              <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />Every extra €100 of legitimate business expense saves you ~<b>{money(est.marginalRate * 100)}</b> in tax (your {Math.round(est.marginalRate * 100)}% marginal rate).</li>
-              <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />Set aside roughly <b>{money(est.tax)}</b> for IRPF{ssAnnual > 0 ? ` plus ${money(ssAnnual)} for social security` : ''} across the year.</li>
-            </ul>
-
-            {/* Per-category deductibility — set by you or your gestor, never assumed */}
-            {businessByCategory.length > 0 && (
-              <div className="border-t border-slate-100 pt-3">
-                <h3 className="font-semibold">Deductible % by category</h3>
-                <p className="text-sm text-muted mb-1">
-                  Set what your gestor says is deductible per category — defaults to 100%. This is documentation, not tax advice.
-                </p>
-                <div className="divide-y divide-slate-100">
-                  {businessByCategory.map((c) => (
-                    <CategoryPctRow key={c.category} row={c} onSave={(pct) => saveCategoryPct(c.category, pct)} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <button className="btn-ghost w-full" onClick={exportCSV} disabled={businessRows.length === 0}>
-              ⬇︎ Export business expenses for gestor (CSV)
-            </button>
-
-            <p className="text-xs text-muted">
-              ⚠️ Projection for planning only — not official tax advice. Uses approximate combined state + Madrid IRPF
-              brackets, treats social security as deductible, and extrapolates your logged expenses to a full year.
-              Confirm real figures with your gestor.
+        {/* Per-category deductibility — set by you or your gestor, never assumed */}
+        {businessByCategory.length > 0 && (
+          <div className="card space-y-1">
+            <h2 className="font-semibold text-lg">Deductible % by category</h2>
+            <p className="text-sm text-muted mb-2">
+              Set what your gestor says is deductible per category — defaults to 100%. This is documentation, not tax advice.
             </p>
+            <div className="divide-y divide-slate-100">
+              {businessByCategory.map((c) => (
+                <CategoryPctRow key={c.category} row={c} onSave={(pct) => saveCategoryPct(c.category, pct)} />
+              ))}
+            </div>
           </div>
-        </details>
+        )}
+
+        <button className="btn-ghost w-full" onClick={exportCSV} disabled={businessRows.length === 0}>
+          ⬇︎ Export business expenses for gestor (CSV)
+        </button>
+
+        <p className="text-xs text-muted px-1">
+          ⚠️ Projection for planning only — not official tax advice. Uses approximate combined state + Madrid IRPF
+          brackets, treats social security as deductible, and extrapolates your logged expenses to a full year.
+          Confirm real figures with your gestor.
+        </p>
       </div>
     </div>
   )

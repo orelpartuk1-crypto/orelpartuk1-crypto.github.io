@@ -434,40 +434,61 @@ export default function Couple() {
                 {typeCats.map(({ category, total: t }) => {
                   const m = categoryMeta(category)
                   const share = typeTotal > 0 ? Math.round((t / typeTotal) * 100) : 0
-                  const isOpen = openCat === category
                   return (
-                    <div key={category} className="py-2">
-                      <button
-                        onClick={() => setOpenCat(isOpen ? null : category)}
-                        className="flex w-full items-center gap-2.5 text-left active:opacity-60"
-                      >
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: m.color }} />
-                        <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
-                        <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
-                        <span className="tnum shrink-0 font-semibold">{money(t)}</span>
-                        <span className={`shrink-0 text-muted transition-transform ${isOpen ? 'rotate-90' : ''}`}>›</span>
-                      </button>
-                      {/* Groceries: what was actually bought, ranked by price
-                          with repeat items (steak, chicken, ...) merged into
-                          one line each — not the shopping trips themselves. */}
-                      {isOpen && category === 'Groceries' ? (
-                        <GroceryItemList expenses={typeExpenses.filter((e) => e.category === category)} />
-                      ) : (
-                        isOpen && (
-                          <MiniExpenseList
-                            expenses={typeExpenses.filter((e) => e.category === category)}
-                            nameOf={nameOf}
-                            onReceipt={(raw) => { setOpenType(null); setReceipt(raw) }}
-                          />
-                        )
-                      )}
-                    </div>
+                    <button
+                      key={category}
+                      onClick={() => setOpenCat(category)}
+                      className="flex w-full items-center gap-2.5 py-2 text-left active:opacity-60"
+                    >
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: m.color }} />
+                      <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
+                      <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
+                      <span className="tnum shrink-0 font-semibold">{money(t)}</span>
+                      <span className="shrink-0 text-muted">›</span>
+                    </button>
                   )
                 })}
               </div>
             )}
           </div>
         )}
+      </Sheet>
+
+      {/* A category tapped from inside Needs/Treats above — its own sheet,
+          same as everywhere else a category opens onto its purchases,
+          rather than growing in place inside a sheet that's already
+          capped at half the screen. Scrolls normally like any other list,
+          however long it is. */}
+      <Sheet open={!!openCat && !!openType} onClose={() => setOpenCat(null)} className="!max-h-[55vh]">
+        {openCat && openType && (() => {
+          const m = categoryMeta(openCat)
+          const t = typeCats.find((c) => c.category === openCat)?.total ?? 0
+          const share = typeTotal > 0 ? Math.round((t / typeTotal) * 100) : 0
+          const catExpenses = typeExpenses.filter((e) => e.category === openCat)
+          return (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-2xl" style={{ backgroundColor: m.color + '22' }}>
+                  {m.emoji}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <h2 className="truncate text-xl font-bold">{openCat}</h2>
+                  <p className="text-sm text-muted">{share}% of {openType === 'need' ? 'needs' : 'treats'}</p>
+                </div>
+                <span className="tnum shrink-0 text-lg font-bold">{money(t)}</span>
+              </div>
+              {openCat === 'Groceries' ? (
+                <GroceryItemList expenses={catExpenses} />
+              ) : (
+                <MiniExpenseList
+                  expenses={catExpenses}
+                  nameOf={nameOf}
+                  onReceipt={(raw) => { setOpenCat(null); setReceipt(raw) }}
+                />
+              )}
+            </div>
+          )
+        })()}
       </Sheet>
 
       <Sheet open={!!analysisCat} onClose={() => setAnalysisCat(null)} className="!max-h-[55vh]">
