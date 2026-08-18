@@ -10,7 +10,7 @@ import { money, dayLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
 import ReceiptViewer from '../components/ReceiptViewer'
 import MovementSheet from '../components/MovementSheet'
-import { Screen, Stagger, Item } from '../components/motion'
+import { Screen, Item } from '../components/motion'
 
 const monthTitle = (key) => {
   const [y, m] = key.split('-')
@@ -77,11 +77,18 @@ export default function Movements() {
     return [...out, ...inn].sort((a, b) => String(b.date).localeCompare(String(a.date)))
   }, [expenses, bonuses, user?.id, scopeLocked])
 
-  const filtered = rows.filter((r) => {
-    if (!scopeLocked && dir !== 'all' && r.direction !== dir) return false
-    if (who !== 'all' && r.paid_by !== who) return false
-    return true
-  })
+  // Memoised: this feeds `groups`, and rebuilding it on every render meant
+  // every row in every month re-rendered on each tap. With a year of history
+  // that's enough work to make a toggle feel like it didn't register.
+  const filtered = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (!scopeLocked && dir !== 'all' && r.direction !== dir) return false
+        if (who !== 'all' && r.paid_by !== who) return false
+        return true
+      }),
+    [rows, scopeLocked, dir, who]
+  )
 
   const groups = useMemo(() => {
     const g = {}
@@ -169,19 +176,21 @@ export default function Movements() {
                 {g.out > 0 && <span className="text-spend">−{money(g.out)}</span>}
               </span>
             </div>
-            <Stagger className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100">
               {g.rows.map((m) => {
                 const meta = m.direction === 'in' ? { emoji: '💰', color: '#0f7a3e' } : categoryMeta(m.category)
                 return (
-                  <Item key={m.id}>
+                  <div key={m.id}>
                     <button type="button" onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left transition-transform duration-100 active:scale-[0.98] active:bg-slate-100">
-                      {m.direction === 'in' || !m.label || m.label === m.category ? (
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
-                          {meta.emoji}
-                        </span>
-                      ) : (
-                        <MerchantLogo name={m.label} size={40} />
-                      )}
+                      <MerchantLogo
+                        name={m.direction === 'in' ? null : m.label}
+                        size={40}
+                        fallback={
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
+                            {meta.emoji}
+                          </span>
+                        }
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">
                           {m.label}
@@ -195,10 +204,10 @@ export default function Movements() {
                         {m.direction === 'in' ? '+' : '−'}{money(m.amount)}
                       </span>
                     </button>
-                  </Item>
+                  </div>
                 )
               })}
-            </Stagger>
+            </div>
           </Item>
         ))}
       </Screen>

@@ -9,10 +9,12 @@ import { useCategories } from '../hooks/useCategories'
 import { useAllExpenses } from '../hooks/useAllExpenses'
 import GrocerySelector from '../components/GrocerySelector'
 import CategorySheet from '../components/CategorySheet'
+import MerchantLogo from '../components/MerchantLogo'
 import TopBar from '../components/TopBar'
 import { Screen, Tap, Sheet } from '../components/motion'
 import { useKeyboardInset } from '../hooks/useKeyboardInset'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
+import { merchantDomain, merchantCategory } from '../lib/merchants'
 import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingReceipt } from '../lib/pendingScan'
@@ -170,10 +172,14 @@ export default function AddExpense() {
   // Guess the category from what you typed — the same keyword list the
   // scanned-receipt flow uses, so a description and a receipt agree. Backs off
   // the moment you've chosen a category yourself.
+  //
+  // A recognised brand wins over the keyword list: "Lidl" is unambiguously
+  // groceries and "Zara" unambiguously shopping, which the generic keywords
+  // can't tell you. Typing the shop should be the only thing you have to do.
   useEffect(() => {
     if (isIncome || categoryTouched || scope === 'business' || !note.trim()) return
-    const guess = guessCategory(note)
-    if (guess !== 'Other' && guess !== category) {
+    const guess = merchantCategory(note) || guessCategory(note)
+    if (guess && guess !== 'Other' && guess !== category) {
       setCategory(guess)
       setCategoryId(null)
       setSpendType(defaultSpendType(guess))
@@ -345,17 +351,27 @@ export default function AddExpense() {
           </div>
         )}
 
-        {/* Description */}
+        {/* Description — the shop's logo appears inside the field the moment
+            what you've typed (or what a scan filled in) names a shop we know,
+            which is also the moment the category sets itself. Seeing the mark
+            appear is the confirmation that it recognised the place. */}
         <div>
           <label className="label">
             What was it{!isIncome && !SELF_EXPLANATORY.has(category) ? '' : ' (optional)'}
           </label>
-          <input
-            className={`field ${needsDescription && err ? 'border-spend' : ''}`}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={isIncome ? 'e.g. August invoice' : 'e.g. dentist, haircut, massage'}
-          />
+          <div
+            className={`field flex items-center gap-2.5 !py-2.5 ${needsDescription && err ? 'border-spend' : ''}`}
+          >
+            {!isIncome && merchantDomain(note) && (
+              <MerchantLogo name={note} size={28} />
+            )}
+            <input
+              className="min-w-0 flex-1 bg-transparent text-lg outline-none"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={isIncome ? 'e.g. August invoice' : 'e.g. Lidl, dentist, haircut'}
+            />
+          </div>
         </div>
 
         {/* Whose is it / need or treat — the two questions this app exists to

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { enablePush, disablePush, isPushEnabled, pushSupported } from '../lib/push'
 import { getTheme, setTheme } from '../lib/theme'
+import { CURRENCIES, getCurrency, setCurrency } from '../lib/format'
 import TopBar from '../components/TopBar'
 
 export default function Settings() {
@@ -13,6 +14,7 @@ export default function Settings() {
   const [pushBusy, setPushBusy] = useState(false)
   const [pushErr, setPushErr] = useState(null)
   const [themeChoice, setThemeChoice] = useState(getTheme)
+  const [currencyChoice] = useState(getCurrency)
 
   useEffect(() => { isPushEnabled().then(setPushOn) }, [])
 
@@ -73,6 +75,32 @@ export default function Settings() {
             ))}
           </div>
           <p className="mt-2 text-xs text-muted">Auto follows your phone, including when it switches at sunset.</p>
+        </div>
+
+        <div className="card">
+          <h2 className="label">Currency</h2>
+          <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
+            {Object.entries(CURRENCIES).map(([code, c]) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => { setCurrency(code); window.location.reload() }}
+                className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-transform duration-100 active:scale-[0.96] ${
+                  currencyChoice === code ? 'bg-white text-ink shadow-card' : 'text-muted'
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          {/* Said plainly rather than discovered later: this changes the
+              symbol every figure is shown with, and nothing else. No rate is
+              applied, so 20 stays 20 — real conversion would mean exchange
+              rates and rewriting every amount ever saved. */}
+          <p className="mt-2 text-xs text-muted">
+            Changes the symbol shown throughout the app. Amounts already saved keep their
+            number — nothing is converted at an exchange rate.
+          </p>
         </div>
 
         {/* Business mode — a real setting: it decides whether the Business zone

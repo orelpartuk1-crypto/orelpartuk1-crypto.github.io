@@ -8,8 +8,11 @@ import { merchantDomain, merchantColor } from '../lib/merchants'
 // shop into a letter. DuckDuckGo's icon service is the backstop: plainer
 // favicons, but long-lived and free. Either way nothing but the domain is
 // sent, and only the domain.
+// ?size= matters: Clearbit's default is small and looked soft blown up to
+// row height, so ask for well above what we render and let the browser scale
+// it down. DuckDuckGo's is a fixed favicon, hence the ordering.
 const SOURCES = [
-  (d) => `https://logo.clearbit.com/${d}`,
+  (d) => `https://logo.clearbit.com/${d}?size=128`,
   (d) => `https://icons.duckduckgo.com/ip3/${d}.ico`,
 ]
 
@@ -19,11 +22,13 @@ const SOURCES = [
 // expense from it instead of re-running failed requests each time.
 const resolved = new Map() // domain -> source index that worked, or -1 for none
 
-// The shop's logo when there is one, a stable coloured initial when there
-// isn't. Nothing about the expense itself — amount, date, category — is ever
-// part of the request; the only thing that leaves the device is the shop's
-// domain, and only the first time that shop is seen.
-export default function MerchantLogo({ name, size = 40, className = '' }) {
+// The shop's logo when there is one, and otherwise whatever the caller
+// already shows for this kind of expense — the category emoji on its tinted
+// circle — rather than a lettered badge, which just added a third visual
+// language to rows that already had one. Nothing about the expense itself
+// (amount, date, category) is ever part of the request; the only thing that
+// leaves the device is the shop's domain, once per shop.
+export default function MerchantLogo({ name, size = 40, className = '', fallback = null }) {
   const domain = merchantDomain(name)
   // Start at whichever source is already known to work for this shop, so a
   // second Mercadona expense doesn't repeat the first one's failed attempt.
@@ -38,6 +43,7 @@ export default function MerchantLogo({ name, size = 40, className = '' }) {
   const failed = srcIndex < 0 || srcIndex >= SOURCES.length
 
   if (!domain || failed) {
+    if (fallback) return fallback
     return (
       <span
         className={`flex shrink-0 items-center justify-center rounded-full font-bold text-white ${className}`}

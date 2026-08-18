@@ -1,17 +1,59 @@
-// Spain-localized currency + date helpers.
-const eur = new Intl.NumberFormat('es-ES', {
-  style: 'currency',
-  currency: 'EUR',
-  minimumFractionDigits: 2,
-})
+// Currency + date helpers. Euro by default (Madrid is where this is used),
+// but the currency is a stored preference so the same numbers can be read in
+// shekels or dollars.
+//
+// This is presentation only, and deliberately so: amounts are stored as plain
+// numbers with no currency attached, so switching relabels what's on screen
+// and converts nothing. Anything else would need real exchange rates and a
+// migration of every historical row — a much bigger promise than "show me
+// this in ₪".
+export const CURRENCIES = {
+  EUR: { symbol: '€', locale: 'es-ES', label: '€ Euro' },
+  ILS: { symbol: '₪', locale: 'he-IL', label: '₪ Shekel' },
+  USD: { symbol: '$', locale: 'en-US', label: '$ Dollar' },
+}
+const KEY = 'db_currency'
 
-export const money = (n) => eur.format(Number(n) || 0)
+const readCurrency = () => {
+  try {
+    const c = localStorage.getItem(KEY)
+    return c && CURRENCIES[c] ? c : 'EUR'
+  } catch {
+    return 'EUR'
+  }
+}
+
+let current = readCurrency()
+let fmt = buildFormatter(current)
+
+function buildFormatter(code) {
+  const c = CURRENCIES[code] || CURRENCIES.EUR
+  return new Intl.NumberFormat(c.locale, {
+    style: 'currency',
+    currency: code,
+    minimumFractionDigits: 2,
+  })
+}
+
+export const getCurrency = () => current
+export const currencySymbol = () => (CURRENCIES[current] || CURRENCIES.EUR).symbol
+
+// Changing currency re-labels every figure in the app, and the simplest way
+// to be sure nothing is left showing the old symbol is a reload.
+export function setCurrency(code) {
+  if (!CURRENCIES[code]) return
+  localStorage.setItem(KEY, code)
+  current = code
+  fmt = buildFormatter(code)
+}
+
+export const money = (n) => fmt.format(Number(n) || 0)
 
 // Compact form for tight spaces, e.g. "€1,2k"
 export const moneyShort = (n) => {
   const v = Number(n) || 0
-  if (Math.abs(v) >= 1000) return '€' + (v / 1000).toFixed(1).replace('.0', '') + 'k'
-  return eur.format(v)
+  if (Math.abs(v) >= 1000) return currencySymbol() + (v / 1000).toFixed(1).replace('.0', '') + 'k'
+  return fmt.format(v)
 }
 
 export const monthLabel = (d = new Date()) =>

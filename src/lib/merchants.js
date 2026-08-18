@@ -134,6 +134,53 @@ export function merchantDomain(raw) {
   return null
 }
 
+// Which category a brand almost always means. Typing "Lidl" should not also
+// require telling the app it was groceries — the brand already says so. Only
+// listed where it's genuinely unambiguous: a supermarket is Groceries, Zara
+// is Shopping. Anything debatable is left out rather than guessed.
+const MERCHANT_CATEGORY = {
+  'mercadona.es': 'Groceries', 'carrefour.es': 'Groceries', 'lidl.es': 'Groceries',
+  'aldi.es': 'Groceries', 'dia.es': 'Groceries', 'alcampo.es': 'Groceries',
+  'consum.es': 'Groceries', 'eroski.es': 'Groceries', 'ahorramas.com': 'Groceries',
+  'supercor.es': 'Groceries', 'bonarea.com': 'Groceries', 'hipercor.es': 'Groceries',
+
+  'zara.com': 'Shopping', 'bershka.com': 'Shopping', 'stradivarius.com': 'Shopping',
+  'pullandbear.com': 'Shopping', 'massimodutti.com': 'Shopping', 'oysho.com': 'Shopping',
+  'mango.com': 'Shopping', 'primark.com': 'Shopping', 'hm.com': 'Shopping',
+  'uniqlo.com': 'Shopping', 'decathlon.es': 'Shopping', 'nike.com': 'Shopping',
+  'adidas.es': 'Shopping', 'elcorteingles.es': 'Shopping', 'fnac.es': 'Shopping',
+  'mediamarkt.es': 'Shopping', 'worten.es': 'Shopping', 'action.com': 'Shopping',
+  'flyingtiger.com': 'Shopping', 'amazon.es': 'Shopping',
+
+  'ikea.com': 'Home', 'leroymerlin.es': 'Home', 'bricomart.es': 'Home',
+
+  'starbucks.com': 'Coffee',
+  'mcdonalds.es': 'Restaurants', 'burgerking.es': 'Restaurants', 'kfc.es': 'Restaurants',
+  'telepizza.es': 'Restaurants', 'dominos.es': 'Restaurants', 'goiko.com': 'Restaurants',
+  'vips.es': 'Restaurants', 'rodilla.es': 'Restaurants', '100montaditos.com': 'Restaurants',
+  'glovoapp.com': 'Restaurants', 'justeat.es': 'Restaurants', 'deliveroo.es': 'Restaurants',
+
+  'repsol.com': 'Transport', 'cepsa.com': 'Transport', 'galp.com': 'Transport',
+  'bp.com': 'Transport', 'shell.com': 'Transport', 'renfe.com': 'Transport',
+  'uber.com': 'Transport', 'cabify.com': 'Transport', 'bolt.eu': 'Transport',
+  'emtmadrid.es': 'Transport',
+
+  'cruzverde.es': 'Health',
+
+  'vodafone.es': 'Utilities', 'movistar.es': 'Utilities', 'orange.es': 'Utilities',
+  'yoigo.com': 'Utilities', 'jazztel.com': 'Utilities', 'digimobil.es': 'Utilities',
+  'endesa.com': 'Utilities', 'iberdrola.es': 'Utilities', 'naturgy.es': 'Utilities',
+  'netflix.com': 'Utilities', 'spotify.com': 'Utilities', 'disneyplus.com': 'Utilities',
+  'hbomax.com': 'Utilities',
+}
+
+// The category a brand name implies, or null when the brand is unknown or
+// its category would be a guess.
+export function merchantCategory(raw) {
+  const d = merchantDomain(raw)
+  return d ? MERCHANT_CATEGORY[d] || null : null
+}
+
 // A stable colour per merchant, so the fallback badge for a given shop is
 // always the same one and starts to read as recognisable in its own right.
 const BADGE_COLORS = ['#0f7a3e', '#2563eb', '#db2777', '#f97316', '#7c3aed', '#0891b2', '#ca8a04', '#dc2626']
