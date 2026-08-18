@@ -81,12 +81,15 @@ export default function Analytics() {
   const [receipt, setReceipt] = useState(null)
   // Needs/treats folded into the donut card itself instead of a separate
   // card below it — tapping either re-slices the same donut and list rather
-  // than opening yet another view of the same month.
+  // than opening yet another view of the same month. A single mark slides
+  // between the two (one tap moves it, it never toggles off on its own) —
+  // double-tapping the active one is what actually clears it.
   const [spendFilter, setSpendFilter] = useState(null) // 'need' | 'treat' | null
-  const toggleSpendFilter = (v) => {
-    setSpendFilter((cur) => (cur === v ? null : v))
+  const pickSpendFilter = (v) => {
+    setSpendFilter(v)
     setOpenCat(null)
   }
+  const clearSpendFilter = () => setSpendFilter(null)
 
   const shiftMonth = (d) => setMonthDate((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))
   const atCurrentMonth = isThisMonth(monthDate)
@@ -305,23 +308,28 @@ export default function Analytics() {
               {/* Needs vs treats, folded into this same card — tapping
                   either re-slices the donut and list above instead of
                   opening a whole separate card just to show the same split
-                  another way. */}
+                  another way. One mark slides between the two, same muted
+                  color for both rather than a green one and an amber one —
+                  this is a single toggle, not two unrelated buttons. Tap
+                  the active side again (or double-tap) to clear it. */}
               {!showingIncome && !filterType && activeZone !== 'business' && totals.total > 0 && (
                 <div className="mt-4 border-t border-slate-100 pt-3">
                   <div className="flex h-2.5 w-full gap-1 overflow-hidden rounded-full bg-slate-100">
                     <div className="h-full rounded-full bg-brand-500 transition-[width] duration-500 ease-out" style={{ width: `${(totals.needs / totals.total) * 100}%` }} />
                     <div className="h-full flex-1 rounded-full bg-amber-400" />
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="mt-2 flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
                     <Tap
-                      onClick={() => toggleSpendFilter('need')}
-                      className={`rounded-xl2 py-1.5 text-center text-sm font-medium transition-colors ${spendFilter === 'need' ? 'bg-brand-50' : ''}`}
+                      onClick={() => pickSpendFilter('need')}
+                      onDoubleClick={clearSpendFilter}
+                      className={`flex-1 rounded-full py-1.5 text-center text-sm font-semibold ${spendFilter === 'need' ? 'bg-white text-amber-700 shadow-card' : 'text-muted'}`}
                     >
                       🧺 {money(totals.needs)}
                     </Tap>
                     <Tap
-                      onClick={() => toggleSpendFilter('treat')}
-                      className={`rounded-xl2 py-1.5 text-center text-sm font-medium transition-colors ${spendFilter === 'treat' ? 'bg-amber-50' : ''}`}
+                      onClick={() => pickSpendFilter('treat')}
+                      onDoubleClick={clearSpendFilter}
+                      className={`flex-1 rounded-full py-1.5 text-center text-sm font-semibold ${spendFilter === 'treat' ? 'bg-white text-amber-700 shadow-card' : 'text-muted'}`}
                     >
                       🍦 {money(totals.treats)}
                     </Tap>
