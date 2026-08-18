@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
+import { useKeyboardInset } from '../hooks/useKeyboardInset'
 
 // Add is the single way in for any transaction — one-off or repeating, money
 // out or money in. The rest of the bar is for looking, not entering: what was
@@ -21,11 +22,17 @@ const HIDE_ON = ['/add', '/scan']
 
 export default function BottomNav() {
   const { pathname } = useLocation()
+  const keyboardInset = useKeyboardInset()
   if (HIDE_ON.includes(pathname)) return null
 
   return (
     // Floating, detached from the screen edges — the page scrolls underneath it.
-    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-30 safe-bottom">
+    // Shifted up by `keyboardInset` so it tracks the real visible edge instead
+    // of the fixed layout viewport iOS leaves untouched (see useKeyboardInset).
+    <nav
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-30 safe-bottom"
+      style={keyboardInset ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
+    >
       {/* Solid, not blurred — same reasoning as TopBar: a fixed element that's
           always on screen paying a continuous backdrop-filter cost is a real
           drag on a phone GPU, and it's paid on every single screen. */}

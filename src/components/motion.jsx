@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
+import { motion, AnimatePresence, useReducedMotion, useDragControls } from 'motion/react'
 
 // One place for how motion feels, so every screen moves the same way.
 //
@@ -118,6 +118,14 @@ export function Counter({ id, value, ready = true, format = (n) => n.toFixed(2),
 // past a threshold — or flicking, regardless of distance — dismisses it.
 export function Sheet({ open, onClose, children, className = '' }) {
   const reduced = useReducedMotion()
+  // The drag gesture used to live on the same element that scrolls its own
+  // content (Savings, Tax — anything taller than the sheet). Framer can't
+  // tell "the thumb is scrolling the list" from "the thumb is dragging the
+  // sheet down" on that element, so it would swallow taps near the top
+  // (the back button) and never let a swipe-down reach the bottom of a
+  // long page. Starting the drag only from the grab handle below removes
+  // the ambiguity — the handle has nothing else to do with a touch.
+  const controls = useDragControls()
 
   useEffect(() => {
     if (!open) return
@@ -153,6 +161,8 @@ export function Sheet({ open, onClose, children, className = '' }) {
           exit={reduced ? { opacity: 0 } : { y: '100%' }}
           transition={SOFT}
           drag={reduced ? false : 'y'}
+          dragListener={false}
+          dragControls={controls}
           dragConstraints={{ top: 0, bottom: 0 }}
           dragElastic={{ top: 0, bottom: 0.6 }}
           onDragEnd={(_, info) => {
@@ -160,7 +170,10 @@ export function Sheet({ open, onClose, children, className = '' }) {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="mx-auto mb-3 h-1.5 w-10 shrink-0 rounded-full bg-slate-300" />
+          <div
+            className="mx-auto mb-3 h-1.5 w-10 shrink-0 touch-none rounded-full bg-slate-300"
+            onPointerDown={(e) => !reduced && controls.start(e)}
+          />
           <div className="mx-auto max-w-md">{children}</div>
         </motion.div>
       </motion.div>

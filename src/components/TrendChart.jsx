@@ -30,7 +30,7 @@ export default function TrendChart({ data: rawData }) {
         {avg > 0 && (
           <line
             x1="0" x2={W} y1={avgY} y2={avgY}
-            stroke="#94a3b8" strokeWidth="1" strokeDasharray="4 4"
+            stroke="rgb(var(--c-n-400))" strokeWidth="1" strokeDasharray="4 4"
           />
         )}
         {data.map((d, i) => {
@@ -43,13 +43,13 @@ export default function TrendChart({ data: rawData }) {
               <rect
                 x={x} y={y} width={barW} height={Math.max(h, 2)}
                 rx="6"
-                fill={isCurrent ? '#2f6bff' : '#c7d7ff'}
+                fill={isCurrent ? 'rgb(var(--c-brand-500))' : 'rgb(var(--c-brand-100))'}
               />
               {d.total > 0 && (
                 <text
                   x={x + barW / 2} y={y - 4}
                   textAnchor="middle" fontSize="9" fontWeight="600"
-                  fill={isCurrent ? '#1a49bd' : '#64748b'}
+                  fill={isCurrent ? 'rgb(var(--c-brand-700))' : 'rgb(var(--c-muted))'}
                 >
                   {moneyShort(d.total)}
                 </text>
@@ -57,7 +57,7 @@ export default function TrendChart({ data: rawData }) {
               <text
                 x={x + barW / 2} y={H - 6}
                 textAnchor="middle" fontSize="10"
-                fill={isCurrent ? '#0f172a' : '#94a3b8'}
+                fill={isCurrent ? 'rgb(var(--c-ink))' : 'rgb(var(--c-n-400))'}
                 fontWeight={isCurrent ? '700' : '400'}
               >
                 {d.label}

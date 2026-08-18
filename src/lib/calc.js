@@ -3,6 +3,8 @@
 // A "who owes" amount only comes from expenses explicitly marked split=true
 // (shared only) plus recurring bills (rent).
 
+import { canonicalizeGroceryName } from './groceryItems'
+
 const num = (v) => Number(v) || 0
 const sum = (arr, f = (e) => e.amount) => arr.reduce((t, e) => t + num(f(e)), 0)
 
@@ -66,10 +68,15 @@ export function groceryBreakdown(expenses) {
     if (!Array.isArray(e.items)) continue
     for (const it of e.items) {
       if (!it?.name) continue
-      const cur = map.get(it.name) || { name: it.name, total: 0, count: 0 }
+      // A scan reading "Queso manchego curado 250g" one week and "QUESO
+      // MANCHEGO" the next used to make two unrelated lines here — every
+      // purchase looked like the first time. Folding both to the same
+      // recognised name is what actually makes "what you bought" a summary.
+      const name = canonicalizeGroceryName(it.name)
+      const cur = map.get(name) || { name, total: 0, count: 0 }
       cur.total += num(it.price)
       cur.count += 1
-      map.set(it.name, cur)
+      map.set(name, cur)
     }
   }
   return [...map.values()].sort((a, b) => b.total - a.total || b.count - a.count)

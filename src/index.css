@@ -91,6 +91,10 @@ body {
   /* Prevent the iOS "zoom on input focus" bug via 16px base */
   font-size: 16px;
   overscroll-behavior-y: none;
+  /* Without this, a touch that drifts sideways while scrolling (very easy to
+     do with a thumb) rubber-bands the whole page left/right — it reads as
+     the screen being draggable, which it was never meant to be. */
+  overscroll-behavior-x: none;
   /* Native app feel: no long-press menu, no accidental text selection */
   -webkit-touch-callout: none;
   -webkit-user-select: none;

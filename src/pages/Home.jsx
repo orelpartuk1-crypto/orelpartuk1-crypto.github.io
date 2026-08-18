@@ -18,6 +18,7 @@ import TopBar from '../components/TopBar'
 import AlertBell from '../components/AlertBell'
 import ReceiptViewer from '../components/ReceiptViewer'
 import MovementSheet from '../components/MovementSheet'
+import SkeletonRows from '../components/SkeletonRows'
 import { Avatar } from './Profile'
 import { Screen, Stagger, Item, Tap, Counter, motion } from '../components/motion'
 
@@ -310,25 +311,6 @@ export default function Home() {
         onReceipt={(raw) => { setMovement(null); setReceipt(raw) }}
       />
       {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
-    </div>
-  )
-}
-
-// A shape where the content will be, rather than the word "Loading" — the
-// screen stops jumping when the data lands.
-function SkeletonRows() {
-  return (
-    <div className="divide-y divide-slate-100">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="flex items-center gap-3 py-3">
-          <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-slate-100" />
-          <div className="flex-1 space-y-1.5">
-            <div className="h-3.5 w-2/5 animate-pulse rounded bg-slate-100" />
-            <div className="h-2.5 w-1/4 animate-pulse rounded bg-slate-100" />
-          </div>
-          <div className="h-3.5 w-14 animate-pulse rounded bg-slate-100" />
-        </div>
-      ))}
     </div>
   )
 }

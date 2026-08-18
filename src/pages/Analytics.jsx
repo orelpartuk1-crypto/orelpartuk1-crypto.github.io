@@ -19,6 +19,7 @@ import MiniExpenseList from '../components/MiniExpenseList'
 import GroceryItemList from '../components/GroceryItemList'
 import CoachInsights from '../components/CoachInsights'
 import ReceiptViewer from '../components/ReceiptViewer'
+import SkeletonRows from '../components/SkeletonRows'
 import { Sheet } from '../components/motion'
 
 const isThisMonth = (d) => {
@@ -40,7 +41,7 @@ export default function Analytics() {
   const { expenses: prevAll } = useExpenses(prevMonthDate)
   const { bonuses } = useMoney(monthDate)
   const { shared: sharedBudgets, personal: personalBudgets, set: setBudget } = useBudgets()
-  const { rows: history } = useHistory(6)
+  const { rows: history, loading: historyLoading } = useHistory(6)
   const { notSpending } = useCategories()
   const { items: recurringItems } = useRecurring()
 
@@ -195,7 +196,7 @@ export default function Analytics() {
             )}
           </div>
 
-          {loading && cats.length === 0 && <p className="py-6 text-center text-muted">Loading…</p>}
+          {loading && cats.length === 0 && <SkeletonRows />}
           {!loading && cats.length === 0 && (
             <p className="py-8 text-center text-muted">Nothing here for {monthLabel(monthDate)}.</p>
           )}
@@ -378,7 +379,19 @@ export default function Analytics() {
           )
         })()}
 
-        {/* Six-month trend */}
+        {/* Six-month trend — a skeleton in its place while it loads instead
+            of the card just not existing yet, which read as the chart
+            hanging rather than as data still on its way in. */}
+        {historyLoading && trend.length <= 1 && (
+          <div className="card">
+            <h2 className="label">Last 6 months</h2>
+            <div className="flex h-[150px] items-end gap-2 pb-[22px]">
+              {[40, 65, 50, 80, 60, 90].map((h, i) => (
+                <div key={i} className="flex-1 animate-pulse rounded-lg bg-slate-100" style={{ height: `${h}%` }} />
+              ))}
+            </div>
+          </div>
+        )}
         {trend.length > 1 && (
           <div className="card">
             <h2 className="label">Last 6 months</h2>

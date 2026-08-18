@@ -10,6 +10,16 @@ import { useNavigate } from 'react-router-dom'
 // closing it.
 export default function TopBar({ title, subtitle, back = false, right = null, wrap = false, onBack }) {
   const nav = useNavigate()
+  // A PWA opened from the home-screen icon (or resumed after iOS suspended
+  // and reloaded it) starts with an empty history stack — nav(-1) then does
+  // exactly what browser "back" does with nothing behind it: nothing. The
+  // button just looked stuck. React Router stamps an incrementing `idx` on
+  // history.state; 0 (or missing, before the first navigation) means there
+  // really is nowhere to go back to, so land on Home instead of no-opping.
+  const goBack = () => {
+    if (typeof window !== 'undefined' && window.history.state?.idx > 0) nav(-1)
+    else nav('/')
+  }
   // Solid, not blurred — backdrop-filter on a sticky header repaints every
   // scroll frame and is one of the heaviest things a phone GPU can be asked
   // to do continuously. Opaque costs nothing and never looks glitchy the way
@@ -20,7 +30,7 @@ export default function TopBar({ title, subtitle, back = false, right = null, wr
       <div className="mx-auto flex max-w-md items-center gap-3">
         {back && (
           <button
-            onClick={onBack || (() => nav(-1))}
+            onClick={onBack || goBack}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-card transition-transform duration-150 active:scale-90"
             aria-label="Back"
           >

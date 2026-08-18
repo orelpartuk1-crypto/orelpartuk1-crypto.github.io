@@ -117,3 +117,38 @@ export const GROCERY_ITEMS = [
   { name: 'Baby formula', es: 'leche de fórmula' }, { name: 'Dog food', es: 'comida para perro' },
   { name: 'Cat food', es: 'comida para gato' }, { name: 'Cat litter', es: 'arena para gato' },
 ]
+
+// Broad catch-alls, tried only when nothing more specific above matches (see
+// `canonicalizeGroceryName`) — so a receipt line the scan read as "carne
+// picada extra 500g" still lands as one recognisable thing instead of a
+// one-off nobody's seen before.
+const GROCERY_FALLBACKS = [
+  { name: 'Meat', es: 'carne' }, { name: 'Fish', es: 'pescado' },
+  { name: 'Deli meats', es: 'embutido' }, { name: 'Vegetables', es: 'verdura' },
+  { name: 'Fruit', es: 'fruta' }, { name: 'Soft drinks', es: 'gaseosa' },
+]
+
+// Longest alias first, so "queso manchego" is checked — and wins — before
+// the bare "queso" that would otherwise swallow it, and specific items
+// (Salmon, Chorizo…) win before the generic fallbacks below them.
+const MATCHERS = [...GROCERY_ITEMS, ...GROCERY_FALLBACKS].sort(
+  (a, b) => Math.max(b.name.length, b.es.length) - Math.max(a.name.length, a.es.length)
+)
+
+const norm = (s) =>
+  s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+
+// A scan reading the same product two different ways ("Queso manchego
+// curado 250g" one week, "QUESO MANCHEGO" the next) used to produce two
+// unrelated lines in "what you bought" — every purchase looked like the
+// first time. Matching each raw line against the same item/alias list the
+// manual picker uses folds them back into one recognisable thing, English
+// or Spanish, generic family or specific product.
+export function canonicalizeGroceryName(raw) {
+  if (!raw) return raw
+  const t = norm(raw)
+  for (const item of MATCHERS) {
+    if (t.includes(norm(item.es)) || t.includes(norm(item.name))) return item.name
+  }
+  return raw.trim()
+}

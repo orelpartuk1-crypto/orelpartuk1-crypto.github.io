@@ -12,6 +12,7 @@ import GrocerySelector from '../components/GrocerySelector'
 import CategorySheet from '../components/CategorySheet'
 import TopBar from '../components/TopBar'
 import { Screen, Item, Tap, Sheet } from '../components/motion'
+import { useKeyboardInset } from '../hooks/useKeyboardInset'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
 import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
@@ -26,6 +27,7 @@ const ACCOUNT_EMOJI = { cash: '💶', bank: '🏦', card: '💳', savings: '🐷
 export default function AddExpense() {
   const nav = useNavigate()
   const location = useLocation()
+  const keyboardInset = useKeyboardInset()
   const prefill = location.state?.prefill
   const editing = location.state?.edit
   const { user, household, hasBusiness, members } = useAuth()
@@ -417,47 +419,53 @@ export default function AddExpense() {
           <GrocerySelector items={items} onChange={setItems} />
         )}
 
-        {/* Repeats */}
+        {/* Repeats — a compact toggle row, not a full card. This is one
+            option among several here, not a whole screen's worth of
+            content, and didn't need the room of everything above it. */}
         {!editing && (
           <Tap
             as="div"
             onClick={() => setRepeats(!repeats)}
-            className="flex cursor-pointer items-center gap-3 rounded-2xl bg-white p-4 shadow-card"
+            className="flex cursor-pointer items-center gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-card"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">🔁</span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-semibold">Repeats monthly</span>
-              <span className="block text-sm text-muted">Same day, every month, from now on</span>
-            </span>
-            <span className={`flex h-7 w-12 shrink-0 items-center rounded-full px-0.5 transition ${repeats ? 'justify-end bg-brand-500' : 'justify-start bg-slate-200'}`}>
-              <span className="h-6 w-6 rounded-full bg-white shadow" />
+            <span className="text-lg">🔁</span>
+            <span className="min-w-0 flex-1 font-medium">Repeats monthly</span>
+            <span className={`flex h-6 w-10 shrink-0 items-center rounded-full px-0.5 transition ${repeats ? 'justify-end bg-brand-500' : 'justify-start bg-slate-200'}`}>
+              <span className="h-5 w-5 rounded-full bg-white shadow" />
             </span>
           </Tap>
         )}
 
-        {/* Bulk and filing, at the bottom where they belong */}
+        {/* Bulk and filing — reachable, but this screen is for logging one
+            expense, not for finding your way to a CSV importer. Collapsed
+            by default keeps the room it used to take permanently. */}
         {!editing && (
-          <div className="space-y-2.5">
-            <Tap as={Link} to="/import" className="card-tap flex w-full items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📄</span>
-              <span className="min-w-0 flex-1 text-left">
-                <span className="block font-semibold">Import from bank</span>
-                <span className="block text-sm text-muted">CSV statement</span>
-              </span>
-              <span className="text-muted">›</span>
-            </Tap>
-
-            {scope === 'business' && (
-              <Tap as={Link} to="/scan" className="card-tap flex w-full items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📦</span>
+          <details>
+            <summary className="cursor-pointer list-none text-center text-sm font-semibold text-brand-600 marker:content-none">
+              More ways to add expenses
+            </summary>
+            <div className="mt-2.5 space-y-2.5">
+              <Tap as={Link} to="/import" className="card-tap flex w-full items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📄</span>
                 <span className="min-w-0 flex-1 text-left">
-                  <span className="block font-semibold">Scan and save to Dropbox</span>
-                  <span className="block text-sm text-muted">Keeps the invoice for your gestor</span>
+                  <span className="block font-semibold">Import from bank</span>
+                  <span className="block text-sm text-muted">CSV statement</span>
                 </span>
                 <span className="text-muted">›</span>
               </Tap>
-            )}
-          </div>
+
+              {scope === 'business' && (
+                <Tap as={Link} to="/scan" className="card-tap flex w-full items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📦</span>
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block font-semibold">Scan and save to Dropbox</span>
+                    <span className="block text-sm text-muted">Keeps the invoice for your gestor</span>
+                  </span>
+                  <span className="text-muted">›</span>
+                </Tap>
+              )}
+            </div>
+          </details>
         )}
 
         {err && <p className="text-sm text-spend">{err}</p>}
@@ -467,8 +475,12 @@ export default function AddExpense() {
         )}
       </Screen>
 
-      {/* Save */}
-      <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-surface via-surface to-transparent px-4 pb-1 pt-8 safe-bottom">
+      {/* Save — shifted above the keyboard on iOS, which otherwise leaves this
+          exactly where it was and buries it (see useKeyboardInset). */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-surface via-surface to-transparent px-4 pb-1 pt-8 safe-bottom"
+        style={keyboardInset ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
+      >
         <div className="mx-auto max-w-md">
           <Tap
             className={`btn w-full px-5 py-4 text-lg text-white shadow-fab ${isIncome ? 'bg-earn' : 'bg-brand-500'}`}
