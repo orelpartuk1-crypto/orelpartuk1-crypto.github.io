@@ -470,6 +470,10 @@ export default function Analytics() {
   )
 }
 
+// Used to grow inline into the card, pushing everything below it down the
+// screen the moment you tapped it. A plain + that opens a sheet — every
+// category paid for this month, not just the ones already capped — keeps
+// the card itself the same size whether you're setting a limit or not.
 function BudgetEditor({ cats, budgetMap, scope, onSet }) {
   const [open, setOpen] = useState(false)
   const options = useMemo(() => {
@@ -477,22 +481,34 @@ function BudgetEditor({ cats, budgetMap, scope, onSet }) {
     return [...seen, ...Object.keys(budgetMap).filter((k) => !seen.has(k))]
   }, [cats, budgetMap])
 
-  if (!open) {
-    return (
-      <button className="btn-ghost mt-3 w-full py-2.5 text-base" onClick={() => setOpen(true)}>
-        Set {scope === 'shared' ? 'shared' : 'personal'} limits
-      </button>
-    )
-  }
-
   return (
-    <div className="mt-3 space-y-1 border-t border-slate-100 pt-3">
-      {options.length === 0 && <p className="text-sm text-muted">Log something first, then you can cap it.</p>}
-      {options.map((category) => (
-        <LimitRow key={category} category={category} value={budgetMap[category] || 0} onSet={onSet} />
-      ))}
-      <button className="btn-ghost mt-2 w-full py-2.5 text-base" onClick={() => setOpen(false)}>Done</button>
-    </div>
+    <>
+      <Tap
+        onClick={() => setOpen(true)}
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-slate-50 py-2.5 text-sm font-semibold text-brand-600"
+      >
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+        Set {scope === 'shared' ? 'shared' : 'personal'} limits
+      </Tap>
+      <Sheet open={open} onClose={() => setOpen(false)}>
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold">{scope === 'shared' ? 'Shared' : 'Personal'} limits</h2>
+          {options.length === 0 ? (
+            <p className="py-8 text-center text-muted">Log something first, then you can cap it.</p>
+          ) : (
+            <>
+              <p className="text-sm text-muted">Every category paid for this month — cap what matters, leave the rest at 0.</p>
+              <div className="space-y-1">
+                {options.map((category) => (
+                  <LimitRow key={category} category={category} value={budgetMap[category] || 0} onSet={onSet} />
+                ))}
+              </div>
+            </>
+          )}
+          <button className="btn-primary w-full" onClick={() => setOpen(false)}>Done</button>
+        </div>
+      </Sheet>
+    </>
   )
 }
 

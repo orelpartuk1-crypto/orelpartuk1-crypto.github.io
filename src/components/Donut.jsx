@@ -17,13 +17,19 @@ export default function Donut({ data, total, size = 150, stroke = 20, center, se
           {total > 0 &&
             segments.map((d, i) => {
               const len = (d.value / total) * c
-              // A real cut between slices, not just a color change — round
-              // caps alone (no gap) overlap into whatever's next the moment
-              // there are more than two segments. Trimming each one short by
-              // a fixed gap, same on every slice regardless of size, and
-              // rounding only the cut ends is what actually reads as pieces
-              // of one ring rather than a single line changing color.
-              const gap = segments.length > 1 ? Math.min(stroke * 0.4, 6) : 0
+              // A real cut between slices, not just a color change — plain
+              // round caps with no gap overlap into whatever's next the
+              // moment there are more than two segments. Trimming each one
+              // short by a fixed gap and rounding only the cut ends is what
+              // actually reads as pieces of one ring rather than a line
+              // quietly changing color. But a slice thinner than the ring
+              // is thick (a 1-2% category, easily under 10px on a ring
+              // that's 24px wide) has nowhere for a round cap to go — it
+              // just draws a filled circle where the slice should be, and
+              // the gap swallows it entirely. Those stay flat and ungapped
+              // instead of turning into a stray dot.
+              const thin = len <= stroke
+              const gap = !thin && segments.length > 1 ? Math.min(stroke * 0.4, 6) : 0
               const visibleLen = Math.max(0, len - gap)
               const isOn = selected === d.label
               const dimmed = selected != null && !isOn
@@ -38,7 +44,7 @@ export default function Donut({ data, total, size = 150, stroke = 20, center, se
                   strokeWidth={isOn ? stroke + 6 : stroke}
                   strokeDasharray={`${visibleLen} ${c - visibleLen}`}
                   strokeDashoffset={-offset}
-                  strokeLinecap="round"
+                  strokeLinecap={thin ? 'butt' : 'round'}
                   opacity={dimmed ? 0.25 : 1}
                   style={{
                     cursor: interactive ? 'pointer' : undefined,
