@@ -114,6 +114,39 @@ export function Counter({ id, value, ready = true, format = (n) => n.toFixed(2),
   return <span className={`tnum ${className}`}>{format(shown)}</span>
 }
 
+// A fill bar with the same memory Counter has, for the same reason: on the
+// very first paint this tab has ever done, there's nothing to compare
+// against, so it rises from empty — a reveal, not a change. On every later
+// mount (navigating back after logging something), it resumes from wherever
+// it last actually sat, so a genuine decrease animates downward instead of
+// always re-rising from empty on remount and looking like growth no matter
+// which way the underlying number actually moved.
+const lastRatio = new Map()
+
+export function Meter({ id, ratio, ready = true, className = '', barClassName = '' }) {
+  const reduced = useReducedMotion()
+  const remembered = id != null && lastRatio.has(id) ? lastRatio.get(id) : null
+  const [target, setTarget] = useState(remembered ?? 0)
+
+  useEffect(() => {
+    if (!ready) return
+    const clamped = Math.max(0, Math.min(100, ratio))
+    if (id != null) lastRatio.set(id, clamped)
+    setTarget(clamped)
+  }, [ratio, ready, id])
+
+  return (
+    <div className={className}>
+      <motion.div
+        className={barClassName}
+        initial={{ width: `${remembered ?? 0}%` }}
+        animate={{ width: `${target}%` }}
+        transition={reduced ? { duration: 0 } : { duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+      />
+    </div>
+  )
+}
+
 // A bottom sheet you can actually throw away with your thumb. Dragging down
 // past a threshold — or flicking, regardless of distance — dismisses it.
 export function Sheet({ open, onClose, children, className = '' }) {

@@ -20,7 +20,7 @@ import ReceiptViewer from '../components/ReceiptViewer'
 import MovementSheet from '../components/MovementSheet'
 import SkeletonRows from '../components/SkeletonRows'
 import { Avatar } from './Profile'
-import { Screen, Stagger, Item, Tap, Counter, motion } from '../components/motion'
+import { Screen, Stagger, Item, Tap, Counter, Meter, motion } from '../components/motion'
 
 const isThisMonth = (d) => {
   const n = new Date()
@@ -217,19 +217,19 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Drains as you spend, rather than filling up — this card is
-              about money going down, and a bar that grew with every
-              expense read as the opposite of that no matter how correct
-              the number above it was. */}
+          {/* Rises into view on a fresh open — there's nothing to compare
+              against yet, so that reads as a reveal, not as growth. Logging
+              a new expense and landing back here is a real decrease, and
+              Meter remembers where it last sat so *that* specifically
+              animates downward — money going down, exactly when it did. */}
           {balance.income > 0 && (
-            <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/50">
-              <motion.div
-                className={`h-full rounded-full ${over ? 'bg-rose-500' : 'bg-brand-500'}`}
-                initial={{ width: '100%' }}
-                animate={{ width: `${Math.max(0, Math.min(100, (balance.saved / balance.income) * 100))}%` }}
-                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
-              />
-            </div>
+            <Meter
+              id="home-saved-bar"
+              ready={!loading}
+              ratio={(balance.saved / balance.income) * 100}
+              className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/50"
+              barClassName={`h-full rounded-full ${over ? 'bg-rose-500' : 'bg-brand-500'}`}
+            />
           )}
         </div>
 
