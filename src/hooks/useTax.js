@@ -13,24 +13,29 @@ export function useTax() {
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const year = new Date().getFullYear()
-    const start = `${year}-01-01`
-    const end = `${year}-12-31`
-    const [{ data: tp }, { data: exp }] = await Promise.all([
-      supabase.from('tax_profile').select('*').eq('owner', user.id).maybeSingle(),
-      supabase
-        .from('expenses')
-        .select('spent_at, category, amount, note')
-        .eq('paid_by', user.id)
-        .eq('scope', 'business')
-        .gte('spent_at', start)
-        .lte('spent_at', end)
-        .order('spent_at', { ascending: true }),
-    ])
-    setProfile(tp || { annual_income: 0, extra_expenses: 0, category_pct: {} })
-    setBusinessRows(exp || [])
-    setBusinessThisYear((exp || []).reduce((t, e) => t + Number(e.amount), 0))
-    setLoading(false)
+    try {
+      const year = new Date().getFullYear()
+      const start = `${year}-01-01`
+      const end = `${year}-12-31`
+      const [{ data: tp }, { data: exp }] = await Promise.all([
+        supabase.from('tax_profile').select('*').eq('owner', user.id).maybeSingle(),
+        supabase
+          .from('expenses')
+          .select('spent_at, category, amount, note')
+          .eq('paid_by', user.id)
+          .eq('scope', 'business')
+          .gte('spent_at', start)
+          .lte('spent_at', end)
+          .order('spent_at', { ascending: true }),
+      ])
+      setProfile(tp || { annual_income: 0, extra_expenses: 0, category_pct: {} })
+      setBusinessRows(exp || [])
+      setBusinessThisYear((exp || []).reduce((t, e) => t + Number(e.amount), 0))
+    } catch (e) {
+      console.error('useTax load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [user?.id])
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { useExpenses } from '../hooks/useExpenses'
 import { useSettlements } from '../hooks/useSettlements'
 import { useAccounts } from '../hooks/useAccounts'
 import { useBudgets } from '../hooks/useBudgets'
+import { useHistory } from '../hooks/useHistory'
 import { summarize, settlement, onlySpending, byCategory, vsLastMonth, budgetStatus } from '../lib/calc'
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel, dayLabel } from '../lib/format'
@@ -17,6 +18,7 @@ import MovementSheet from '../components/MovementSheet'
 import MiniExpenseList from '../components/MiniExpenseList'
 import GroceryItemList from '../components/GroceryItemList'
 import CoachInsights from '../components/CoachInsights'
+import BudgetEditor from '../components/BudgetEditor'
 import { Screen, Stagger, Item, Tap, Counter, Sheet, AnimatePresence, motion } from '../components/motion'
 
 const isThisMonth = (d) => {
@@ -40,7 +42,12 @@ export default function Couple() {
   const { rows: settlements, settle: recordSettlement } = useSettlements()
   const { active: myAccounts, defaultAccount } = useAccounts()
   const { notSpending } = useCategories()
-  const { shared: sharedBudgets } = useBudgets()
+  const { shared: sharedBudgets, set: setBudget } = useBudgets()
+  const { rows: history } = useHistory(6)
+  // Several completed months of shared spending, unaggregated — lets the
+  // coach spot a genuine streak ("Restaurants up 3 months running") instead
+  // of only ever comparing this month to last.
+  const sharedHistory = useMemo(() => history.filter((e) => e.scope === 'shared'), [history])
 
   const [tab, setTab] = useState('together') // 'together' | 'analysis'
   const [receipt, setReceipt] = useState(null)
@@ -306,7 +313,7 @@ export default function Couple() {
                       <div className="my-4 flex justify-center">
                         <Donut
                           size={190}
-                          stroke={24}
+                          stroke={32}
                           data={cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
                           total={catsTotal}
                           selected={analysisCat}
@@ -353,38 +360,58 @@ export default function Couple() {
                   )}
                 </div>
 
-                {budgeted.length > 0 && (
-                  <div className="card">
-                    <h2 className="label">Shared budgets</h2>
-                    <div className="mt-3 grid grid-cols-2 gap-3">
-                      {budgeted.map(({ category, total: t }) => {
-                        const limit = sharedBudgets[category]
-                        const st = budgetStatus(t, limit)
-                        const m = categoryMeta(category)
-                        const color = st.status === 'over' ? '#d24a3c' : st.status === 'warn' ? '#b06a12' : m.color
-                        return (
-                          <div key={category} className="rounded-2xl bg-slate-50 p-4 text-center">
-                            <div className="flex justify-center">
-                              <Ring ratio={st.ratio} color={color} size={84} stroke={8}>
-                                <span className="text-2xl">{m.emoji}</span>
-                              </Ring>
-                            </div>
-                            <p className="mt-3 text-sm font-semibold leading-tight">{category}</p>
-                            <p className="tnum mt-1 text-base">
-                              <span className={st.status === 'over' ? 'font-bold text-spend' : 'font-bold text-ink'}>{money(t)}</span>
-                              <span className="text-muted"> / {money(limit)}</span>
-                            </p>
-                            <p className={`tnum mt-0.5 text-sm ${st.status === 'over' ? 'font-medium text-spend' : 'text-muted'}`}>
-                              {st.status === 'over' ? `${money(t - limit)} over` : `${money(limit - t)} left`}
-                            </p>
-                          </div>
-                        )
-                      })}
+                {/* Everything past the category list is detail, same split
+                    Analytics uses — the donut and list already answer
+                    "where did it go"; this is one tap away instead of two
+                    more cards permanently in the way. */}
+                <details>
+                  <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 py-1 text-sm font-semibold text-brand-600 marker:content-none">
+                    More detail
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform [details[open]_&]:rotate-180" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <div className="card">
+                      <h2 className="label">Shared budgets</h2>
+                      {budgeted.length === 0 ? (
+                        <p className="mt-2 text-sm text-muted">No limits set for shared spending yet.</p>
+                      ) : (
+                        <div className="mt-3 grid grid-cols-2 gap-3">
+                          {budgeted.map(({ category, total: t }) => {
+                            const limit = sharedBudgets[category]
+                            const st = budgetStatus(t, limit)
+                            const m = categoryMeta(category)
+                            const color = st.status === 'over' ? '#d24a3c' : st.status === 'warn' ? '#b06a12' : m.color
+                            return (
+                              <div key={category} className="rounded-2xl bg-slate-50 p-4 text-center">
+                                <div className="flex justify-center">
+                                  <Ring ratio={st.ratio} color={color} size={84} stroke={8}>
+                                    <span className="text-2xl">{m.emoji}</span>
+                                  </Ring>
+                                </div>
+                                <p className="mt-3 text-sm font-semibold leading-tight">{category}</p>
+                                <p className="tnum mt-1 text-base">
+                                  <span className={st.status === 'over' ? 'font-bold text-spend' : 'font-bold text-ink'}>{money(t)}</span>
+                                  <span className="text-muted"> / {money(limit)}</span>
+                                </p>
+                                <p className={`tnum mt-0.5 text-sm ${st.status === 'over' ? 'font-medium text-spend' : 'text-muted'}`}>
+                                  {st.status === 'over' ? `${money(t - limit)} over` : `${money(limit - t)} left`}
+                                </p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                      <BudgetEditor
+                        cats={cats}
+                        budgetMap={sharedBudgets}
+                        scope="shared"
+                        onSet={(category, limit) => setBudget(category, limit, 'shared')}
+                      />
                     </div>
-                  </div>
-                )}
 
-                <CoachInsights thisMonth={shared} lastMonth={prevShared} budgets={sharedBudgetRows} summary={totals} />
+                    <CoachInsights thisMonth={shared} lastMonth={prevShared} budgets={sharedBudgetRows} summary={totals} history={sharedHistory} />
+                  </div>
+                </details>
               </>
             )}
           </motion.div>
@@ -399,7 +426,7 @@ export default function Couple() {
       />
       {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
 
-      <Sheet open={!!openType} onClose={() => setOpenType(null)}>
+      <Sheet open={!!openType} onClose={() => setOpenType(null)} className="!max-h-[55vh]">
         {openType && (
           <div className="space-y-3">
             <div className="flex items-baseline justify-between">
@@ -453,7 +480,7 @@ export default function Couple() {
         )}
       </Sheet>
 
-      <Sheet open={!!analysisCat} onClose={() => setAnalysisCat(null)}>
+      <Sheet open={!!analysisCat} onClose={() => setAnalysisCat(null)} className="!max-h-[55vh]">
         {analysisCat && (() => {
           const m = categoryMeta(analysisCat)
           const t = cats.find((c) => c.category === analysisCat)?.total ?? 0

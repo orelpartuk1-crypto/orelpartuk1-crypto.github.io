@@ -14,13 +14,18 @@ export function useSettlements() {
   const load = useCallback(async () => {
     if (!household?.id) return
     setLoading(true)
-    const { data } = await supabase
-      .from('settlements')
-      .select('*')
-      .eq('household_id', household.id)
-      .order('settled_at', { ascending: false })
-    setRows(data || [])
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('settlements')
+        .select('*')
+        .eq('household_id', household.id)
+        .order('settled_at', { ascending: false })
+      setRows(data || [])
+    } catch (e) {
+      console.error('useSettlements load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [household?.id])
 
   useEffect(() => { load() }, [load])

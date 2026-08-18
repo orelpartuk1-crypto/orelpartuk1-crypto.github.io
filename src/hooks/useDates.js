@@ -28,16 +28,21 @@ export function useDates() {
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const { data } = await supabase
-      .from('important_dates')
-      .select('*')
-      .eq('owner', user.id)
-    // sort by next occurrence ascending
-    const withNext = (data || [])
-      .map((d) => ({ ...d, _next: nextOccurrence(d.on_date, d.recurring) }))
-      .sort((a, b) => a._next - b._next)
-    setDates(withNext)
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('important_dates')
+        .select('*')
+        .eq('owner', user.id)
+      // sort by next occurrence ascending
+      const withNext = (data || [])
+        .map((d) => ({ ...d, _next: nextOccurrence(d.on_date, d.recurring) }))
+        .sort((a, b) => a._next - b._next)
+      setDates(withNext)
+    } catch (e) {
+      console.error('useDates load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [user?.id])
 
   useEffect(() => {

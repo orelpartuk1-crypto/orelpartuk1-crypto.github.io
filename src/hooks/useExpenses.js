@@ -14,22 +14,27 @@ export function useExpenses(base = new Date()) {
   const load = useCallback(async () => {
     if (!household?.id) return
     setLoading(true)
-    const { start, end } = monthRange(base)
-    const [{ data: exp, error: e1 }, { data: bud, error: e2 }] = await Promise.all([
-      supabase
-        .from('expenses')
-        .select('*')
-        .eq('household_id', household.id)
-        .gte('spent_at', start)
-        .lte('spent_at', end)
-        .order('spent_at', { ascending: false })
-        .order('created_at', { ascending: false }),
-      supabase.from('category_budgets').select('*').eq('household_id', household.id),
-    ])
-    setExpenses(exp || [])
-    setBudgets(bud || [])
-    setError(e1 || e2 || null)
-    setLoading(false)
+    try {
+      const { start, end } = monthRange(base)
+      const [{ data: exp, error: e1 }, { data: bud, error: e2 }] = await Promise.all([
+        supabase
+          .from('expenses')
+          .select('*')
+          .eq('household_id', household.id)
+          .gte('spent_at', start)
+          .lte('spent_at', end)
+          .order('spent_at', { ascending: false })
+          .order('created_at', { ascending: false }),
+        supabase.from('category_budgets').select('*').eq('household_id', household.id),
+      ])
+      setExpenses(exp || [])
+      setBudgets(bud || [])
+      setError(e1 || e2 || null)
+    } catch (e) {
+      setError(e)
+    } finally {
+      setLoading(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [household?.id, base.getFullYear(), base.getMonth()])
 

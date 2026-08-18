@@ -16,14 +16,19 @@ export function useCategories() {
   const load = useCallback(async () => {
     if (!household?.id) return
     setLoading(true)
-    const { data } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('household_id', household.id)
-      .order('sort_order')
-      .order('name')
-    setRows(data || [])
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('household_id', household.id)
+        .order('sort_order')
+        .order('name')
+      setRows(data || [])
+    } catch (e) {
+      console.error('useCategories load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [household?.id])
 
   useEffect(() => { load() }, [load])

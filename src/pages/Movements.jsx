@@ -36,7 +36,6 @@ export default function Movements() {
 
   const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
   const accountName = (id) => accounts.find((a) => a.id === id)?.name || null
-  const others = members.filter((m) => m.id !== user?.id)
 
   const rows = useMemo(() => {
     const scoped = scopeLocked ? expenses.filter((e) => e.scope === 'shared') : expenses
@@ -128,9 +127,12 @@ export default function Movements() {
           </div>
         )}
 
+        {/* Just Both/You, not a third option named after your partner — seeing
+            your own entries is useful; filtering to only theirs, on their own
+            device where "You" already means them, wasn't. */}
         {members.length > 1 && (
           <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
-            {[{ k: 'all', l: 'Both' }, { k: user?.id, l: 'You' }, ...others.map((m) => ({ k: m.id, l: m.display_name }))].map((o) => (
+            {[{ k: 'all', l: 'Both' }, { k: user?.id, l: 'You' }].map((o) => (
               <button
                 key={o.k}
                 onClick={() => setWho(o.k)}

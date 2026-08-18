@@ -12,23 +12,28 @@ export function useSavings() {
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const { data: g } = await supabase
-      .from('savings_goals')
-      .select('*')
-      .order('created_at', { ascending: true })
-    const goalIds = (g || []).map((x) => x.id)
-    let c = []
-    if (goalIds.length) {
-      const { data } = await supabase
-        .from('savings_contributions')
+    try {
+      const { data: g } = await supabase
+        .from('savings_goals')
         .select('*')
-        .in('goal_id', goalIds)
-        .order('created_at', { ascending: false })
-      c = data || []
+        .order('created_at', { ascending: true })
+      const goalIds = (g || []).map((x) => x.id)
+      let c = []
+      if (goalIds.length) {
+        const { data } = await supabase
+          .from('savings_contributions')
+          .select('*')
+          .in('goal_id', goalIds)
+          .order('created_at', { ascending: false })
+        c = data || []
+      }
+      setGoals(g || [])
+      setContribs(c)
+    } catch (e) {
+      console.error('useSavings load failed', e)
+    } finally {
+      setLoading(false)
     }
-    setGoals(g || [])
-    setContribs(c)
-    setLoading(false)
   }, [user?.id])
 
   useEffect(() => {

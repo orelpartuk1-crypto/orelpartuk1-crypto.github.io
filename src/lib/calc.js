@@ -184,7 +184,10 @@ export function insights({ thisMonth, lastMonth, budgets = [], summary }) {
     if (treatPct >= 40) out.push({ tone: 'warn', text: `Treats are ${treatPct}% of spending — a good place to trim to save more.` })
     else if (summary.count >= 5 && treatPct <= 15) out.push({ tone: 'good', text: `Nice discipline — treats are only ${treatPct}% of spending.` })
   }
-  const top = byCategory(thisMonth)[0]
-  if (top && top.total > 0) out.push({ tone: 'info', text: `Biggest category: ${top.category} (€${top.total.toFixed(0)}).` })
+  // "Biggest category" used to be pushed here unconditionally — on a quiet
+  // month with nothing actually up, over, or treat-heavy, that was the ONLY
+  // thing "worth knowing" ever said, and it's not really coaching, just a
+  // restatement of the donut two inches above it. A month with nothing
+  // notable to flag says nothing, rather than filling the space anyway.
   return out.slice(0, 5)
 }

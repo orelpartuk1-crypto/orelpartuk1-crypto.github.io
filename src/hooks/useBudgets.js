@@ -14,10 +14,15 @@ export function useBudgets() {
   const load = useCallback(async () => {
     if (!household?.id) return
     setLoading(true)
-    // RLS returns shared rows plus only your own personal ones.
-    const { data } = await supabase.from('category_budgets').select('*').eq('household_id', household.id)
-    setRows(data || [])
-    setLoading(false)
+    try {
+      // RLS returns shared rows plus only your own personal ones.
+      const { data } = await supabase.from('category_budgets').select('*').eq('household_id', household.id)
+      setRows(data || [])
+    } catch (e) {
+      console.error('useBudgets load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [household?.id])
 
   useEffect(() => { load() }, [load])

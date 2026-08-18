@@ -12,13 +12,18 @@ export function useRecurring() {
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const { data } = await supabase
-      .from('recurring')
-      .select('*')
-      .eq('owner', user.id)
-      .order('created_at', { ascending: true })
-    setItems(data || [])
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('recurring')
+        .select('*')
+        .eq('owner', user.id)
+        .order('created_at', { ascending: true })
+      setItems(data || [])
+    } catch (e) {
+      console.error('useRecurring load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [user?.id])
 
   useEffect(() => {

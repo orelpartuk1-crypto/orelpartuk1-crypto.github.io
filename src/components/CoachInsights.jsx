@@ -1,12 +1,21 @@
 import { insights } from '../lib/calc'
+import { trendInsights } from '../lib/coach'
 
 const TONE_ICON = { good: '✅', warn: '⚠️', bad: '🔴', info: '💡' }
 
 // What used to be a whole separate "Money coach" page, boiled down to the
 // two things actually worth a glance this month. No page to leave for it —
 // this sits right where "our analysis" or "your analysis" already are.
-export default function CoachInsights({ thisMonth, lastMonth, budgets = [], summary }) {
-  const top = insights({ thisMonth, lastMonth, budgets, summary }).slice(0, 2)
+//
+// `history` (optional): the same category, several completed months back —
+// lets a real streak ("Restaurants has climbed 3 months running") outrank
+// this-month-vs-last-month, which is all `insights()` alone can see.
+export default function CoachInsights({ thisMonth, lastMonth, budgets = [], summary, history }) {
+  const monthly = insights({ thisMonth, lastMonth, budgets, summary })
+  const trend = history?.length ? trendInsights({ history }) : []
+  // A genuine multi-month streak is worth more than a one-month comparison —
+  // shown first, then whatever else this month itself has to say.
+  const top = [...trend.map((i) => ({ tone: i.tone, text: i.text })), ...monthly].slice(0, 2)
   if (top.length === 0) return null
 
   return (

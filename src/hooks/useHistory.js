@@ -20,14 +20,19 @@ export function useHistory(months = 6) {
     const start = isoDay(new Date(now.getFullYear(), now.getMonth() - (months - 1), 1))
 
     ;(async () => {
-      const { data } = await supabase
-        .from('expenses')
-        .select('amount, category, spend_type, scope, paid_by, spent_at')
-        .eq('household_id', household.id)
-        .gte('spent_at', start)
-      if (!alive) return
-      setRows(data || [])
-      setLoading(false)
+      try {
+        const { data } = await supabase
+          .from('expenses')
+          .select('amount, category, spend_type, scope, paid_by, spent_at')
+          .eq('household_id', household.id)
+          .gte('spent_at', start)
+        if (!alive) return
+        setRows(data || [])
+      } catch (e) {
+        console.error('useHistory load failed', e)
+      } finally {
+        if (alive) setLoading(false)
+      }
     })()
 
     return () => {

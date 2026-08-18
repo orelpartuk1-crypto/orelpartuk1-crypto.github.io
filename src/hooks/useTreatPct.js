@@ -12,11 +12,14 @@ export function useTreatPct(base = new Date()) {
   useEffect(() => {
     if (!household?.id) return
     const start = monthRange(base).start
-    supabase.rpc('treat_income_pct', { p_month: start }).then(({ data }) => {
-      const map = {}
-      for (const r of data || []) map[r.member_id] = Number(r.pct) || 0
-      setPct(map)
-    })
+    supabase
+      .rpc('treat_income_pct', { p_month: start })
+      .then(({ data }) => {
+        const map = {}
+        for (const r of data || []) map[r.member_id] = Number(r.pct) || 0
+        setPct(map)
+      })
+      .catch((e) => console.error('useTreatPct load failed', e))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [household?.id, base.getFullYear(), base.getMonth()])
 

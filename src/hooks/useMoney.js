@@ -15,16 +15,21 @@ export function useMoney(base = new Date()) {
   const load = useCallback(async () => {
     if (!household?.id) return
     setLoading(true)
-    const { start } = monthRange(base)
-    const monthStart = start // first day of the month, YYYY-MM-01
-    const { data: b } = await supabase
-      .from('incomes')
-      .select('*')
-      .eq('household_id', household.id)
-      .eq('month', monthStart)
-      .order('created_at', { ascending: false })
-    setBonuses(b || [])
-    setLoading(false)
+    try {
+      const { start } = monthRange(base)
+      const monthStart = start // first day of the month, YYYY-MM-01
+      const { data: b } = await supabase
+        .from('incomes')
+        .select('*')
+        .eq('household_id', household.id)
+        .eq('month', monthStart)
+        .order('created_at', { ascending: false })
+      setBonuses(b || [])
+    } catch (e) {
+      console.error('useMoney load failed', e)
+    } finally {
+      setLoading(false)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [household?.id, base.getFullYear(), base.getMonth()])
 

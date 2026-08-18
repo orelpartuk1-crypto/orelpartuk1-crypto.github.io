@@ -15,14 +15,19 @@ export function useHoldings() {
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const { data } = await supabase
-      .from('holdings')
-      .select('*')
-      .eq('owner', user.id)
-      .order('sort_order')
-      .order('created_at')
-    setRows(data || [])
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('holdings')
+        .select('*')
+        .eq('owner', user.id)
+        .order('sort_order')
+        .order('created_at')
+      setRows(data || [])
+    } catch (e) {
+      console.error('useHoldings load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [user?.id])
 
   useEffect(() => { load() }, [load])

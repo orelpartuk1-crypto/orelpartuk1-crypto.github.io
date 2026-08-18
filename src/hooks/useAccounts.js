@@ -15,13 +15,18 @@ export function useAccounts() {
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const [{ data: accs }, { data: bals }] = await Promise.all([
-      supabase.from('accounts').select('*').eq('owner', user.id).order('sort_order').order('created_at'),
-      supabase.rpc('account_balances'),
-    ])
-    setAccounts(accs || [])
-    setBalances(Object.fromEntries((bals || []).map((b) => [b.account_id, Number(b.balance)])))
-    setLoading(false)
+    try {
+      const [{ data: accs }, { data: bals }] = await Promise.all([
+        supabase.from('accounts').select('*').eq('owner', user.id).order('sort_order').order('created_at'),
+        supabase.rpc('account_balances'),
+      ])
+      setAccounts(accs || [])
+      setBalances(Object.fromEntries((bals || []).map((b) => [b.account_id, Number(b.balance)])))
+    } catch (e) {
+      console.error('useAccounts load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [user?.id])
 
   useEffect(() => { load() }, [load])

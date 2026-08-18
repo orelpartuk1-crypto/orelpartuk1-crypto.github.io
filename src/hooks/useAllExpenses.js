@@ -24,17 +24,22 @@ export function useAllExpenses() {
   const load = useCallback(async () => {
     if (!hid) return
     if (!cache.has(hid)) setLoading(true)
-    const { data } = await supabase
-      .from('expenses')
-      .select('*')
-      .eq('household_id', hid)
-      .order('spent_at', { ascending: false })
-      .order('created_at', { ascending: false })
-    const rows = data || []
-    cache.set(hid, rows)
-    if (!alive.current) return
-    setExpenses(rows)
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('household_id', hid)
+        .order('spent_at', { ascending: false })
+        .order('created_at', { ascending: false })
+      const rows = data || []
+      cache.set(hid, rows)
+      if (!alive.current) return
+      setExpenses(rows)
+    } catch (e) {
+      console.error('useAllExpenses load failed', e)
+    } finally {
+      if (alive.current) setLoading(false)
+    }
   }, [hid])
 
   // Show whatever we already have for this household the moment it changes,

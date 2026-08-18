@@ -15,13 +15,18 @@ export function useNetWorthHistory() {
   const load = useCallback(async () => {
     if (!user?.id) return
     setLoading(true)
-    const { data } = await supabase
-      .from('net_worth_snapshots')
-      .select('*')
-      .eq('owner', user.id)
-      .order('snapshot_date', { ascending: true })
-    setRows(data || [])
-    setLoading(false)
+    try {
+      const { data } = await supabase
+        .from('net_worth_snapshots')
+        .select('*')
+        .eq('owner', user.id)
+        .order('snapshot_date', { ascending: true })
+      setRows(data || [])
+    } catch (e) {
+      console.error('useNetWorthHistory load failed', e)
+    } finally {
+      setLoading(false)
+    }
   }, [user?.id])
 
   useEffect(() => { load() }, [load])

@@ -20,6 +20,7 @@ import GroceryItemList from '../components/GroceryItemList'
 import CoachInsights from '../components/CoachInsights'
 import ReceiptViewer from '../components/ReceiptViewer'
 import SkeletonRows from '../components/SkeletonRows'
+import BudgetEditor from '../components/BudgetEditor'
 import { Screen, Item, Stagger, Tap, Counter, Sheet } from '../components/motion'
 
 const isThisMonth = (d) => {
@@ -51,7 +52,14 @@ export default function Analytics() {
   // personal or business territory.
   const [params] = useSearchParams()
   const locked = params.get('lock') === '1'
-  const [zone, setZone] = useState(() => params.get('zone') || localStorage.getItem('db_zone') || 'together')
+  // Shared isn't one of the tabs you can switch to here any more — Together
+  // already owns that view with its own Analysis tab, and having the same
+  // "shared" picture reachable two ways just meant fixing one and forgetting
+  // the other. Landing here fresh (no saved zone yet, or a zone from before
+  // this changed) goes to Mine instead. The locked drill-down Together links
+  // out to for Needs/Treats is unaffected — it always passes `zone=together`
+  // explicitly and hides this switcher entirely.
+  const [zone, setZone] = useState(() => params.get('zone') || localStorage.getItem('db_zone') || 'mine')
   const persistZone = (z) => {
     setZone(z)
     localStorage.setItem('db_zone', z)
@@ -61,7 +69,7 @@ export default function Analytics() {
     if (z !== 'mine' && z !== 'business') setDirection('out')
     setOpenCat(null)
   }
-  const activeZone = zone === 'business' && !hasBusiness ? 'together' : zone
+  const activeZone = !locked && (zone === 'together' || (zone === 'business' && !hasBusiness)) ? 'mine' : zone
 
   // A "need" or "treat" slice, requested by the Together screen — a whole
   // separate view built out of the same data rather than a fourth screen.
@@ -133,17 +141,21 @@ export default function Analytics() {
     [budgetMap]
   )
 
-  const trend = useMemo(() => {
-    const slice = history.filter((e) => {
-      if (activeZone === 'together') return e.scope === 'shared'
-      if (activeZone === 'mine') return e.scope === 'private' && e.paid_by === user?.id
-      return e.scope === 'business' && e.paid_by === user?.id
-    })
-    return monthlyTotals(slice, { months: 6 })
-  }, [history, activeZone, user?.id])
+  // Raw rows for the zone, several months back — the trend chart aggregates
+  // these into monthly bars; CoachInsights uses the same slice, unaggregated,
+  // to spot a genuine multi-month streak rather than just this-vs-last.
+  const zoneHistory = useMemo(
+    () =>
+      history.filter((e) => {
+        if (activeZone === 'together') return e.scope === 'shared'
+        if (activeZone === 'mine') return e.scope === 'private' && e.paid_by === user?.id
+        return e.scope === 'business' && e.paid_by === user?.id
+      }),
+    [history, activeZone, user?.id]
+  )
+  const trend = useMemo(() => monthlyTotals(zoneHistory, { months: 6 }), [zoneHistory])
 
   const zones = [
-    { key: 'together', label: '👫 Shared' },
     { key: 'mine', label: '🔒 Mine' },
     ...(hasBusiness ? [{ key: 'business', label: '💼 Business' }] : []),
   ]
@@ -215,7 +227,7 @@ export default function Analytics() {
               <div className="my-4 flex justify-center">
                 <Donut
                   size={190}
-                  stroke={24}
+                  stroke={32}
                   data={cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
                   total={total}
                   selected={openCat}
@@ -276,6 +288,17 @@ export default function Analytics() {
           )}
         </Item>
 
+        {/* Everything below the donut is detail, not the headline — the
+            donut and its category list already answer "where did it go".
+            Needs/treats, budgets, coaching, recurring and the trend used to
+            all sit expanded on the page at once, which meant scrolling past
+            four more cards to see any one of them. One tap away instead. */}
+        <details>
+          <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 py-1 text-sm font-semibold text-brand-600 marker:content-none">
+            More detail
+            <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform [details[open]_&]:rotate-180" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          </summary>
+          <div className="mt-4 space-y-4">
         {/* Needs vs treats — only meaningful for spending, and redundant once
             this view is already narrowed to one of the two */}
         {!showingIncome && !filterType && activeZone !== 'business' && totals.total > 0 && (
@@ -347,7 +370,7 @@ export default function Analytics() {
             split above, skipped inside an already-narrowed needs/treats slice
             where "what's worth knowing" is just repeating the filter. */}
         {!filterType && !showingIncome && (
-          <CoachInsights thisMonth={expenses} lastMonth={prevExpenses} budgets={budgetRows} summary={totals} />
+          <CoachInsights thisMonth={expenses} lastMonth={prevExpenses} budgets={budgetRows} summary={totals} history={zoneHistory} />
         )}
 
         {/* What repeats every month, in whichever direction is being shown */}
@@ -420,6 +443,8 @@ export default function Analytics() {
             <TrendChart data={trend} />
           </Item>
         )}
+          </div>
+        </details>
       </Screen>
 
       {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
@@ -466,76 +491,6 @@ export default function Analytics() {
           )
         })()}
       </Sheet>
-    </div>
-  )
-}
-
-// Used to grow inline into the card, pushing everything below it down the
-// screen the moment you tapped it. A plain + that opens a sheet — every
-// category paid for this month, not just the ones already capped — keeps
-// the card itself the same size whether you're setting a limit or not.
-function BudgetEditor({ cats, budgetMap, scope, onSet }) {
-  const [open, setOpen] = useState(false)
-  const options = useMemo(() => {
-    const seen = new Set(cats.map((c) => c.category))
-    return [...seen, ...Object.keys(budgetMap).filter((k) => !seen.has(k))]
-  }, [cats, budgetMap])
-
-  return (
-    <>
-      <Tap
-        onClick={() => setOpen(true)}
-        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-slate-50 py-2.5 text-sm font-semibold text-brand-600"
-      >
-        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-        Set {scope === 'shared' ? 'shared' : 'personal'} limits
-      </Tap>
-      <Sheet open={open} onClose={() => setOpen(false)}>
-        <div className="space-y-3">
-          <h2 className="text-xl font-bold">{scope === 'shared' ? 'Shared' : 'Personal'} limits</h2>
-          {options.length === 0 ? (
-            <p className="py-8 text-center text-muted">Log something first, then you can cap it.</p>
-          ) : (
-            <>
-              <p className="text-sm text-muted">Every category paid for this month — cap what matters, leave the rest at 0.</p>
-              <div className="space-y-1">
-                {options.map((category) => (
-                  <LimitRow key={category} category={category} value={budgetMap[category] || 0} onSet={onSet} />
-                ))}
-              </div>
-            </>
-          )}
-          <button className="btn-primary w-full" onClick={() => setOpen(false)}>Done</button>
-        </div>
-      </Sheet>
-    </>
-  )
-}
-
-function LimitRow({ category, value, onSet }) {
-  const [v, setV] = useState(value ? String(value) : '')
-  const m = categoryMeta(category)
-
-  const commit = () => {
-    const n = parseFloat((v || '0').replace(',', '.')) || 0
-    if (n !== value) onSet(category, n)
-  }
-
-  return (
-    <div className="flex items-center gap-3 py-1.5">
-      <span className="text-lg">{m.emoji}</span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{category}</span>
-      <div className="flex items-center gap-1 rounded-xl bg-slate-50 px-3 py-1.5">
-        <span className="text-muted">€</span>
-        <input
-          className="tnum w-16 bg-transparent text-right font-semibold outline-none"
-          inputMode="decimal"
-          value={v}
-          onChange={(e) => setV(e.target.value.replace(/[^0-9.,]/g, ''))}
-          onBlur={commit}
-          placeholder="0"
-        />
-      </div>
     </div>
   )
 }
