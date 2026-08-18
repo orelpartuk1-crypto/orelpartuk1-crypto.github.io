@@ -149,17 +149,8 @@ export function Meter({ id, ratio, ready = true, className = '', barClassName = 
 
 // A bottom sheet you can actually throw away with your thumb. Dragging down
 // past a threshold — or flicking, regardless of distance — dismisses it.
-//
-// `expandable` + `expandedClassName`: opens at `className`'s height (meant
-// to be a partial one, e.g. half the screen) with a tap-to-grow control next
-// to the handle that switches to `expandedClassName` (typically near-full).
-// Resets to collapsed each time the sheet reopens.
-export function Sheet({ open, onClose, children, className = '', expandable = false, expandedClassName = '' }) {
+export function Sheet({ open, onClose, children, className = '' }) {
   const reduced = useReducedMotion()
-  const [expanded, setExpanded] = useState(false)
-  useEffect(() => {
-    if (!open) setExpanded(false)
-  }, [open])
   // The drag gesture used to live on the same element that scrolls its own
   // content (Savings, Tax — anything taller than the sheet). Framer can't
   // tell "the thumb is scrolling the list" from "the thumb is dragging the
@@ -197,7 +188,7 @@ export function Sheet({ open, onClose, children, className = '', expandable = fa
         onClick={onClose}
       >
         <motion.div
-          className={`max-h-[90vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-4 pb-10 ${expandable && expanded ? expandedClassName : className}`}
+          className={`max-h-[90vh] w-full overflow-y-auto rounded-t-3xl bg-surface p-4 pb-10 ${className}`}
           initial={reduced ? { opacity: 0 } : { y: '100%' }}
           animate={reduced ? { opacity: 1 } : { y: 0 }}
           exit={reduced ? { opacity: 0 } : { y: '100%' }}
@@ -212,21 +203,10 @@ export function Sheet({ open, onClose, children, className = '', expandable = fa
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="relative mb-3 flex items-center justify-center">
-            <div
-              className="h-1.5 w-10 shrink-0 touch-none rounded-full bg-slate-300"
-              onPointerDown={(e) => !reduced && controls.start(e)}
-            />
-            {expandable && (
-              <button
-                onClick={() => setExpanded((e) => !e)}
-                aria-label={expanded ? 'Shrink' : 'Expand to full screen'}
-                className="absolute right-0 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-muted active:scale-90"
-              >
-                <svg viewBox="0 0 24 24" className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-              </button>
-            )}
-          </div>
+          <div
+            className="mx-auto mb-3 h-1.5 w-10 shrink-0 touch-none rounded-full bg-slate-300"
+            onPointerDown={(e) => !reduced && controls.start(e)}
+          />
           <div className="mx-auto max-w-md">{children}</div>
         </motion.div>
       </motion.div>

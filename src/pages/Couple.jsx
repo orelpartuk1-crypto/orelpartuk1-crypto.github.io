@@ -8,7 +8,7 @@ import { useAccounts } from '../hooks/useAccounts'
 import { useBudgets } from '../hooks/useBudgets'
 import { useHistory } from '../hooks/useHistory'
 import { summarize, settlement, onlySpending, byCategory, vsLastMonth, budgetStatus } from '../lib/calc'
-import { categoryMeta, shadeForRank } from '../lib/categories'
+import { categoryMeta } from '../lib/categories'
 import { money, monthLabel, dayLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
 import Donut from '../components/Donut'
@@ -304,34 +304,33 @@ export default function Couple() {
               </>
             ) : (
               <>
-                {/* Donut + category list — tap a category to open what's behind it.
-                    Same one-hue-ranked-by-size treatment as Analytics, total
-                    above the ring rather than inside it. */}
+                {/* Donut + category list — tap a category to open what's behind it */}
                 <div className="card">
                   {cats.length === 0 ? (
                     <p className="py-8 text-center text-muted">Nothing shared in {monthLabel(monthDate)} yet.</p>
                   ) : (
                     <>
-                      <p className="tnum mt-2 text-center text-4xl font-bold text-ink">
-                        {money(analysisCat ? (cats.find((c) => c.category === analysisCat)?.total ?? 0) : catsTotal)}
-                      </p>
-                      <p className="text-center text-xs text-muted">
-                        {analysisCat
-                          ? `${analysisCat} · ${catsTotal > 0 ? Math.round(((cats.find((c) => c.category === analysisCat)?.total ?? 0) / catsTotal) * 100) : 0}%`
-                          : 'total'}
-                      </p>
                       <div className="my-4 flex justify-center">
                         <Donut
                           size={190}
-                          stroke={32}
-                          data={cats.map((c, i) => ({ label: c.category, value: c.total, color: shadeForRank(i) }))}
+                          stroke={26}
+                          data={cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
                           total={catsTotal}
                           selected={analysisCat}
                           onSelect={(label) => setAnalysisCat(label)}
+                          center={
+                            <>
+                              <span className="text-xs text-muted">{analysisCat || 'total'}</span>
+                              <span className="tnum text-xl font-bold">
+                                {money(analysisCat ? (cats.find((c) => c.category === analysisCat)?.total ?? 0) : catsTotal)}
+                              </span>
+                            </>
+                          }
                         />
                       </div>
                       <div className="divide-y divide-slate-100">
-                        {cats.map(({ category, total: t }, i) => {
+                        {cats.map(({ category, total: t }) => {
+                          const m = categoryMeta(category)
                           const share = catsTotal > 0 ? Math.round((t / catsTotal) * 100) : 0
                           const p = pace[category]
                           return (
@@ -340,7 +339,7 @@ export default function Couple() {
                                 onClick={() => setAnalysisCat(category)}
                                 className="flex w-full items-center gap-2.5 text-left active:opacity-60"
                               >
-                                <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: shadeForRank(i) }} />
+                                <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: m.color }} />
                                 <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
                                 <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
                                 <span className="tnum shrink-0 font-semibold">{money(t)}</span>
@@ -362,7 +361,15 @@ export default function Couple() {
                 </div>
 
                 <div className="card">
-                  <h2 className="label">Shared budgets</h2>
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="label mb-0">Shared budgets</h2>
+                    <BudgetEditor
+                      cats={cats}
+                      budgetMap={sharedBudgets}
+                      scope="shared"
+                      onSet={(category, limit) => setBudget(category, limit, 'shared')}
+                    />
+                  </div>
                   {budgeted.length === 0 ? (
                     <p className="mt-2 text-sm text-muted">No limits set for shared spending yet.</p>
                   ) : (
@@ -392,12 +399,6 @@ export default function Couple() {
                       })}
                     </div>
                   )}
-                  <BudgetEditor
-                    cats={cats}
-                    budgetMap={sharedBudgets}
-                    scope="shared"
-                    onSet={(category, limit) => setBudget(category, limit, 'shared')}
-                  />
                 </div>
 
                 <CoachInsights thisMonth={shared} lastMonth={prevShared} budgets={sharedBudgetRows} summary={totals} history={sharedHistory} />

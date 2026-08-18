@@ -9,7 +9,7 @@ import { useHistory } from '../hooks/useHistory'
 import { useRecurring } from '../hooks/useRecurring'
 import { byCategory, summarize, budgetStatus, vsLastMonth, onlySpending } from '../lib/calc'
 import { monthlyTotals } from '../lib/coach'
-import { categoryMeta, shadeForRank } from '../lib/categories'
+import { categoryMeta } from '../lib/categories'
 import { money, monthLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
 import Donut from '../components/Donut'
@@ -199,12 +199,10 @@ export default function Analytics() {
           </div>
         )}
 
-        {/* Donut — one hue ranked by size instead of a color per category,
-            and the total lives here above the ring instead of inside it.
-            Matches the reference Orel pointed at: the ring itself is just
-            the shape of the split, nothing is reading two different colors
-            for "which slice" and "how big overall" at once. */}
+        {/* Donut */}
         <Item className="card">
+          {/* One hero number, not two — this used to repeat the same total
+              a second time in the donut's own center the moment it loaded. */}
           <div className="flex items-start justify-between">
             <p className="label mb-0">{showingIncome ? 'Income' : 'Expenses'} by {showingIncome ? 'source' : 'category'}</p>
             {(activeZone === 'mine' || activeZone === 'business') && (
@@ -226,35 +224,40 @@ export default function Analytics() {
 
           {cats.length > 0 && (
             <>
-              <p className={`tnum mt-2 text-center text-4xl font-bold ${!openCat && !showingIncome ? 'text-spend' : !openCat ? 'text-earn' : 'text-ink'}`}>
-                <Counter
-                  id="analytics-donut"
-                  ready={!loading}
-                  value={openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total}
-                  format={(n) => money(n)}
-                />
-              </p>
-              <p className="text-center text-xs text-muted">
-                {openCat
-                  ? `${openCat} · ${total > 0 ? Math.round(((cats.find((c) => c.category === openCat)?.total ?? 0) / total) * 100) : 0}%`
-                  : 'total'}
-              </p>
-
               <div className="my-4 flex justify-center">
                 <Donut
                   size={190}
-                  stroke={32}
-                  data={cats.map((c, i) => ({ label: c.category, value: c.total, color: shadeForRank(i) }))}
+                  stroke={26}
+                  data={cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
                   total={total}
                   selected={openCat}
                   onSelect={(label) => selectCategory(label)}
+                  center={
+                    <>
+                      <span className="text-xs text-muted">{openCat || 'total'}</span>
+                      <span className={`tnum text-2xl font-bold ${!openCat && !showingIncome ? 'text-spend' : !openCat ? 'text-earn' : ''}`}>
+                        <Counter
+                          id="analytics-donut"
+                          ready={!loading}
+                          value={openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total}
+                          format={(n) => money(n)}
+                        />
+                      </span>
+                      {openCat && total > 0 && (
+                        <span className="text-xs text-muted">
+                          {Math.round(((cats.find((c) => c.category === openCat)?.total ?? 0) / total) * 100)}%
+                        </span>
+                      )}
+                    </>
+                  }
                 />
               </div>
 
               {/* Tapping a category opens its own analysis below, rather than
                   narrowing this same list down to one row. */}
               <Stagger className="divide-y divide-slate-100">
-                {cats.map(({ category, total: t }, i) => {
+                {cats.map(({ category, total: t }) => {
+                  const m = categoryMeta(category)
                   const share = total > 0 ? Math.round((t / total) * 100) : 0
                   const p = pace[category]
                   return (
@@ -264,7 +267,7 @@ export default function Analytics() {
                         disabled={showingIncome}
                         className="flex w-full items-center gap-2.5 text-left disabled:active:scale-100"
                       >
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: shadeForRank(i) }} />
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: m.color }} />
                         <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
                         <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
                         <span className="tnum shrink-0 font-semibold">{money(t)}</span>
@@ -304,11 +307,19 @@ export default function Analytics() {
         {/* Budgets */}
         {budgetScope && !showingIncome && (
           <Item className="card">
-            <div className="flex items-baseline justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="label mb-0">{budgetScope === 'shared' ? 'Shared budgets' : 'Your budgets'}</h2>
-              <span className="text-xs text-muted">
-                {budgetScope === 'shared' ? 'Both of you see these' : 'Only you see these'}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted">
+                  {budgetScope === 'shared' ? 'Both of you see these' : 'Only you see these'}
+                </span>
+                <BudgetEditor
+                  cats={cats}
+                  budgetMap={budgetMap}
+                  scope={budgetScope}
+                  onSet={(category, limit) => setBudget(category, limit, budgetScope)}
+                />
+              </div>
             </div>
 
             {budgeted.length === 0 ? (
@@ -342,13 +353,6 @@ export default function Analytics() {
                 })}
               </div>
             )}
-
-            <BudgetEditor
-              cats={cats}
-              budgetMap={budgetMap}
-              scope={budgetScope}
-              onSet={(category, limit) => setBudget(category, limit, budgetScope)}
-            />
           </Item>
         )}
 

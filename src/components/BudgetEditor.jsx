@@ -6,9 +6,9 @@ import { Tap, Sheet } from './motion'
 // each carry their own copy of this, which is exactly how the sheet-height
 // fix landed on one and not the other. One version now, used by both.
 //
-// Opens as a sheet rather than growing inline into the card: it used to be
-// a toggle that expanded the whole category list in place, pushing
-// everything below it down the screen the moment you tapped it.
+// A plain + next to the card's own title, not a full-width button below the
+// ring cards — the trigger doesn't need to announce itself, it's obviously
+// "add a limit" sitting right where "Shared budgets" already is.
 export default function BudgetEditor({ cats, budgetMap, scope, onSet }) {
   const [open, setOpen] = useState(false)
   const options = useMemo(() => {
@@ -20,10 +20,10 @@ export default function BudgetEditor({ cats, budgetMap, scope, onSet }) {
     <>
       <Tap
         onClick={() => setOpen(true)}
-        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-slate-50 py-2.5 text-sm font-semibold text-brand-600"
+        aria-label={`Set ${scope === 'shared' ? 'shared' : 'personal'} limits`}
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-muted"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-        Set {scope === 'shared' ? 'shared' : 'personal'} limits
       </Tap>
       <Sheet open={open} onClose={() => setOpen(false)}>
         <div className="space-y-3">

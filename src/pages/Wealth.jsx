@@ -287,16 +287,13 @@ export default function Wealth() {
       <Sheet open={sheet === 'savings'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">
         {sheet === 'savings' && <Savings onClose={() => setSheet(null)} />}
       </Sheet>
-      {/* Opens at half height by default — Tax is the one of these three
-          that's genuinely a lot to take in at once — with the handle's own
-          expand control for the rare time the full breakdown is wanted. */}
-      <Sheet
-        open={sheet === 'tax'}
-        onClose={() => setSheet(null)}
-        expandable
-        className="!px-0 !max-h-[60vh]"
-        expandedClassName="!px-0 !max-h-[94vh]"
-      >
+      {/* No fixed height here on purpose — Tax's own hero + inputs card is
+          short enough to open at roughly half the screen on its own, and
+          growing it further (tapping "See the full breakdown" inside Tax
+          itself) just lets the sheet grow with it, up to the normal 90vh
+          cap every sheet has, with scroll past that. A second height toggle
+          here on top of that one was two controls for the same thing. */}
+      <Sheet open={sheet === 'tax'} onClose={() => setSheet(null)} className="!px-0">
         {sheet === 'tax' && <Tax onClose={() => setSheet(null)} />}
       </Sheet>
       <Sheet open={sheet === 'simulators'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">
