@@ -187,7 +187,7 @@ export default function Wealth() {
                     onClick={() => setSlice(on ? null : c.key)}
                     className={`flex w-full items-center gap-2.5 py-2.5 text-left transition ${slice && !on ? 'opacity-35' : ''}`}
                   >
-                    <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: c.color }} />
+                    <span className="h-3 w-3 shrink-0 rounded-[3px]" style={{ backgroundColor: c.color }} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{c.emoji} {c.label}</span>
                       <span className="block text-xs text-muted">{c.sub}</span>

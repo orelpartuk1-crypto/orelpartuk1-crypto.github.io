@@ -30,7 +30,7 @@ export default function Donut({ data, total, size = 150, stroke = 20, center, se
                   strokeWidth={isOn ? stroke + 6 : stroke}
                   strokeDasharray={`${len} ${c - len}`}
                   strokeDashoffset={-offset}
-                  strokeLinecap="butt"
+                  strokeLinecap="round"
                   opacity={dimmed ? 0.25 : 1}
                   style={{
                     cursor: interactive ? 'pointer' : undefined,
