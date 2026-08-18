@@ -12,6 +12,7 @@ import { useSettlements } from '../hooks/useSettlements'
 import { byCategory, settlement, myShareOfShared, summarize, onlySpending } from '../lib/calc'
 import { upcomingPayments, buildAlerts } from '../lib/upcoming'
 import { setPendingScan } from '../lib/pendingScan'
+import MerchantLogo from '../components/MerchantLogo'
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel, dayLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
@@ -277,9 +278,13 @@ export default function Home() {
               return (
                 <Item key={m.id}>
                   <button type="button" onClick={() => setMovement(m)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left transition-transform duration-100 active:scale-[0.98] active:bg-slate-100">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
-                      {meta.emoji}
-                    </span>
+                    {m.direction === 'in' || !m.label || m.label === m.category ? (
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: meta.color + '22' }}>
+                        {meta.emoji}
+                      </span>
+                    ) : (
+                      <MerchantLogo name={m.label} size={40} />
+                    )}
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{m.label}</span>
                       <span className="block text-xs text-muted">
