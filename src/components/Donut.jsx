@@ -17,6 +17,14 @@ export default function Donut({ data, total, size = 150, stroke = 20, center, se
           {total > 0 &&
             segments.map((d, i) => {
               const len = (d.value / total) * c
+              // A real cut between slices, not just a color change — round
+              // caps alone (no gap) overlap into whatever's next the moment
+              // there are more than two segments. Trimming each one short by
+              // a fixed gap, same on every slice regardless of size, and
+              // rounding only the cut ends is what actually reads as pieces
+              // of one ring rather than a single line changing color.
+              const gap = segments.length > 1 ? Math.min(stroke * 0.4, 6) : 0
+              const visibleLen = Math.max(0, len - gap)
               const isOn = selected === d.label
               const dimmed = selected != null && !isOn
               const seg = (
@@ -28,7 +36,7 @@ export default function Donut({ data, total, size = 150, stroke = 20, center, se
                   fill="none"
                   stroke={d.color}
                   strokeWidth={isOn ? stroke + 6 : stroke}
-                  strokeDasharray={`${len} ${c - len}`}
+                  strokeDasharray={`${visibleLen} ${c - visibleLen}`}
                   strokeDashoffset={-offset}
                   strokeLinecap="round"
                   opacity={dimmed ? 0.25 : 1}

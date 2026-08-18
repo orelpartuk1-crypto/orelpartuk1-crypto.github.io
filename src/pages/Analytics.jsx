@@ -55,9 +55,10 @@ export default function Analytics() {
   const persistZone = (z) => {
     setZone(z)
     localStorage.setItem('db_zone', z)
-    // The Out/In toggle only exists in the personal zone. Leaving it while
-    // showing income would strand you looking at income with no way back.
-    if (z !== 'mine') setDirection('out')
+    // The Out/In toggle only exists in Mine and Business. Leaving both for
+    // Together — which has no income concept — would strand you looking at
+    // income with no way back.
+    if (z !== 'mine' && z !== 'business') setDirection('out')
     setOpenCat(null)
   }
   const activeZone = zone === 'business' && !hasBusiness ? 'together' : zone
@@ -86,11 +87,19 @@ export default function Analytics() {
   const expenses = useMemo(() => onlySpending(sliceOf(all), notSpending), [all, activeZone, user?.id, notSpending, filterType])
   const prevExpenses = useMemo(() => onlySpending(sliceOf(prevAll), notSpending), [prevAll, activeZone, user?.id, notSpending, filterType])
 
-  // Income is personal by nature — there is no shared income — so the toggle
-  // only offers it where it means something.
+  // Income has no real "shared" concept, but it does split into personal vs
+  // business — there's no scope column on incomes, so a bonus_type of
+  // "Business…" (the presets logging income already offers: Business,
+  // Business – product, Business – service) is the signal. Mine gets
+  // everything that isn't tagged business; Business gets only what is.
   const myIncomeRows = useMemo(
-    () => bonuses.filter((b) => b.owner === user?.id),
-    [bonuses, user?.id]
+    () =>
+      bonuses.filter((b) => {
+        if (b.owner !== user?.id) return false
+        const isBusiness = (b.bonus_type || '').toLowerCase().startsWith('business')
+        return activeZone === 'business' ? isBusiness : !isBusiness
+      }),
+    [bonuses, user?.id, activeZone]
   )
   const showingIncome = direction === 'in'
 
@@ -184,7 +193,7 @@ export default function Analytics() {
               a second time in the donut's own center the moment it loaded. */}
           <div className="flex items-start justify-between">
             <p className="label mb-0">{showingIncome ? 'Income' : 'Expenses'} by {showingIncome ? 'source' : 'category'}</p>
-            {activeZone === 'mine' && (
+            {(activeZone === 'mine' || activeZone === 'business') && (
               <div className="flex rounded-full bg-black/[0.04] p-1 text-xs">
                 {[{ k: 'out', l: 'Out' }, { k: 'in', l: 'In' }].map((o) => (
                   <button key={o.k} onClick={() => { setDirection(o.k); setOpenCat(null) }}
@@ -345,9 +354,17 @@ export default function Analytics() {
         {(() => {
           const kind = showingIncome ? 'income' : 'expense'
           const rows = recurringItems.filter((r) => r.active && r.kind === kind)
-          // Recurring income is personal, so it isn't filtered by zone; expenses are.
           const wantScope = activeZone === 'together' ? 'shared' : activeZone === 'mine' ? 'private' : 'business'
-          let scoped = kind === 'expense' ? rows.filter((r) => r.scope === wantScope) : rows
+          // Recurring income has no scope column, same as one-off income —
+          // the source it was logged under ("Business", "Business – product"…)
+          // is the only signal, same heuristic as the donut above.
+          let scoped =
+            kind === 'expense'
+              ? rows.filter((r) => r.scope === wantScope)
+              : rows.filter((r) => {
+                  const isBusiness = (r.source || '').toLowerCase().startsWith('business')
+                  return activeZone === 'business' ? isBusiness : !isBusiness
+                })
           if (filterType && kind === 'expense') scoped = scoped.filter((r) => r.spend_type === filterType)
           const monthly = scoped.reduce((t, r) => t + Number(r.amount || 0), 0)
           return (
@@ -407,7 +424,11 @@ export default function Analytics() {
 
       {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}
 
-      <Sheet open={!!openCat && !showingIncome} onClose={() => setOpenCat(null)}>
+      {/* Capped around half the screen — a category with a long history
+          of purchases used to open as a nearly full-screen sheet, which
+          felt like leaving Analytics rather than glancing at one number's
+          detail. It still scrolls internally past that. */}
+      <Sheet open={!!openCat && !showingIncome} onClose={() => setOpenCat(null)} className="!max-h-[55vh]">
         {openCat && (() => {
           const m = categoryMeta(openCat)
           const t = cats.find((c) => c.category === openCat)?.total ?? 0
