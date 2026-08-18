@@ -87,7 +87,15 @@ export default function Savings({ onClose }) {
           </div>
         )}
 
-        {loading && <p className="text-muted">Loading…</p>}
+        {/* A goal-card-shaped placeholder, not a single line of text — the
+            sheet this opens in sizes itself to its content, so "Loading…"
+            snapping open to a stack of full goal cards a moment later read
+            as the whole sheet jumping, not as data arriving. */}
+        {loading && (
+          <div className="space-y-4">
+            <GoalCardSkeleton />
+          </div>
+        )}
         {!loading && goals.length === 0 && !showNew && (
           <div className="card py-10 text-center">
             <p className="text-4xl">🎯</p>
@@ -149,6 +157,21 @@ function timeLeftLabel(months) {
   const y = Math.floor(months / 12)
   const m = months % 12
   return `${y} yr${y > 1 ? 's' : ''}${m ? ` ${m} mo` : ''} left`
+}
+
+function GoalCardSkeleton() {
+  return (
+    <div className="card">
+      <div className="flex items-start gap-3">
+        <div className="h-[72px] w-[72px] shrink-0 animate-pulse rounded-full bg-slate-100" />
+        <div className="min-w-0 flex-1 space-y-2 pt-2">
+          <div className="h-4 w-2/5 animate-pulse rounded bg-slate-100" />
+          <div className="h-3 w-3/5 animate-pulse rounded bg-slate-100" />
+        </div>
+      </div>
+      <div className="mt-3 h-11 animate-pulse rounded-2xl bg-slate-100" />
+    </div>
+  )
 }
 
 function GoalCard({ goal, saved, onContribute, onDelete }) {

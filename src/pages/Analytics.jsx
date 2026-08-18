@@ -9,7 +9,7 @@ import { useHistory } from '../hooks/useHistory'
 import { useRecurring } from '../hooks/useRecurring'
 import { byCategory, summarize, budgetStatus, vsLastMonth, onlySpending } from '../lib/calc'
 import { monthlyTotals } from '../lib/coach'
-import { categoryMeta } from '../lib/categories'
+import { categoryMeta, shadeForRank } from '../lib/categories'
 import { money, monthLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
 import Donut from '../components/Donut'
@@ -191,27 +191,29 @@ export default function Analytics() {
         {!locked && (
           <div className="flex rounded-full bg-black/[0.04] p-1">
             {zones.map((z) => (
-              <button key={z.key} onClick={() => persistZone(z.key)}
-                className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${activeZone === z.key ? 'bg-white text-ink shadow-card' : 'text-muted'}`}>
+              <Tap key={z.key} onClick={() => persistZone(z.key)}
+                className={`flex-1 rounded-full py-2.5 text-sm font-semibold ${activeZone === z.key ? 'bg-white text-ink shadow-card' : 'text-muted'}`}>
                 {z.label}
-              </button>
+              </Tap>
             ))}
           </div>
         )}
 
-        {/* Donut */}
+        {/* Donut — one hue ranked by size instead of a color per category,
+            and the total lives here above the ring instead of inside it.
+            Matches the reference Orel pointed at: the ring itself is just
+            the shape of the split, nothing is reading two different colors
+            for "which slice" and "how big overall" at once. */}
         <Item className="card">
-          {/* One hero number, not two — this used to repeat the same total
-              a second time in the donut's own center the moment it loaded. */}
           <div className="flex items-start justify-between">
             <p className="label mb-0">{showingIncome ? 'Income' : 'Expenses'} by {showingIncome ? 'source' : 'category'}</p>
             {(activeZone === 'mine' || activeZone === 'business') && (
               <div className="flex rounded-full bg-black/[0.04] p-1 text-xs">
                 {[{ k: 'out', l: 'Out' }, { k: 'in', l: 'In' }].map((o) => (
-                  <button key={o.k} onClick={() => { setDirection(o.k); setOpenCat(null) }}
-                    className={`rounded-full px-3 py-1.5 font-semibold transition-all duration-200 ${direction === o.k ? `bg-white shadow-card ${o.k === 'in' ? 'text-earn' : 'text-spend'}` : 'text-muted'}`}>
+                  <Tap key={o.k} onClick={() => { setDirection(o.k); setOpenCat(null) }}
+                    className={`rounded-full px-3 py-1.5 font-semibold ${direction === o.k ? `bg-white shadow-card ${o.k === 'in' ? 'text-earn' : 'text-spend'}` : 'text-muted'}`}>
                     {o.l}
-                  </button>
+                  </Tap>
                 ))}
               </div>
             )}
@@ -224,40 +226,35 @@ export default function Analytics() {
 
           {cats.length > 0 && (
             <>
+              <p className={`tnum mt-2 text-center text-4xl font-bold ${!openCat && !showingIncome ? 'text-spend' : !openCat ? 'text-earn' : 'text-ink'}`}>
+                <Counter
+                  id="analytics-donut"
+                  ready={!loading}
+                  value={openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total}
+                  format={(n) => money(n)}
+                />
+              </p>
+              <p className="text-center text-xs text-muted">
+                {openCat
+                  ? `${openCat} · ${total > 0 ? Math.round(((cats.find((c) => c.category === openCat)?.total ?? 0) / total) * 100) : 0}%`
+                  : 'total'}
+              </p>
+
               <div className="my-4 flex justify-center">
                 <Donut
                   size={190}
                   stroke={32}
-                  data={cats.map((c) => ({ label: c.category, value: c.total, color: categoryMeta(c.category).color }))}
+                  data={cats.map((c, i) => ({ label: c.category, value: c.total, color: shadeForRank(i) }))}
                   total={total}
                   selected={openCat}
                   onSelect={(label) => selectCategory(label)}
-                  center={
-                    <>
-                      <span className="text-xs text-muted">{openCat || 'total'}</span>
-                      <span className={`tnum text-2xl font-bold ${!openCat && !showingIncome ? 'text-spend' : !openCat ? 'text-earn' : ''}`}>
-                        <Counter
-                          id="analytics-donut"
-                          ready={!loading}
-                          value={openCat ? (cats.find((c) => c.category === openCat)?.total ?? 0) : total}
-                          format={(n) => money(n)}
-                        />
-                      </span>
-                      {openCat && total > 0 && (
-                        <span className="text-xs text-muted">
-                          {Math.round(((cats.find((c) => c.category === openCat)?.total ?? 0) / total) * 100)}%
-                        </span>
-                      )}
-                    </>
-                  }
                 />
               </div>
 
               {/* Tapping a category opens its own analysis below, rather than
                   narrowing this same list down to one row. */}
               <Stagger className="divide-y divide-slate-100">
-                {cats.map(({ category, total: t }) => {
-                  const m = categoryMeta(category)
+                {cats.map(({ category, total: t }, i) => {
                   const share = total > 0 ? Math.round((t / total) * 100) : 0
                   const p = pace[category]
                   return (
@@ -267,7 +264,7 @@ export default function Analytics() {
                         disabled={showingIncome}
                         className="flex w-full items-center gap-2.5 text-left disabled:active:scale-100"
                       >
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: m.color }} />
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: shadeForRank(i) }} />
                         <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
                         <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
                         <span className="tnum shrink-0 font-semibold">{money(t)}</span>
@@ -288,17 +285,6 @@ export default function Analytics() {
           )}
         </Item>
 
-        {/* Everything below the donut is detail, not the headline — the
-            donut and its category list already answer "where did it go".
-            Needs/treats, budgets, coaching, recurring and the trend used to
-            all sit expanded on the page at once, which meant scrolling past
-            four more cards to see any one of them. One tap away instead. */}
-        <details>
-          <summary className="flex cursor-pointer list-none items-center justify-center gap-1.5 py-1 text-sm font-semibold text-brand-600 marker:content-none">
-            More detail
-            <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform [details[open]_&]:rotate-180" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
-          </summary>
-          <div className="mt-4 space-y-4">
         {/* Needs vs treats — only meaningful for spending, and redundant once
             this view is already narrowed to one of the two */}
         {!showingIncome && !filterType && activeZone !== 'business' && totals.total > 0 && (
@@ -443,8 +429,6 @@ export default function Analytics() {
             <TrendChart data={trend} />
           </Item>
         )}
-          </div>
-        </details>
       </Screen>
 
       {receipt && <ReceiptViewer expense={receipt} onClose={() => setReceipt(null)} />}

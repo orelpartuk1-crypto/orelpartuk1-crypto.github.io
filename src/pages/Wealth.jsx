@@ -287,7 +287,16 @@ export default function Wealth() {
       <Sheet open={sheet === 'savings'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">
         {sheet === 'savings' && <Savings onClose={() => setSheet(null)} />}
       </Sheet>
-      <Sheet open={sheet === 'tax'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">
+      {/* Opens at half height by default — Tax is the one of these three
+          that's genuinely a lot to take in at once — with the handle's own
+          expand control for the rare time the full breakdown is wanted. */}
+      <Sheet
+        open={sheet === 'tax'}
+        onClose={() => setSheet(null)}
+        expandable
+        className="!px-0 !max-h-[60vh]"
+        expandedClassName="!px-0 !max-h-[94vh]"
+      >
         {sheet === 'tax' && <Tax onClose={() => setSheet(null)} />}
       </Sheet>
       <Sheet open={sheet === 'simulators'} onClose={() => setSheet(null)} className="!px-0 !max-h-[94vh]">

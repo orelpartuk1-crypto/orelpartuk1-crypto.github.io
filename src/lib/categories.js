@@ -47,6 +47,22 @@ const ALL = [...CATEGORIES, ...BUSINESS_CATEGORIES]
 export const categoryMeta = (key) =>
   ALL.find((c) => c.key === key) || { key, emoji: '📦', color: '#64748b' }
 
+// One hue, ranked by size, rather than a color per category — this is what
+// the reference Orel pointed at actually does: the biggest slice is the
+// deepest green, the smallest fades toward the card's own background, and
+// the shape of the split is the whole story. Uses the same brand/mint scale
+// as every other themed color in the app, so it still re-tunes for dark
+// mode instead of being six more hardcoded hex values.
+const RANK_SHADES = [
+  'rgb(var(--c-brand-700))',
+  'rgb(var(--c-brand-500))',
+  'rgb(var(--c-brand-200))',
+  'rgb(var(--c-mint-300))',
+  'rgb(var(--c-mint-200))',
+  'rgb(var(--c-mint-100))',
+]
+export const shadeForRank = (i) => RANK_SHADES[Math.min(i, RANK_SHADES.length - 1)]
+
 // Sensible default of Need vs Treat per category (user can always override).
 const TREAT_CATEGORIES = new Set(['Nights Out', 'Restaurants', 'Experiences', 'Shopping', 'Travel', 'Coffee'])
 export const defaultSpendType = (category) =>

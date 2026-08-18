@@ -114,15 +114,15 @@ export default function Movements() {
               { k: 'out', l: 'Out' },
               { k: 'in', l: 'In' },
             ].map((o) => (
-              <button
+              <Tap
                 key={o.k}
                 onClick={() => setDir(o.k)}
-                className={`flex-1 rounded-full py-2.5 text-sm font-semibold transition-all duration-200 ${
+                className={`flex-1 rounded-full py-2.5 text-sm font-semibold ${
                   dir === o.k ? `bg-white shadow-card ${o.k === 'in' ? 'text-earn' : o.k === 'out' ? 'text-spend' : 'text-ink'}` : 'text-muted'
                 }`}
               >
                 {o.l}
-              </button>
+              </Tap>
             ))}
           </div>
         )}
@@ -133,15 +133,15 @@ export default function Movements() {
         {members.length > 1 && (
           <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
             {[{ k: 'all', l: 'Both' }, { k: user?.id, l: 'You' }].map((o) => (
-              <button
+              <Tap
                 key={o.k}
                 onClick={() => setWho(o.k)}
-                className={`flex-1 rounded-full py-2 text-sm font-semibold transition-all duration-200 ${
+                className={`flex-1 rounded-full py-2 text-sm font-semibold ${
                   who === o.k ? 'bg-white text-ink shadow-card' : 'text-muted'
                 }`}
               >
                 {o.l}
-              </button>
+              </Tap>
             ))}
           </div>
         )}
