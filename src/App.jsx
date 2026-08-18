@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { isSupabaseConfigured } from './lib/supabase'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import BottomNav from './components/BottomNav'
@@ -28,6 +29,18 @@ import Tax from './pages/Tax'
 import Dates from './pages/Dates'
 import Recurring from './pages/Recurring'
 import Automate from './pages/Automate'
+
+// The browser keeps the previous page's scroll position when the route
+// changes, so opening Add from halfway down Home dropped you into the middle
+// of the form with the amount field already off-screen above. Every screen
+// starts at its own top.
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
 
 function Splash({ text = 'Loading…' }) {
   return (
@@ -66,6 +79,7 @@ function Shell() {
 
   return (
     <>
+      <ScrollToTop />
       <main className="mx-auto min-h-full max-w-md">
         {/* A route-level slide sounded nice but stacked on top of every
             page's own entrance animation — exit, then enter, then that

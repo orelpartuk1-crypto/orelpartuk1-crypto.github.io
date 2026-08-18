@@ -80,8 +80,16 @@ const lastShown = new Map()
 export function Counter({ id, value, ready = true, format = (n) => n.toFixed(2), className = '', duration = 750 }) {
   const reduced = useReducedMotion()
   const remembered = id != null && lastShown.has(id) ? lastShown.get(id) : null
-  const [shown, setShown] = useState(remembered ?? value)
-  const from = useRef(remembered ?? value)
+  // Seeded from 0, not from `value`. At first mount `value` is whatever the
+  // half-loaded page can compute — on Home, income is known from the profile
+  // straight away while expenses are still in flight, so `saved` starts at
+  // the full income (3500) and lands on the real figure (3190) once they
+  // arrive. Seeding from that made the very first thing you see a count
+  // DOWN. From 0 it always counts up on first appearance, and a remembered
+  // value (returning to a screen) still wins, so only a genuine later change
+  // animates downward.
+  const [shown, setShown] = useState(remembered ?? 0)
+  const from = useRef(remembered ?? 0)
   const raf = useRef(null)
 
   useEffect(() => {

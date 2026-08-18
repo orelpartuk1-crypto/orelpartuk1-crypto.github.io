@@ -444,7 +444,13 @@ export default function AddExpense() {
           </label>
         </div>
 
-        {category === 'Groceries' && !isIncome && (
+        {/* Only once there ARE items — i.e. a scan brought some in, or you're
+            editing something that has them. Groceries get logged by scanning
+            the receipt, so asking "what did you buy?" with an empty search
+            box on every manual entry was a whole card of nothing. What it's
+            genuinely for is fixing the lines a scan read wrong, and that
+            still works exactly as before. */}
+        {!isIncome && items.length > 0 && (
           <GrocerySelector items={items} onChange={setItems} />
         )}
 
@@ -465,9 +471,22 @@ export default function AddExpense() {
           </Tap>
         )}
 
-        {/* Bulk and filing — reachable, but this screen is for logging one
-            expense, not for finding your way to a CSV importer. Collapsed
-            by default keeps the room it used to take permanently. */}
+        {/* Filing an invoice for the gestor is a normal part of logging a
+            business expense, not an alternative way to add one — so on
+            Business it sits right here rather than behind a disclosure. */}
+        {!editing && scope === 'business' && (
+          <Tap as={Link} to="/scan" className="card-tap flex w-full items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📦</span>
+            <span className="min-w-0 flex-1 text-left">
+              <span className="block font-semibold">Scan and save to Dropbox</span>
+              <span className="block text-sm text-muted">Keeps the invoice for your gestor</span>
+            </span>
+            <span className="text-muted">›</span>
+          </Tap>
+        )}
+
+        {/* Bulk import genuinely is a different way in, and belongs out of
+            the way of logging one expense. */}
         {!editing && (
           <details>
             <summary className="cursor-pointer list-none text-center text-sm font-semibold text-brand-600 marker:content-none">
@@ -482,17 +501,6 @@ export default function AddExpense() {
                 </span>
                 <span className="text-muted">›</span>
               </Tap>
-
-              {scope === 'business' && (
-                <Tap as={Link} to="/scan" className="card-tap flex w-full items-center gap-3">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📦</span>
-                  <span className="min-w-0 flex-1 text-left">
-                    <span className="block font-semibold">Scan and save to Dropbox</span>
-                    <span className="block text-sm text-muted">Keeps the invoice for your gestor</span>
-                  </span>
-                  <span className="text-muted">›</span>
-                </Tap>
-              )}
             </div>
           </details>
         )}
@@ -504,22 +512,23 @@ export default function AddExpense() {
         )}
       </Screen>
 
-      {/* Save — shifted above the keyboard on iOS, which otherwise leaves this
-          exactly where it was and buries it (see useKeyboardInset). */}
-      <div
-        className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-surface via-surface to-transparent px-4 pb-1 pt-8 safe-bottom"
-        style={keyboardInset ? { transform: `translateY(-${keyboardInset}px)` } : undefined}
-      >
-        <div className="mx-auto max-w-md">
-          <Tap
-            className={`btn w-full px-5 py-4 text-lg text-white shadow-fab ${isIncome ? 'bg-earn' : 'bg-brand-500'}`}
-            disabled={busy || value <= 0}
-            onClick={() => save()}
-          >
-            {busy ? 'Saving…' : editing ? `Update ${money(value)}` : isIncome ? `Save income ${money(value)}` : `Save ${money(value)}`}
-          </Tap>
+      {/* Save — hidden while the keyboard is up. It used to sit right above
+          the keypad the moment you started typing an amount, which invited
+          saving before ever looking at category, account or whose it is.
+          Put the keyboard away and it comes back. */}
+      {!keyboardInset && (
+        <div className="fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-surface via-surface to-transparent px-4 pb-1 pt-8 safe-bottom">
+          <div className="mx-auto max-w-md">
+            <Tap
+              className={`btn w-full px-5 py-4 text-lg text-white shadow-fab ${isIncome ? 'bg-earn' : 'bg-brand-500'}`}
+              disabled={busy || value <= 0}
+              onClick={() => save()}
+            >
+              {busy ? 'Saving…' : editing ? `Update ${money(value)}` : isIncome ? `Save income ${money(value)}` : `Save ${money(value)}`}
+            </Tap>
+          </div>
         </div>
-      </div>
+      )}
 
       <CategorySheet
         open={catOpen}

@@ -20,11 +20,23 @@ export default function AlertBell({ alerts = [] }) {
 
   // An alert that resolved and came back should speak up again, so anything no
   // longer live is dropped from the dismissed set rather than kept forever.
+  //
+  // Except on a cold start: alerts are derived from expenses, budgets, dates
+  // and settlements, none of which have loaded on first render, so `alerts`
+  // is briefly []. Pruning against that empty set wiped every dismissal and
+  // wrote the empty result straight to localStorage — so every single time
+  // the app opened, everything you had already marked seen came back. That
+  // is why notifications never disappeared. An empty list can't be told
+  // apart from "not loaded yet", so it prunes nothing.
   useEffect(() => {
+    if (alerts.length === 0) return
     const live = new Set(alerts.map((a) => a.id))
     setDismissed((prev) => {
       const next = new Set([...prev].filter((id) => live.has(id)))
-      if (next.size !== prev.size) localStorage.setItem(KEY, JSON.stringify([...next]))
+      // Same contents: hand back the identical Set so React can skip the
+      // re-render this effect would otherwise cause on every alerts change.
+      if (next.size === prev.size) return prev
+      localStorage.setItem(KEY, JSON.stringify([...next]))
       return next
     })
   }, [alerts])
