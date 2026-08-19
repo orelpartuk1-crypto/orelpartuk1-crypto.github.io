@@ -52,6 +52,13 @@ const TREAT_CATEGORIES = new Set(['Nights Out', 'Restaurants', 'Experiences', 'S
 export const defaultSpendType = (category) =>
   TREAT_CATEGORIES.has(category) ? 'treat' : 'need'
 
+// Categories that are almost always a shared household cost rather than a
+// personal one — used to nudge the scope pill toward Together the moment one
+// of these is picked, so the common case (buying groceries, paying rent)
+// doesn't also require a second manual tap just to get the money split
+// correctly. Never overrides a scope you picked yourself.
+export const SHARED_LEANING_CATEGORIES = new Set(['Groceries', 'Rent', 'Utilities', 'Home'])
+
 // Suggestions only for one-off bonus/income sources — free text is still allowed.
 export const BONUS_SOURCES = [
   'Freelance', 'Second job', 'Work bonus', 'Business', 'Business – product',

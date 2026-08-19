@@ -16,7 +16,7 @@ import { useKeyboardInset } from '../hooks/useKeyboardInset'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
 import { t } from '../lib/i18n'
 import { merchantDomain, merchantCategory } from '../lib/merchants'
-import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
+import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY, SHARED_LEANING_CATEGORIES } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingReceipt } from '../lib/pendingScan'
 import { uploadReceipt } from '../lib/receipts'
@@ -48,14 +48,14 @@ export default function AddExpense() {
   const isIncome = isIncomeCapable && mode === 'income'
 
   const seed = editing || prefill || {}
-  const defaultScope = (() => {
-    if (editing?.scope) return editing.scope
-    if (prefill?.scope) return prefill.scope
-    const z = localStorage.getItem('db_zone')
-    if (z === 'business' && hasBusiness) return 'business'
-    if (z === 'mine') return 'private'
-    return 'shared'
-  })()
+  // Private by default — full stop. This used to remember whichever
+  // Analytics zone (Together/Mine/Business) you'd last looked at, so opening
+  // Add right after checking the business tab's tax numbers opened logging a
+  // BUSINESS expense by default, which is a surprising and costly place to
+  // default a scope pill. The category you pick is what should drive scope
+  // (see the shared-leaning nudge in pickCategory below), not which tab you
+  // happened to view a moment ago.
+  const defaultScope = editing?.scope || prefill?.scope || 'private'
 
   const [amount, setAmount] = useState(seed.amount ? String(seed.amount).replace('.', ',') : '')
   const [category, setCategory] = useState(seed.category || (defaultScope === 'business' ? 'Meeting' : 'Groceries'))
@@ -69,6 +69,10 @@ export default function AddExpense() {
   // Once you've picked a category yourself — by hand or via a shortcut — the
   // guesser backs off. It only fills in a category you haven't chosen yet.
   const [categoryTouched, setCategoryTouched] = useState(!!editing || !!seed.category)
+  // Same idea for scope: once you've tapped Together/Mine/Business yourself,
+  // a category's shared-leaning nudge (below) backs off too — a deliberate
+  // choice always wins over a guess.
+  const [scopeTouched, setScopeTouched] = useState(!!editing || !!prefill?.scope)
   const [spentAt, setSpentAt] = useState(seed.date || editing?.spent_at || todayISO())
   const [repeats, setRepeats] = useState(false)
   const [accountId, setAccountId] = useState(editing?.account_id || prefill?.account_id || null)
@@ -146,6 +150,7 @@ export default function AddExpense() {
   ]
 
   const changeScope = (s) => {
+    setScopeTouched(true)
     if (s !== scope) setCategoryId(null)
     if (s === 'business' && scope !== 'business') setCategory('Meeting')
     else if (s !== 'business' && scope === 'business') {
@@ -157,16 +162,25 @@ export default function AddExpense() {
 
   const pickCategory = (c) => {
     setCategoryTouched(true)
+    const key = typeof c === 'string' || c.key ? c.key ?? c : c.parentName || c.name
+    // A category like Groceries or Rent is almost always a shared cost — flip
+    // the scope pill to Together the moment one is picked, so the common case
+    // doesn't also need a second manual tap to get the split right. Only when
+    // you haven't already chosen a scope yourself, and never for income or
+    // while logging a business expense.
+    if (!editing && !scopeTouched && !isIncome && scope !== 'business' && SHARED_LEANING_CATEGORIES.has(key)) {
+      setScope('shared')
+    }
     if (typeof c === 'string' || c.key) {
       setCategoryId(null)
-      setCategory(c.key ?? c)
-      if (!editing && !isIncome && scope !== 'business') setSpendType(defaultSpendType(c.key ?? c))
+      setCategory(key)
+      if (!editing && !isIncome && scope !== 'business') setSpendType(defaultSpendType(key))
       return
     }
     setCategoryId(c.id)
-    setCategory(c.parentName || c.name)
+    setCategory(key)
     if (!editing && !isIncome && scope !== 'business') {
-      setSpendType(c.spend_type || defaultSpendType(c.parentName || c.name))
+      setSpendType(c.spend_type || defaultSpendType(key))
     }
   }
 

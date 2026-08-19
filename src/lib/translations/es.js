@@ -1065,4 +1065,7 @@ export const es = {
   'What you actually paid in, total — this is what profit/loss gets measured against.':
     'Lo que realmente aportaste, en total — es la cifra contra la que se mide la ganancia o pérdida.',
   '({pct}%)': '({pct}%)',
+  'How much did you actually invest, in total?': '¿Cuánto invertiste en total?',
+  'Total invested': 'Total invertido',
+  'Price as of {when}': 'Precio a fecha de {when}',
 }

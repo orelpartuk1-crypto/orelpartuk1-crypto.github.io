@@ -37,7 +37,12 @@ export default function ScanReceipt() {
   const [result, setResult] = useState(null) // { amount, category, rawText }
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('Other')
-  const [scope, setScope] = useState(() => (localStorage.getItem('db_zone') === 'mine' ? 'private' : 'shared'))
+  // A scanned receipt is overwhelmingly a supermarket run — shared by
+  // default, same as picking Groceries by hand would suggest. No longer
+  // reads the last-viewed Analytics zone: that made this (and Add) default
+  // to whatever tab you'd happened to check a moment earlier, business
+  // included, which is a surprising place to default a scope pill.
+  const [scope, setScope] = useState('shared')
   const [spendType, setSpendType] = useState('need')
   const [items, setItems] = useState([])
   const [note, setNote] = useState('')

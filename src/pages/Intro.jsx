@@ -698,7 +698,9 @@ function AddSheet({ kind, onClose, onAdd, existing = [] }) {
   const { livePrice, lookingUp } = useAssetLookup(kind === 'assets' ? assetType : null, kind === 'assets' ? identifier : null, null)
   const tracked = kind === 'assets' && !!id && !!livePrice && num(units) > 0
   const computed = tracked ? num(units) * livePrice.price : num(amount)
-  const canSave = !!name.trim() && computed > 0
+  // Mandatory once a holding is actually tracking the market — otherwise
+  // there's nothing for a profit/loss figure to be measured against.
+  const canSave = !!name.trim() && computed > 0 && (kind !== 'assets' || !tracked || num(costBasis) > 0)
 
   const reset = () => {
     setName(''); setAmount(''); setIcon(null); setAssetType('stock'); setIdentifier('')
@@ -818,6 +820,9 @@ function AddSheet({ kind, onClose, onAdd, existing = [] }) {
           </div>
         )}
 
+        {kind === 'assets' && tracked && num(costBasis) <= 0 && (
+          <p className="px-1 text-sm text-spend">{t('How much did you actually invest, in total?')}</p>
+        )}
         <Tap
           className="btn-primary w-full"
           disabled={!canSave}

@@ -404,8 +404,14 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
   // never moves.
   const { livePrice, lookingUp } = useAssetLookup(isStock ? assetType : null, isStock ? identifier : null, null)
 
+  // Total invested is mandatory for anything under Investments — without it
+  // there is nothing for the profit/loss figure to compare against, and a
+  // PnL row that silently doesn't appear reads as a bug, not an omission.
+  const canSave = !!name.trim() && (!isStock || num(costBasis) > 0)
+
   const submit = async () => {
     if (!name.trim()) { setErr(t('Give it a name.')); return }
+    if (isStock && num(costBasis) <= 0) { setErr(t('How much did you actually invest, in total?')); return }
     setBusy(true); setErr(null)
     // An identifier plus a number of units makes the holding track the
     // market. With only one of the two it stays a hand-typed figure — which
@@ -531,7 +537,7 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
 
       {isStock && (
         <div>
-          <label className="label">{t('Total invested (optional)')}</label>
+          <label className="label">{t('Total invested')}</label>
           <input className="field" inputMode="decimal" value={costBasis}
             onChange={(e) => setCostBasis(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0" />
           <p className="mt-1 px-1 text-xs text-muted">
@@ -543,7 +549,7 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
       {err && <p className="text-sm text-spend">{err}</p>}
       <div className="grid grid-cols-2 gap-2">
         <Tap className="btn-ghost py-3 text-base" onClick={() => setWhat(null)}>{t('Back')}</Tap>
-        <Tap className="btn-primary py-3 text-base" disabled={busy} onClick={submit}>{busy ? t('Saving…') : t('Add')}</Tap>
+        <Tap className="btn-primary py-3 text-base" disabled={busy || !canSave} onClick={submit}>{busy ? t('Saving…') : t('Add')}</Tap>
       </div>
     </div>
   )
@@ -570,6 +576,9 @@ function EditHolding({ holding, onClose, onSave, onDelete }) {
   const unitCount = num(units)
   const tracked = !!id && !!livePrice && unitCount > 0
   const pnl = tracked && num(costBasis) > 0 ? unitCount * livePrice.price - num(costBasis) : null
+  // Mandatory once a holding is actually tracking the market — otherwise
+  // there's nothing for a profit/loss figure to be measured against.
+  const canSave = !tracked || num(costBasis) > 0
 
   const save = () =>
     onSave({
@@ -643,19 +652,30 @@ function EditHolding({ holding, onClose, onSave, onDelete }) {
           </div>
         )}
         <div>
-          <label className="label">{t('Total invested (optional)')}</label>
+          <label className="label">{tracked ? t('Total invested') : t('Total invested (optional)')}</label>
           <input className="field" inputMode="decimal" value={costBasis}
             onChange={(e) => setCostBasis(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0" />
           <p className="mt-1 px-1 text-xs text-muted">
             {t('What you actually paid in, total — this is what profit/loss gets measured against.')}
           </p>
         </div>
+        {/* When this was last checked — a live holding stays correct on its
+            own via the daily refresh, but that's invisible unless the
+            timestamp says so. */}
+        {tracked && holding.priced_at && (
+          <p className="px-1 text-center text-xs text-muted">
+            {t('Price as of {when}', { when: new Date(holding.priced_at).toLocaleString() })}
+          </p>
+        )}
         {pnl != null && (
           <p className={`text-center text-sm font-semibold ${pnl >= 0 ? 'text-brand-600' : 'text-spend'}`}>
             {pnl >= 0 ? '▲' : '▼'} {money(Math.abs(pnl))} {t('({pct}%)', { pct: ((pnl / num(costBasis)) * 100).toFixed(1) })}
           </p>
         )}
-        <Tap className="btn-primary w-full" onClick={save}>{t('Save')}</Tap>
+        {tracked && num(costBasis) <= 0 && (
+          <p className="px-1 text-sm text-spend">{t('How much did you actually invest, in total?')}</p>
+        )}
+        <Tap className="btn-primary w-full" disabled={!canSave} onClick={save}>{t('Save')}</Tap>
         {confirm ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
             <p className="text-sm font-medium text-red-800">{t('Remove “{name}” from your net worth?', { name: holding.name })}</p>
