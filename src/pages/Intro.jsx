@@ -1,14 +1,28 @@
-import { useMemo, useState } from 'react'
+import { Children, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { enablePush, pushSupported } from '../lib/push'
 import { useAccounts } from '../hooks/useAccounts'
 import { useHoldings } from '../hooks/useHoldings'
 import { useRecurring } from '../hooks/useRecurring'
 import { useIntro } from '../hooks/useIntro'
 import { money } from '../lib/format'
 import { t } from '../lib/i18n'
-import { Tap, Counter, Sheet, motion, AnimatePresence } from '../components/motion'
+import { Tap, Counter, Sheet, motion, AnimatePresence, useEntrance } from '../components/motion'
+import { useAnimationControls, useReducedMotion } from 'motion/react'
 
 const num = (s) => parseFloat((String(s) || '0').replace(',', '.')) || 0
+
+// One shared entrance for everything on a step: the parts arrive in the order
+// you read them instead of the whole screen appearing at once. Spring rather
+// than a fixed duration, so it matches the rest of the app's feel and settles
+// naturally instead of stopping dead.
+const STAGGER = { hidden: {}, show: { transition: { staggerChildren: 0.055, delayChildren: 0.05 } } }
+
+const RISE = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 420, damping: 34 } },
+}
 const uid = () => Math.random().toString(36).slice(2, 9)
 
 // A guided set-up: one topic per screen, each answer going somewhere real
@@ -31,6 +45,12 @@ export default function Intro() {
   const [step, setStep] = useState(0)
   const [dir, setDir] = useState(1)
   const [busy, setBusy] = useState(false)
+  // The header total gives a little kick whenever it changes, so adding an
+  // account registers as something happening rather than a digit quietly
+  // differing. Driven by controls rather than a `key`, because remounting
+  // would restart the count-up animation instead of continuing it.
+  const totalPulse = useAnimationControls()
+  const reduced = useReducedMotion()
 
   // Everything is held here and written once at the end, so backing up and
   // changing your mind never leaves half-created accounts behind.
@@ -45,11 +65,19 @@ export default function Intro() {
 
   const sum = (rows) => rows.reduce((a, r) => a + num(r.amount), 0)
   const netWorth = sum(accounts) + sum(assets) - sum(debts)
+  const pulse = () => {
+    if (reduced) return
+    totalPulse.start({ scale: [1, 1.09, 1], transition: { duration: 0.42, ease: [0.22, 1, 0.36, 1] } })
+  }
   const monthlySaving = Math.max(0, num(income) - num(spend))
 
   const steps = useMemo(() => {
     const base = ['welcome', 'accounts', 'assets', 'debts', 'rhythm']
     if (num(income) > 0 && saveSalary) base.push('payday')
+    // Asked here rather than sprung on you at launch, and only where it can
+    // actually work — on iOS that means the installed PWA, so offering it in a
+    // normal Safari tab would be promising something that cannot happen.
+    if (pushSupported()) base.push('alerts')
     base.push('reveal')
     return base
   }, [income, saveSalary])
@@ -125,9 +153,14 @@ export default function Intro() {
               {steps.map((s, i) => (
                 <motion.span
                   key={s}
-                  className="h-1.5 flex-1 rounded-full bg-slate-200"
-                  animate={{ backgroundColor: i <= step ? 'rgb(var(--c-brand-500))' : 'rgb(var(--c-n-200))' }}
-                  transition={{ duration: 0.3 }}
+                  className="h-1.5 flex-1 origin-left rounded-full"
+                  animate={{
+                    backgroundColor: i <= step ? 'rgb(var(--c-brand-500))' : 'rgb(var(--c-n-200))',
+                    // The one you're on sits slightly taller, so the bar shows
+                    // where you are and not only how far you've come.
+                    scaleY: i === step ? 1.9 : 1,
+                  }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 />
               ))}
             </div>
@@ -144,9 +177,9 @@ export default function Intro() {
                 className="overflow-hidden text-center"
               >
                 <p className="label mb-0 pt-3">{t('Your net worth')}</p>
-                <p className="tnum text-xl font-bold">
+                <motion.p animate={totalPulse} className="tnum text-xl font-bold">
                   <Counter id="intro-running" value={netWorth} format={(n) => money(n)} duration={450} />
-                </p>
+                </motion.p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -157,10 +190,10 @@ export default function Intro() {
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={key}
-            initial={{ opacity: 0, x: dir * 28 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: dir * -28 }}
-            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, x: dir * 36, scale: 0.985 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: dir * -36, scale: 0.985 }}
+            transition={{ type: 'spring', stiffness: 460, damping: 38, mass: 0.8 }}
             className="space-y-4 pt-4"
           >
             {key === 'welcome' && (
@@ -183,7 +216,7 @@ export default function Intro() {
               >
                 <ItemList
                   rows={accounts}
-                  onRemove={(id) => setAccounts((r) => r.filter((x) => x.id !== id))}
+                  onRemove={(id) => { setAccounts((r) => r.filter((x) => x.id !== id)); pulse() }}
                   emptyIcon="🏦"
                 />
                 <AddButton label={accounts.length ? t('Add another account') : t('Add an account')} onClick={() => setAdding('accounts')} />
@@ -199,7 +232,7 @@ export default function Intro() {
               >
                 <ItemList
                   rows={assets}
-                  onRemove={(id) => setAssets((r) => r.filter((x) => x.id !== id))}
+                  onRemove={(id) => { setAssets((r) => r.filter((x) => x.id !== id)); pulse() }}
                   emptyIcon="📈"
                 />
                 <AddButton label={assets.length ? t('Add another asset') : t('Add an asset')} onClick={() => setAdding('assets')} />
@@ -215,7 +248,7 @@ export default function Intro() {
               >
                 <ItemList
                   rows={debts}
-                  onRemove={(id) => setDebts((r) => r.filter((x) => x.id !== id))}
+                  onRemove={(id) => { setDebts((r) => r.filter((x) => x.id !== id)); pulse() }}
                   emptyIcon="💳"
                   negative
                 />
@@ -277,6 +310,8 @@ export default function Intro() {
               </Step>
             )}
 
+            {key === 'alerts' && <AlertsStep onDone={() => go(1)} />}
+
             {key === 'reveal' && (
               <Reveal netWorth={netWorth} monthlySaving={monthlySaving} />
             )}
@@ -284,7 +319,7 @@ export default function Intro() {
         </AnimatePresence>
 
         <div className="mt-6 space-y-2">
-          {step === last ? (
+          {key === 'alerts' ? null : step === last ? (
             <Tap className="btn-primary w-full" disabled={busy} onClick={complete}>
               {busy ? t('Saving…') : t('Start using it')}
             </Tap>
@@ -314,7 +349,7 @@ export default function Intro() {
       <AddSheet
         kind={adding}
         onClose={() => setAdding(null)}
-        onAdd={(item) => { setListFor?.((r) => [...r, { id: uid(), ...item }]); setAdding(null) }}
+        onAdd={(item) => { setListFor?.((r) => [...r, { id: uid(), ...item }]); setAdding(null); pulse() }}
         existing={listFor}
       />
     </div>
@@ -324,19 +359,119 @@ export default function Intro() {
 // The mascot's line, then the section, then the question — the order the
 // reference uses, and it reads as being walked through rather than surveyed.
 function Step({ guide, eyebrow, title, blurb, children }) {
+  const initial = useEntrance() ? 'hidden' : false
   return (
-    <>
+    <motion.div variants={STAGGER} initial={initial} animate="show" className="space-y-4">
       {guide && (
-        <div className="flex items-start gap-2.5">
-          <span className="shrink-0 text-2xl">🤖</span>
+        <motion.div variants={RISE} className="flex items-start gap-2.5">
+          {/* Same guard as the rest: on a paused page this must still be a
+              robot, not an empty gap. */}
+          <motion.span
+            className="shrink-0 text-2xl"
+            initial={initial === false ? false : { scale: 0.4, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 16, delay: 0.1 }}
+          >
+            🤖
+          </motion.span>
           <p className="pt-1 text-sm text-muted">{guide}</p>
-        </div>
+        </motion.div>
       )}
-      {eyebrow && <p className="text-center text-xs font-semibold uppercase tracking-wider text-brand-600">{eyebrow}</p>}
-      {title && <h1 className="text-center text-2xl font-bold leading-tight tracking-tight">{title}</h1>}
-      {blurb && <p className="text-center text-sm text-muted">{blurb}</p>}
-      {children}
-    </>
+      {eyebrow && (
+        <motion.p variants={RISE} className="text-center text-xs font-semibold uppercase tracking-wider text-brand-600">
+          {eyebrow}
+        </motion.p>
+      )}
+      {title && <motion.h1 variants={RISE} className="text-center text-2xl font-bold leading-tight tracking-tight">{title}</motion.h1>}
+      {blurb && <motion.p variants={RISE} className="text-center text-sm text-muted">{blurb}</motion.p>}
+      {/* Each child gets its own place in the queue, so a list and the button
+          under it don't land together in one lump. */}
+      {Children.map(children, (child) => (child ? <motion.div variants={RISE}>{child}</motion.div> : child))}
+    </motion.div>
+  )
+}
+
+// Turning on alerts, asked as a step rather than an iOS prompt out of nowhere.
+//
+// Every line below is something the app genuinely sends — coming payments and
+// budget warnings come off the same alert builder Home uses. Listing a feature
+// here that does not exist would be the fastest way to make the permission
+// feel like a trick.
+function AlertsStep({ onDone }) {
+  const { user, updateReminderHour, reminderHour } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+  const initial = useEntrance() ? 'hidden' : false
+
+  const PERKS = [
+    { icon: '⏳', title: t('Before you get charged'), sub: t('Rent and subscriptions, before they land') },
+    { icon: '🔁', title: t('Coming payments'), sub: t('Whatever is due in the next few weeks') },
+    { icon: '🎯', title: t('When a budget is nearly gone'), sub: t('While you can still do something about it') },
+    { icon: '📊', title: t('A quiet weekly summary'), sub: t('What happened to your money, once a week') },
+  ]
+
+  const turnOn = async () => {
+    setBusy(true); setErr(null)
+    try {
+      await enablePush(user.id)
+      await updateReminderHour(reminderHour ?? 21)
+      onDone()
+    } catch (e) {
+      // A refused permission is a decision, not a failure — say what happened
+      // and let the flow carry on rather than trapping anyone on this screen.
+      setErr(e?.message || t('Could not turn on notifications.'))
+      setBusy(false)
+    }
+  }
+
+  return (
+    <motion.div variants={STAGGER} initial={initial} animate="show" className="space-y-4">
+      <motion.div variants={RISE} className="pt-2 text-center">
+        <motion.span
+          className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-brand-50 text-4xl"
+          initial={initial === false ? false : { scale: 0.5, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 380, damping: 15, delay: 0.05 }}
+        >
+          {/* A bell that actually rings on arrival. */}
+          <motion.span
+            animate={{ rotate: [0, -14, 11, -8, 5, 0] }}
+            transition={{ delay: 0.5, duration: 0.9, ease: 'easeInOut' }}
+          >
+            🔔
+          </motion.span>
+        </motion.span>
+      </motion.div>
+      <motion.p variants={RISE} className="text-center text-xs font-semibold uppercase tracking-wider text-brand-600">
+        {t('Notifications')}
+      </motion.p>
+      <motion.h1 variants={RISE} className="text-center text-2xl font-bold leading-tight tracking-tight">
+        {t('I’ll tell you what matters')}
+      </motion.h1>
+
+      <div className="space-y-2">
+        {PERKS.map((p) => (
+          <motion.div key={p.title} variants={RISE} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-card">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">{p.icon}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold leading-tight">{p.title}</span>
+              <span className="block text-xs text-muted">{p.sub}</span>
+            </span>
+          </motion.div>
+        ))}
+      </div>
+
+      {err && <motion.p variants={RISE} className="text-center text-sm text-spend">{err}</motion.p>}
+
+      <motion.div variants={RISE} className="space-y-2 pt-1">
+        <Tap className="btn-primary w-full" disabled={busy} onClick={turnOn}>
+          {busy ? t('Just a moment…') : t('Turn on alerts')}
+        </Tap>
+        <Tap className="w-full py-2 text-center text-sm font-semibold text-muted" onClick={onDone}>
+          {t('Not now')}
+        </Tap>
+      </motion.div>
+    </motion.div>
   )
 }
 

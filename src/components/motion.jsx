@@ -10,14 +10,33 @@ import { motion, AnimatePresence, useReducedMotion, useDragControls } from 'moti
 export const SPRING = { type: 'spring', stiffness: 380, damping: 32, mass: 0.9 }
 export const SOFT = { type: 'spring', stiffness: 240, damping: 30 }
 
+// An entrance animation must never be the reason a screen is empty.
+//
+// Everything below reveals its content by animating opacity up from 0, which
+// quietly assumes the animation always runs. It doesn't: a browser pauses
+// requestAnimationFrame while a page is not visible, so a screen that mounts
+// in a backgrounded tab — a PWA cold launch that starts in the background, a
+// page restored behind another tab — holds every element at opacity 0 until
+// something else forces a re-render. The result is a blank screen with the
+// content sitting right there in the DOM.
+//
+// When the page isn't visible at mount, return `false` so framer paints the
+// finished state at once. Nobody was watching the animation anyway; the point
+// is that the content is never the thing that goes missing.
+export function useEntrance() {
+  const [visible] = useState(() => typeof document === 'undefined' || document.visibilityState === 'visible')
+  return visible
+}
+
 // Screens enter as a whole and their children follow just behind, so a page
 // reads as one thing arriving rather than a dozen unrelated pieces.
 export function Screen({ children, className = '' }) {
   const reduced = useReducedMotion()
+  const canAnimate = useEntrance()
   return (
     <motion.div
       className={className}
-      initial={reduced ? false : { opacity: 0, y: 8 }}
+      initial={reduced || !canAnimate ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ ...SOFT, staggerChildren: reduced ? 0 : 0.045 }}
     >
@@ -28,10 +47,11 @@ export function Screen({ children, className = '' }) {
 
 export function Stagger({ children, className = '', delay = 0 }) {
   const reduced = useReducedMotion()
+  const canAnimate = useEntrance()
   return (
     <motion.div
       className={className}
-      initial="hidden"
+      initial={canAnimate ? 'hidden' : false}
       animate="show"
       variants={{ show: { transition: { staggerChildren: reduced ? 0 : 0.05, delayChildren: delay } } }}
     >

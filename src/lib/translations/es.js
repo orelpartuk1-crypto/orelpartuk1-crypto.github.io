@@ -1025,4 +1025,16 @@ export const es = {
   '{units} × {ticker} · live': '{units} × {ticker} · en vivo',
   'Holdings with a ticker and a number of units follow the market. Everything else is whatever you last typed.':
     'Las inversiones con símbolo y número de participaciones siguen al mercado. Todo lo demás es lo último que escribiste.',
+  'Before you get charged': 'Antes de que te cobren',
+  'Rent and subscriptions, before they land': 'Alquiler y suscripciones, antes de que lleguen',
+  'Coming payments': 'Pagos que vienen',
+  'Whatever is due in the next few weeks': 'Lo que toca en las próximas semanas',
+  'When a budget is nearly gone': 'Cuando casi te quedas sin presupuesto',
+  'While you can still do something about it': 'Mientras aún puedes hacer algo',
+  'A quiet weekly summary': 'Un resumen semanal, sin ruido',
+  'What happened to your money, once a week': 'Qué pasó con tu dinero, una vez por semana',
+  'Could not turn on notifications.': 'No se pudieron activar las notificaciones.',
+  'I’ll tell you what matters': 'Te aviso de lo que importa',
+  'Just a moment…': 'Un momento…',
+  'Turn on alerts': 'Activar avisos',
 }
