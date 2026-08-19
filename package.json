@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check:i18n": "node scripts/check-i18n.mjs",
-    "check:logos": "node scripts/check-logos.mjs"
+    "check:logos": "node scripts/check-logos.mjs",
+    "check:outbox": "node scripts/check-outbox.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

@@ -218,7 +218,7 @@ export default function AddExpense() {
     }
 
     if (isIncome) {
-      const { error } = await addBonus({
+      const { error, queued } = await addBonus({
         amount: value,
         bonus_type: category,
         month: monthRange(new Date(spentAt)).start,
@@ -228,7 +228,8 @@ export default function AddExpense() {
       })
       setBusy(false)
       if (error) { setErr(error.message); return }
-      nav('/')
+      // Same as an expense: saved on the phone, not on the server yet.
+      nav('/', queued ? { state: { queued: true } } : undefined)
       return
     }
 

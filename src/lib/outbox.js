@@ -96,3 +96,21 @@ export async function flush(supabase) {
   }
   return sent
 }
+
+// Wraps one Supabase write so a lost connection queues it instead of dropping
+// it. `run` performs the write; `spec` is what to replay if the request never
+// reached the server.
+//
+// The distinction that matters: a request that *throws* never got an answer,
+// so it's a network problem and belongs in the queue. A request that returns
+// an `error` was answered and refused — queueing that would replay a rejection
+// forever, so it's handed straight back to the caller.
+export async function withOutbox(run, spec) {
+  try {
+    return await run()
+  } catch {
+    await enqueue(spec)
+    window.dispatchEvent(new Event('outbox-changed'))
+    return { data: null, error: null, queued: true }
+  }
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { withOutbox } from '../lib/outbox'
 import { useAuth } from '../context/AuthContext'
 import { monthRange } from '../lib/format'
 
@@ -39,7 +40,7 @@ export function useMoney(base = new Date()) {
 
   const addBonus = useCallback(
     async ({ amount, bonus_type, month, note, recurring_id = null, account_id = null }) => {
-      const { error } = await supabase.from('incomes').insert({
+      const payload = {
         household_id: household.id,
         owner: user.id,
         kind: 'bonus',
@@ -49,19 +50,29 @@ export function useMoney(base = new Date()) {
         note: note || null,
         recurring_id,
         account_id,
-      })
-      if (!error) await load()
-      return { error }
+      }
+      return withOutbox(
+        async () => {
+          const { error } = await supabase.from('incomes').insert(payload)
+          if (!error) await load()
+          return { error }
+        },
+        { table: 'incomes', op: 'insert', payload }
+      )
     },
     [household?.id, user?.id, load]
   )
 
   const deleteBonus = useCallback(
-    async (id) => {
-      const { error } = await supabase.from('incomes').delete().eq('id', id)
-      if (!error) await load()
-      return { error }
-    },
+    async (id) =>
+      withOutbox(
+        async () => {
+          const { error } = await supabase.from('incomes').delete().eq('id', id)
+          if (!error) await load()
+          return { error }
+        },
+        { table: 'incomes', op: 'delete', match: { id } }
+      ),
     [load]
   )
 

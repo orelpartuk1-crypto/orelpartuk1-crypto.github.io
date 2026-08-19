@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { monthRange } from '../lib/format'
-import { enqueue } from '../lib/outbox'
+import { enqueue, withOutbox } from '../lib/outbox'
 
 // Fetches expenses + category budgets for the household, scoped to a month.
 export function useExpenses(base = new Date()) {
@@ -74,20 +74,28 @@ export function useExpenses(base = new Date()) {
   )
 
   const updateExpense = useCallback(
-    async (id, row) => {
-      const { error } = await supabase.from('expenses').update(row).eq('id', id)
-      if (!error) await load()
-      return { error }
-    },
+    async (id, row) =>
+      withOutbox(
+        async () => {
+          const { error } = await supabase.from('expenses').update(row).eq('id', id)
+          if (!error) await load()
+          return { error }
+        },
+        { table: 'expenses', op: 'update', payload: row, match: { id } }
+      ),
     [load]
   )
 
   const deleteExpense = useCallback(
-    async (id) => {
-      const { error } = await supabase.from('expenses').delete().eq('id', id)
-      if (!error) await load()
-      return { error }
-    },
+    async (id) =>
+      withOutbox(
+        async () => {
+          const { error } = await supabase.from('expenses').delete().eq('id', id)
+          if (!error) await load()
+          return { error }
+        },
+        { table: 'expenses', op: 'delete', match: { id } }
+      ),
     [load]
   )
 
