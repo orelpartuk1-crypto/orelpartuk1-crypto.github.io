@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check:i18n": "node scripts/check-i18n.mjs"
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check:logos": "node scripts/check-logos.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

@@ -17,10 +17,10 @@ const KNOWN = {
   consum: 'consum.es',
   eroski: 'eroski.es',
   'el corte ingles': 'elcorteingles.es',
-  hipercor: 'hipercor.es',
+  hipercor: 'hipercor.com',
   ahorramas: 'ahorramas.com',
   supercor: 'supercor.es',
-  bonarea: 'bonarea.com',
+  bonarea: 'bonarea.cat',
 
   // Clothing & department
   zara: 'zara.com',
@@ -142,7 +142,7 @@ const MERCHANT_CATEGORY = {
   'mercadona.es': 'Groceries', 'carrefour.es': 'Groceries', 'lidl.es': 'Groceries',
   'aldi.es': 'Groceries', 'dia.es': 'Groceries', 'alcampo.es': 'Groceries',
   'consum.es': 'Groceries', 'eroski.es': 'Groceries', 'ahorramas.com': 'Groceries',
-  'supercor.es': 'Groceries', 'bonarea.com': 'Groceries', 'hipercor.es': 'Groceries',
+  'supercor.es': 'Groceries', 'bonarea.cat': 'Groceries', 'hipercor.com': 'Groceries',
 
   'zara.com': 'Shopping', 'bershka.com': 'Shopping', 'stradivarius.com': 'Shopping',
   'pullandbear.com': 'Shopping', 'massimodutti.com': 'Shopping', 'oysho.com': 'Shopping',

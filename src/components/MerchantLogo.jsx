@@ -1,12 +1,29 @@
 import { useEffect, useRef, useState } from 'react'
 import { merchantDomain, merchantColor } from '../lib/merchants'
 
-// Two independent sources, tried in order. Clearbit renders the nicest mark
-// (proper logo, transparent, square-ish) but its free tier has been unstable;
-// DuckDuckGo's icon service is the plainer, longer-lived backstop. Either
-// way nothing but the shop's domain is sent, and only once per shop.
+// Three independent sources, tried in order, best-looking first.
+//
+// Clearbit used to be first here and it is now DEAD — HubSpot sunset the free
+// Logo API, so every single request fails. That is why Zara had no logo and
+// the ones that did appear looked cheap: everything was silently falling
+// through to DuckDuckGo, which 404s on zara.com and mercadona.es and serves
+// 16-32px favicons for the rest.
+//
+// icon.horse returns the real mark at a usable size (256px PNGs, sometimes
+// SVG) and had a hit for every Spanish chain tested. Google's favicon service
+// is the near-universal backstop — it always answers, just small. DuckDuckGo
+// stays last as a third opinion — though note icon.horse answers 200 with a
+// generated placeholder rather than 404ing, so in practice the later sources
+// are a safety net for domains added later, not something exercised today.
+// `npm run check:logos` verifies every domain in the list actually resolves
+// to a real mark, which is how the dead-Clearbit breakage should have been
+// caught instead of shipping blank circles.
+//
+// Either way nothing but the shop's domain leaves the phone, and only once
+// per shop per tab.
 const SOURCES = [
-  (d) => `https://logo.clearbit.com/${d}?size=128`,
+  (d) => `https://icon.horse/icon/${d}`,
+  (d) => `https://www.google.com/s2/favicons?domain=${d}&sz=128`,
   (d) => `https://icons.duckduckgo.com/ip3/${d}.ico`,
 ]
 
@@ -92,8 +109,15 @@ export default function MerchantLogo({ name, size = 40, className = '', fallback
           loading="lazy"
           referrerPolicy="no-referrer"
           className={`h-full w-full rounded-full bg-white object-contain ${loaded ? '' : 'absolute inset-0 opacity-0'} ${className}`}
-          onLoad={() => {
+          onLoad={(e) => {
             clearTimeout(timer.current)
+            // A 16x16 favicon stretched to 40px is the blurry mess that got
+            // called "bad quality". Treat too-small as a miss and try the
+            // next source, which usually has the same logo at a real size.
+            // The last source is accepted whatever its size — a soft logo
+            // still beats no logo.
+            const w = e.currentTarget.naturalWidth || 0
+            if (w > 0 && w < 32 && srcIndex < SOURCES.length - 1) { advance(); return }
             if (domain) resolved.set(domain, srcIndex)
             setLoaded(true)
           }}
