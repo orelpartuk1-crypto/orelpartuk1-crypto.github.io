@@ -153,6 +153,10 @@ function EditSheet({ account, balance, accountCount, onClose, onSave, onDelete }
   const [kind, setKind] = useState(account.kind)
   const [opening, setOpening] = useState(String(account.opening_balance))
   const [confirmDelete, setConfirmDelete] = useState(false)
+  // Being the default no longer blocks deletion — the hook promotes another
+  // active account to default first, so there's always exactly one. Only the
+  // true last account can't go, since there'd be nothing left to hold a
+  // balance at all.
   const isLast = accountCount <= 1
 
   return (
@@ -199,7 +203,7 @@ function EditSheet({ account, balance, accountCount, onClose, onSave, onDelete }
             </button>
           )}
 
-          {!isLast && !account.is_default && (
+          {!isLast && (
             confirmDelete ? (
               <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
                 <p className="text-sm font-medium text-red-800">

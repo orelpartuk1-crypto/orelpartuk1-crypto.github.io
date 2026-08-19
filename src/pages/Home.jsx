@@ -73,14 +73,24 @@ export default function Home() {
   const shared = useMemo(() => all.filter((e) => e.scope === 'shared'), [all])
 
   // 1 — What did this month actually do to my money.
+  //
+  // `myIncome` (Settings → Salary) and an active recurring income item are two
+  // ways of declaring the same paycheck, and both used to get added together:
+  // set a salary there, save it as recurring income during the get-to-know
+  // flow, and the app silently doubled it (3500 declared + 3500 materialized
+  // = 7000 shown). Once a recurring income item exists, IT is the real
+  // transaction — it appears in Movements, moves the day you said, and is what
+  // "myBonuses" already sums below — so the declared figure steps aside rather
+  // than stacking on top of it.
+  const hasRecurringIncome = recurringItems.some((r) => r.kind === 'income' && r.active)
   const balance = useMemo(() => {
     const myBonuses = bonuses.filter((b) => b.owner === user?.id).reduce((t, b) => t + Number(b.amount), 0)
-    const income = (myIncome || 0) + myBonuses
+    const income = (hasRecurringIncome ? 0 : myIncome || 0) + myBonuses
     const spent =
       summarize(onlySpending(mine, notSpending)).total +
       myShareOfShared(onlySpending(shared, notSpending), user?.id)
     return { income, spent, saved: income - spent, pct: income > 0 ? ((income - spent) / income) * 100 : null }
-  }, [bonuses, myIncome, mine, shared, user?.id, notSpending])
+  }, [bonuses, myIncome, hasRecurringIncome, mine, shared, user?.id, notSpending])
 
   // 2 — Everything YOU moved, money out and money in together, newest first —
   // private, shared or business alike. Your partner's own movements belong on

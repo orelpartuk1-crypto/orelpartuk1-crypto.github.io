@@ -1037,4 +1037,14 @@ export const es = {
   'I’ll tell you what matters': 'Te aviso de lo que importa',
   'Just a moment…': 'Un momento…',
   'Turn on alerts': 'Activar avisos',
+  '“{name}” is already set up as recurring income ({amount}/month) — that’s what actually counts. This field is only used when no recurring income is active.':
+    '"{name}" ya está configurado como ingreso recurrente ({amount}/mes) — eso es lo que realmente cuenta. Este campo solo se usa cuando no hay ningún ingreso recurrente activo.',
+  '{ticker} · live': '{ticker} · en vivo',
+  'A daily nudge': 'Un recordatorio diario',
+  'If you haven’t logged anything by evening': 'Si no has registrado nada por la tarde',
+  'Bills before they land': 'Los recibos antes de que lleguen',
+  'A day or two before a subscription or your salary': 'Un día o dos antes de una suscripción o tu nómina',
+  'Budget nearly gone': 'Presupuesto casi agotado',
+  'Coming soon — for now it’s a card here in the app': 'Próximamente — por ahora es una tarjeta aquí en la app',
+  'A weekly summary': 'Un resumen semanal',
 }

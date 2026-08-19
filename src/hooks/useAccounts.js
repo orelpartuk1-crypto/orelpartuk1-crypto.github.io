@@ -55,13 +55,27 @@ export function useAccounts() {
 
   // Expenses keep their history — the FK is ON DELETE SET NULL, so removing an
   // account never removes what was spent from it.
+  //
+  // If the one being removed is the default, another active account is
+  // promoted first. Without this, deleting your default account would leave
+  // none — and worse, a household could end up with two accounts BOTH marked
+  // default (one stale from before, one set by some later flow), which is
+  // exactly the state that made the delete button vanish for both of them:
+  // the UI hides "Delete" on a default account since removing it silently
+  // shouldn't leave you with no default at all. Promoting one up front means
+  // there's only ever one default, so the button never has to hide.
   const remove = useCallback(
     async (id) => {
+      const target = accounts.find((a) => a.id === id)
+      if (target?.is_default) {
+        const next = accounts.find((a) => a.id !== id && a.active)
+        if (next) await supabase.from('accounts').update({ is_default: true }).eq('id', next.id)
+      }
       const { error } = await supabase.from('accounts').delete().eq('id', id)
       if (!error) await load()
       return { error }
     },
-    [load]
+    [accounts, load]
   )
 
   const transfer = useCallback(

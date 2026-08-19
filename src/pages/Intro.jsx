@@ -1,4 +1,4 @@
-import { Children, useMemo, useState } from 'react'
+import { Children, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { enablePush, pushSupported } from '../lib/push'
@@ -9,6 +9,7 @@ import { useIntro } from '../hooks/useIntro'
 import { money } from '../lib/format'
 import { t } from '../lib/i18n'
 import { Tap, Counter, Sheet, motion, AnimatePresence, useEntrance } from '../components/motion'
+import { fetchQuotes } from '../lib/quotes'
 import { useAnimationControls, useReducedMotion } from 'motion/react'
 
 const num = (s) => parseFloat((String(s) || '0').replace(',', '.')) || 0
@@ -37,10 +38,15 @@ const uid = () => Math.random().toString(36).slice(2, 9)
 // Never opens itself — Home offers it and this is where "yes" goes.
 export default function Intro() {
   const nav = useNavigate()
-  const { add: addAccount } = useAccounts()
-  const { add: addHolding } = useHoldings()
-  const { add: addRecurring } = useRecurring()
+  const { active: existingAccounts, balances, add: addAccount, remove: removeAccount } = useAccounts()
+  const { active: existingHoldings, add: addHolding, remove: removeHolding } = useHoldings()
+  const { items: existingRecurring, add: addRecurring, update: updateRecurring, toggle: toggleRecurring } = useRecurring()
   const { finish, snooze, row } = useIntro()
+
+  // The one recurring item that represents "my salary", if it already exists.
+  // Re-running this flow must update it, never add a second one next to it —
+  // that's exactly how a real paycheck ended up counted twice.
+  const existingSalary = existingRecurring.find((r) => r.kind === 'income' && r.active)
 
   const [step, setStep] = useState(0)
   const [dir, setDir] = useState(1)
@@ -54,14 +60,45 @@ export default function Intro() {
 
   // Everything is held here and written once at the end, so backing up and
   // changing your mind never leaves half-created accounts behind.
+  //
+  // Seeded from what already exists (once each hook's first real load
+  // arrives — hence the `seeded` guard, so a slightly-later Supabase response
+  // doesn't stomp on something you already typed). Re-opening this flow is
+  // then an edit of your real setup, not a second, competing copy of it: what
+  // you see IS your accounts, so removing one here and saving actually
+  // removes it, and nothing already on file gets re-created next to itself.
+  // Every seeded row carries `dbId` so complete() can tell "already saved,
+  // maybe just remove it" apart from "brand new, needs inserting".
+  const [seeded, setSeeded] = useState(false)
   const [accounts, setAccounts] = useState([])
   const [assets, setAssets] = useState([])
   const [debts, setDebts] = useState([])
-  const [income, setIncome] = useState(row?.monthly_income ? String(row.monthly_income) : '')
+  const [income, setIncome] = useState(
+    existingSalary ? String(existingSalary.amount) : row?.monthly_income ? String(row.monthly_income) : ''
+  )
   const [spend, setSpend] = useState('')
   const [saveSalary, setSaveSalary] = useState(true)
-  const [payday, setPayday] = useState(1)
+  const [payday, setPayday] = useState(existingSalary?.day_of_month || 1)
   const [adding, setAdding] = useState(null) // 'accounts' | 'assets' | 'debts'
+
+  if (!seeded && (existingAccounts.length || existingHoldings.length)) {
+    setSeeded(true)
+    setAccounts(
+      existingAccounts.map((a) => ({
+        id: a.id, dbId: a.id, name: a.name, amount: String(balances[a.id] ?? a.opening_balance ?? 0),
+      }))
+    )
+    setAssets(
+      existingHoldings
+        .filter((h) => h.kind !== 'debt')
+        .map((h) => ({ id: h.id, dbId: h.id, name: h.name, amount: String(h.value), note: h.live ? t('{ticker} · live', { ticker: h.ticker }) : null }))
+    )
+    setDebts(
+      existingHoldings
+        .filter((h) => h.kind === 'debt')
+        .map((h) => ({ id: h.id, dbId: h.id, name: h.name, amount: String(h.value) }))
+    )
+  }
 
   const sum = (rows) => rows.reduce((a, r) => a + num(r.amount), 0)
   const netWorth = sum(accounts) + sum(assets) - sum(debts)
@@ -92,30 +129,64 @@ export default function Intro() {
 
   const complete = async () => {
     setBusy(true)
+
+    // Anything seeded from real data that isn't in the list any more was
+    // removed on purpose — the trash icon on that row is what did it. Acting
+    // on that here, once, is what makes "remove it" during this flow actually
+    // remove it, instead of the next save quietly re-adding it because it was
+    // never told to let go.
+    const stillHere = (rows) => new Set(rows.filter((r) => r.dbId).map((r) => r.dbId))
+    for (const a of existingAccounts) if (!stillHere(accounts).has(a.id)) await removeAccount(a.id)
+    for (const h of existingHoldings) if (!stillHere([...assets, ...debts]).has(h.id)) await removeHolding(h.id)
+
+    // Only rows without a dbId are new — anything seeded from what already
+    // existed is left alone rather than re-created next to itself. The first
+    // genuinely new account becomes the default only if there wasn't one
+    // already; otherwise the household already has a default and adding a
+    // second one is exactly the "two accounts both marked default" bug this
+    // is here to avoid.
+    const hadDefault = existingAccounts.some((a) => a.is_default)
+    let defaultAssigned = hadDefault
     for (const a of accounts) {
+      if (a.dbId) continue
       if (num(a.amount) === 0 && !a.name) continue
       await addAccount({
         name: a.name || t('Cash and accounts'),
         kind: a.kind || 'bank',
         opening_balance: num(a.amount),
-        is_default: accounts.indexOf(a) === 0,
+        is_default: !defaultAssigned,
       })
+      defaultAssigned = true
     }
     for (const a of assets) {
-      await addHolding({ kind: 'investment', name: a.name || t('Investments'), value: num(a.amount), note: a.note || null })
+      if (a.dbId) continue
+      await addHolding({ kind: 'investment', name: a.name || t('Investments'), value: num(a.amount), ...(a.ticker ? { ticker: a.ticker, units: a.units, unit_price: a.unitPrice, price_currency: a.priceCurrency, priced_at: new Date().toISOString() } : {}) })
     }
     for (const d of debts) {
+      if (d.dbId) continue
       await addHolding({ kind: 'debt', name: d.name || t('Debts'), value: num(d.amount) })
     }
+
     // A salary you told us about is a real recurring item, not just a number
     // on your profile — that's what makes it appear under "Coming up", on the
-    // day you actually said.
+    // day you actually said. If one already exists, this updates it in place;
+    // creating a second one next to it is the exact bug that made a real
+    // paycheck get counted twice.
     if (num(income) > 0 && saveSalary) {
-      await addRecurring(
-        { kind: 'income', name: t('Salary'), amount: num(income), source: t('Salary'), day_of_month: payday },
-        { materialize: false }
-      )
+      if (existingSalary) {
+        await updateRecurring(existingSalary.id, { amount: num(income), day_of_month: payday })
+      } else {
+        await addRecurring(
+          { kind: 'income', name: t('Salary'), amount: num(income), source: t('Salary'), day_of_month: payday },
+          { materialize: false }
+        )
+      }
+    } else if (existingSalary && !saveSalary) {
+      // Turned off on a re-run — stop it recurring rather than deleting its
+      // history, same soft-close the Plan/Recurring page itself uses.
+      await toggleRecurring(existingSalary.id, false)
     }
+
     await finish({
       ...(num(income) > 0 ? { monthly_income: num(income) } : {}),
       ...(num(spend) > 0 ? { monthly_spend_estimate: num(spend) } : {}),
@@ -397,6 +468,13 @@ function Step({ guide, eyebrow, title, blurb, children }) {
 // budget warnings come off the same alert builder Home uses. Listing a feature
 // here that does not exist would be the fastest way to make the permission
 // feel like a trick.
+//
+// The first two rows are real pushes as of 2026-08-19 (see
+// supabase/functions/send-reminders) — a daily nudge, and a bill or salary
+// landing within a day or two. The last two are honestly marked as not built
+// yet: they already exist as in-app cards on Home, but nothing pushes them to
+// your phone. Listing something here that doesn't happen would make this
+// screen a trick, which is the one thing it can't be.
 function AlertsStep({ onDone }) {
   const { user, updateReminderHour, reminderHour } = useAuth()
   const [busy, setBusy] = useState(false)
@@ -404,10 +482,10 @@ function AlertsStep({ onDone }) {
   const initial = useEntrance() ? 'hidden' : false
 
   const PERKS = [
-    { icon: '⏳', title: t('Before you get charged'), sub: t('Rent and subscriptions, before they land') },
-    { icon: '🔁', title: t('Coming payments'), sub: t('Whatever is due in the next few weeks') },
-    { icon: '🎯', title: t('When a budget is nearly gone'), sub: t('While you can still do something about it') },
-    { icon: '📊', title: t('A quiet weekly summary'), sub: t('What happened to your money, once a week') },
+    { icon: '🔔', title: t('A daily nudge'), sub: t('If you haven’t logged anything by evening') },
+    { icon: '⏳', title: t('Bills before they land'), sub: t('A day or two before a subscription or your salary') },
+    { icon: '🎯', title: t('Budget nearly gone'), sub: t('Coming soon — for now it’s a card here in the app'), soon: true },
+    { icon: '📊', title: t('A weekly summary'), sub: t('Coming soon — for now it’s a card here in the app'), soon: true },
   ]
 
   const turnOn = async () => {
@@ -451,10 +529,16 @@ function AlertsStep({ onDone }) {
 
       <div className="space-y-2">
         {PERKS.map((p) => (
-          <motion.div key={p.title} variants={RISE} className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-card">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">{p.icon}</span>
+          <motion.div
+            key={p.title}
+            variants={RISE}
+            className={`flex items-center gap-3 rounded-2xl px-4 py-3 shadow-card ${p.soon ? 'bg-white/60' : 'bg-white'}`}
+          >
+            <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg ${p.soon ? 'bg-slate-100 grayscale' : 'bg-brand-50'}`}>
+              {p.icon}
+            </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-semibold leading-tight">{p.title}</span>
+              <span className={`block font-semibold leading-tight ${p.soon ? 'text-muted' : ''}`}>{p.title}</span>
               <span className="block text-xs text-muted">{p.sub}</span>
             </span>
           </motion.div>
@@ -583,19 +667,45 @@ function AddSheet({ kind, onClose, onAdd, existing = [] }) {
   const [amount, setAmount] = useState('')
   const [icon, setIcon] = useState(null)
   const [accountKind, setAccountKind] = useState('bank')
-  // Shares can be entered as a total, or as quantity × price if that's how you
-  // hold the number in your head. Both end up as one value.
-  const [byUnits, setByUnits] = useState(false)
-  const [qty, setQty] = useState('')
-  const [unit, setUnit] = useState('')
+  // An asset either tracks the real market (ticker + units) or is worth
+  // whatever you say it's worth (a flat, a private stake, cash) — the same
+  // split Wealth's own "add an asset" sheet uses, so typing "SP500" and a
+  // total here no longer produces something that looks like a real holding
+  // but is actually frozen text, the way it used to.
+  const [ticker, setTicker] = useState('')
+  const [units, setUnits] = useState('')
+  const [livePrice, setLivePrice] = useState(null)
+  const [lookingUp, setLookingUp] = useState(false)
 
   const presets = kind === 'accounts' ? ACCOUNT_KINDS : kind === 'assets' ? ASSET_KINDS : DEBT_KINDS
-  const computed = byUnits ? num(qty) * num(unit) : num(amount)
+  const tick = ticker.trim().toUpperCase()
+  const tracked = kind === 'assets' && !!tick && !!livePrice && num(units) > 0
+  const computed = tracked ? num(units) * livePrice.price : num(amount)
   const canSave = !!name.trim() && computed > 0
 
-  const reset = () => { setName(''); setAmount(''); setIcon(null); setByUnits(false); setQty(''); setUnit(''); setAccountKind('bank') }
+  const reset = () => { setName(''); setAmount(''); setIcon(null); setTicker(''); setUnits(''); setLivePrice(null); setAccountKind('bank') }
 
   const title = kind === 'accounts' ? t('Add an account') : kind === 'assets' ? t('Add an asset') : t('Add a debt')
+
+  // Look the ticker up while you type it, exactly as Wealth's own sheet does,
+  // so a typo shows itself here rather than as a holding that quietly never
+  // moves with the market. A ref rather than a plain variable, since a plain
+  // one would be recreated every render and lose track of the previous
+  // timer — the debounce would stop debouncing and fire a lookup per
+  // keystroke instead of once you pause.
+  const lookupTimer = useRef(null)
+  const doLookup = (value) => {
+    setTicker(value)
+    clearTimeout(lookupTimer.current)
+    const t2 = value.trim().toUpperCase()
+    if (kind !== 'assets' || !t2) { setLivePrice(null); setLookingUp(false); return }
+    setLookingUp(true)
+    lookupTimer.current = setTimeout(async () => {
+      const q = await fetchQuotes([t2])
+      setLivePrice(q[t2] || null)
+      setLookingUp(false)
+    }, 500)
+  }
 
   return (
     <Sheet open={!!kind} onClose={() => { reset(); onClose() }}>
@@ -632,36 +742,23 @@ function AddSheet({ kind, onClose, onAdd, existing = [] }) {
         </div>
 
         {kind === 'assets' && (
-          <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
-            {[
-              { v: false, l: t('By total') },
-              { v: true, l: t('By units') },
-            ].map((o) => (
-              <Tap
-                key={String(o.v)}
-                onClick={() => setByUnits(o.v)}
-                className={`flex-1 rounded-full py-2 text-sm font-semibold ${byUnits === o.v ? 'bg-white text-ink shadow-card' : 'text-muted'}`}
-              >
-                {o.l}
-              </Tap>
-            ))}
-          </div>
+          <>
+            <div>
+              <label className="label">{t('Ticker (optional)')}</label>
+              <input className="field" value={ticker} onChange={(e) => doLookup(e.target.value.toUpperCase())} placeholder={t('e.g. VUAA.L')} />
+              <p className="mt-1 px-1 text-xs text-muted">
+                {t('Use the exchange suffix — VUAA.L (London), VWCE.DE (Xetra), SAN.MC (Madrid). No suffix means a US listing.')}
+              </p>
+            </div>
+            <div>
+              <label className="label">{t('How many units')}</label>
+              <input className="field" inputMode="decimal" value={units}
+                onChange={(e) => setUnits(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder={t('e.g. 12')} />
+            </div>
+          </>
         )}
 
-        {kind === 'assets' && byUnits ? (
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="label">{t('Quantity')}</label>
-              <input className="field tnum" inputMode="decimal" value={qty} placeholder="0"
-                onChange={(e) => setQty(e.target.value.replace(/[^0-9.,]/g, ''))} />
-            </div>
-            <div>
-              <label className="label">{t('Cost per unit')}</label>
-              <input className="field tnum" inputMode="decimal" value={unit} placeholder="0"
-                onChange={(e) => setUnit(e.target.value.replace(/[^0-9.,]/g, ''))} />
-            </div>
-          </div>
-        ) : (
+        {!tracked && (
           <div>
             <label className="label">{kind === 'debts' ? t('How much is left to pay?') : t('What it is worth today')}</label>
             <input className="field tnum text-2xl font-bold" inputMode="decimal" value={amount} placeholder="0"
@@ -669,8 +766,20 @@ function AddSheet({ kind, onClose, onAdd, existing = [] }) {
           </div>
         )}
 
-        {byUnits && computed > 0 && (
-          <p className="text-center text-sm font-medium text-brand-600">{money(computed)}</p>
+        {kind === 'assets' && lookingUp && <p className="px-1 text-sm text-muted">{t('Looking up {ticker}…', { ticker: tick })}</p>}
+        {kind === 'assets' && !lookingUp && tick && !livePrice && (
+          <p className="px-1 text-sm text-muted">
+            {t('No live price for that ticker — it will use the value you type. Check the exchange suffix.')}
+          </p>
+        )}
+        {kind === 'assets' && livePrice && (
+          <div className="rounded-2xl bg-brand-50 px-4 py-3">
+            <p className="text-sm text-muted">
+              {t('{ticker} · {price} per unit', { ticker: tick, price: money(livePrice.price) })}
+              {livePrice.rawCurrency !== livePrice.currency && t(' (converted from {cur})', { cur: livePrice.rawCurrency })}
+            </p>
+            {num(units) > 0 && <p className="text-xl font-bold">{money(computed)}</p>}
+          </div>
         )}
 
         <Tap
@@ -682,7 +791,9 @@ function AddSheet({ kind, onClose, onAdd, existing = [] }) {
               amount: String(computed),
               icon,
               kind: accountKind,
-              note: byUnits && num(qty) > 0 ? t('{q} × {p}', { q: qty, p: money(num(unit)) }) : null,
+              ...(tracked
+                ? { ticker: tick, units: num(units), unitPrice: livePrice.price, priceCurrency: livePrice.currency, note: t('{ticker} · live', { ticker: tick }) }
+                : {}),
             })
             reset()
           }}

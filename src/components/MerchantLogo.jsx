@@ -27,10 +27,18 @@ const SOURCES = [
   (d) => `https://icons.duckduckgo.com/ip3/${d}.ico`,
 ]
 
-// Remembers, per tab, which source produced a real logo for a domain — or
-// that none did. A shop with no logo anywhere is asked about once and then
-// renders instantly from then on.
-const resolved = new Map() // domain -> working source index, or -1 for none
+// Remembers, per tab, which source produced a real logo for a domain, so a
+// shop already confirmed good renders instantly on every later screen.
+//
+// Deliberately only remembers SUCCESS, never failure. It used to also cache
+// -1 for "no source worked", permanently — but a store's wifi glitching once
+// while a receipt was open would blacklist that shop's logo for the rest of
+// the session, on every screen, for everyone at that table. `check:logos`
+// shows a real "no logo anywhere" outcome is rare (0 of 75 known shops); a
+// timeout is almost always the network having a bad moment, not the logo
+// missing, and retrying costs one request the next time that shop shows up —
+// far cheaper than a wrongly-permanent letter badge.
+const resolved = new Map() // domain -> working source index
 
 // If a source hasn't answered in this long, stop waiting on it. Without a
 // timeout a request that neither loads nor errors (offline, DNS black hole,
@@ -73,11 +81,7 @@ export default function MerchantLogo({ name, size = 40, className = '', fallback
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trying, loaded, srcIndex, domain])
 
-  const advance = () => {
-    const next = srcIndex + 1
-    if (domain) resolved.set(domain, next >= SOURCES.length ? -1 : next)
-    setSrcIndex(next)
-  }
+  const advance = () => setSrcIndex((i) => i + 1)
 
   const letter = String(name || '?').trim().charAt(0).toUpperCase() || '?'
   const box = { width: size, height: size }

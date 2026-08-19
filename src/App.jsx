@@ -29,7 +29,6 @@ import Salary from './pages/Salary'
 import Tax from './pages/Tax'
 import Dates from './pages/Dates'
 import Recurring from './pages/Recurring'
-import Automate from './pages/Automate'
 
 // The browser keeps the previous page's scroll position when the route
 // changes, so opening Add from halfway down Home dropped you into the middle
@@ -119,7 +118,6 @@ function Shell() {
           {/* Superseded by /movements, which shows money in as well as out.
               Kept as a redirect so old links and saved icons still land. */}
           <Route path="/expenses" element={<Navigate to="/movements" replace />} />
-          <Route path="/automate" element={<Automate />} />
           <Route path="/tax" element={<Tax />} />
           <Route path="/dates" element={<Dates />} />
           <Route path="/settings" element={<Settings />} />

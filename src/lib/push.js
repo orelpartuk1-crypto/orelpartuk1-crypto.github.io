@@ -25,10 +25,28 @@ export async function enablePush(userId) {
   const reg = await navigator.serviceWorker.ready
   let sub = await reg.pushManager.getSubscription()
   if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    })
+    // subscribe() has to reach Apple's own push service to mint an endpoint,
+    // and that specific request is the flaky part — a "TypeError: Load
+    // failed" straight after granting permission, that then works fine on
+    // the very next try, is a known rough edge of iOS web push rather than
+    // anything wrong here. One silent retry absorbs that instead of handing
+    // the raw browser error to someone who just tapped a button.
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      })
+    } catch {
+      await new Promise((r) => setTimeout(r, 900))
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        })
+      } catch {
+        throw new Error('Couldn’t reach the push service — try again in a moment.')
+      }
+    }
   }
   const json = sub.toJSON()
   const { error } = await supabase.from('push_subscriptions').upsert(

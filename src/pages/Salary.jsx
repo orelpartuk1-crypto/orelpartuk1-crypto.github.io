@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useRecurring } from '../hooks/useRecurring'
 import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
 import { t } from '../lib/i18n'
@@ -12,6 +13,11 @@ const num = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 // month it actually arrived instead of inflating every month from here.
 export default function Salary() {
   const { profile, updateMonthlyIncome } = useAuth()
+  const { items: recurringItems } = useRecurring()
+  // The get-to-know flow (and "Every month") can save your salary as a real
+  // recurring income instead of this declared figure. When one is active it's
+  // the source Home actually uses — this field would otherwise double it.
+  const recurringSalary = recurringItems.find((r) => r.kind === 'income' && r.active)
   const [salary, setSalary] = useState(String(profile?.monthly_income ?? ''))
   const [saved, setSaved] = useState(false)
 
@@ -46,8 +52,13 @@ export default function Salary() {
               {saved ? t('Saved ✓') : t('Save')}
             </button>
           </div>
-          {current > 0 && (
+          {current > 0 && !recurringSalary && (
             <p className="text-sm text-muted">{t('Currently counted as {amount} every month.', { amount: money(current) })}</p>
+          )}
+          {recurringSalary && (
+            <p className="text-sm text-muted">
+              {t('“{name}” is already set up as recurring income ({amount}/month) — that’s what actually counts. This field is only used when no recurring income is active.', { name: recurringSalary.name, amount: money(Number(recurringSalary.amount)) })}
+            </p>
           )}
         </div>
 
