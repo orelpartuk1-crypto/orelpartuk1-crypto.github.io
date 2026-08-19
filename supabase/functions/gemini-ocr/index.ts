@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
     const prompt = `You are reading a shop receipt (likely Spanish, from Madrid). Extract:
 - amount: the FINAL total paid (look for "TOTAL", "TOTAL A PAGAR" — not subtotal, not IVA line alone).
 - date: the receipt's date, as YYYY-MM-DD.
-- merchant: the shop or business name as printed at the top of the receipt (e.g. "Mercadona", "Clínica Dental Ruiz"). This becomes the expense's title, so a real name matters far more than perfect formatting.
+- merchant: the shop or business name (e.g. "Mercadona", "Zara", "Clínica Dental Ruiz"). This becomes the expense's title, so a real name matters far more than perfect formatting. Read it from ANYWHERE on the receipt, not only the top line: the brand is often a logo image rather than text, and the printed text may only be a legal entity ("INDUSTRIA DE DISEÑO TEXTIL SA" is Zara, "DISTRIBUIDORA INTERNACIONAL DE ALIMENTACION" is Dia) or a store code. Prefer the name a customer would actually say — the shopfront brand — over the legal name. Check the logo, the header, the footer, the loyalty-card line and the web address if one is printed: "zara.com" in the footer means the merchant is Zara. Return the brand alone, without branch numbers, addresses or "S.A."/"S.L.".
 - category: pick the single best fit from the allowed list, based on the shop/items.
 - items: the products bought. Skip barcodes, taxes, payment lines and totals. If the category isn't Groceries you may return an empty array.
 

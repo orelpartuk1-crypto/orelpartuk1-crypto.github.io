@@ -4,6 +4,7 @@ import { useRecurring } from '../hooks/useRecurring'
 import { useDates } from '../hooks/useDates'
 import { upcomingPayments } from '../lib/upcoming'
 import { money, dayLabel } from '../lib/format'
+import { t } from '../lib/i18n'
 import TopBar from '../components/TopBar'
 import { Screen, Stagger, Item } from '../components/motion'
 
@@ -28,9 +29,9 @@ export default function Upcoming() {
   // kinds of concern.
   const buckets = useMemo(() => {
     const b = [
-      { key: 'week', label: 'Next 7 days', rows: [] },
-      { key: 'month', label: 'Rest of the month', rows: [] },
-      { key: 'later', label: 'Later', rows: [] },
+      { key: 'week', label: t('Next 7 days'), rows: [] },
+      { key: 'month', label: t('Rest of the month'), rows: [] },
+      { key: 'later', label: t('Later'), rows: [] },
     ]
     for (const r of rows) {
       if (r.days <= 7) b[0].rows.push(r)
@@ -42,23 +43,23 @@ export default function Upcoming() {
 
   return (
     <div className="pb-28">
-      <TopBar title="Upcoming" subtitle="The next three months" back />
+      <TopBar title={t('Upcoming')} subtitle={t('The next three months')} back />
       <Screen className="mx-auto max-w-md px-4 space-y-4">
         <div className="rounded-xl3 bg-mint-200 p-5">
           <div className="grid grid-cols-2 divide-x divide-brand-500/15">
             <div className="text-center">
-              <p className="text-xs font-medium text-brand-700/70">Going out</p>
+              <p className="text-xs font-medium text-brand-700/70">{t('Going out')}</p>
               <p className="tnum text-xl font-bold text-spend">{money(totalOut)}</p>
             </div>
             <div className="text-center">
-              <p className="text-xs font-medium text-brand-700/70">Coming in</p>
+              <p className="text-xs font-medium text-brand-700/70">{t('Coming in')}</p>
               <p className="tnum text-xl font-bold text-earn">{money(totalIn)}</p>
             </div>
           </div>
         </div>
 
         {rows.length === 0 && (
-          <p className="py-12 text-center text-muted">Nothing scheduled. Add a recurring charge and it'll show up here.</p>
+          <p className="py-12 text-center text-muted">{t("Nothing scheduled. Add a recurring charge and it'll show up here.")}</p>
         )}
 
         {buckets.map((b) => (
@@ -74,7 +75,7 @@ export default function Upcoming() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{u.label}</span>
                       <span className="block text-xs text-muted">
-                        {u.days === 0 ? 'Today' : u.days === 1 ? 'Tomorrow' : `In ${u.days} days`} · {dayLabel(u.date)}
+                        {u.days === 0 ? t('Today') : u.days === 1 ? t('Tomorrow') : t('In {n} days', { n: u.days })} · {dayLabel(u.date)}
                       </span>
                     </span>
                     {u.amount > 0 && (

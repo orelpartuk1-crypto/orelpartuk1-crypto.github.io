@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { GROCERY_ITEMS } from '../lib/groceryItems'
+import { t } from '../lib/i18n'
 
 // Lets you tag a groceries expense with the actual items bought (+ optional price).
 // items: [{ name, price }]  onChange(items)  onUseTotal(sum)
@@ -36,12 +37,12 @@ export default function GrocerySelector({ items, onChange, onUseTotal }) {
   return (
     <div className="rounded-2xl border border-slate-200 p-3 space-y-3">
       <div>
-        <label className="label">What did you buy? (optional)</label>
+        <label className="label">{t('What did you buy? (optional)')}</label>
         <input
           className="field"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search items… e.g. shampoo"
+          placeholder={t('Search items… e.g. shampoo')}
         />
       </div>
 
@@ -50,7 +51,7 @@ export default function GrocerySelector({ items, onChange, onUseTotal }) {
         <div className="flex flex-wrap gap-2">
           {q.trim() && !exactExists && (
             <button type="button" onClick={() => add(q)} className="rounded-full bg-brand-500 px-3 py-1.5 text-sm font-medium text-white active:scale-95">
-              + Add “{q.trim()}”
+              {t('+ Add “{q}”', { q: q.trim() })}
             </button>
           )}
           {suggestions.map((it) => (
@@ -77,16 +78,16 @@ export default function GrocerySelector({ items, onChange, onUseTotal }) {
                   placeholder="0"
                 />
               </div>
-              <button type="button" onClick={() => remove(i)} className="text-slate-300 hover:text-red-500 px-1" aria-label="Remove">
+              <button type="button" onClick={() => remove(i)} className="text-slate-300 hover:text-red-500 px-1" aria-label={t('Remove')}>
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
               </button>
             </div>
           ))}
           {itemsTotal > 0 && (
             <div className="flex items-center justify-between pt-1">
-              <span className="text-sm text-muted">Items total: <b className="text-ink">€{itemsTotal.toFixed(2)}</b></span>
+              <span className="text-sm text-muted">{t('Items total:')} <b className="text-ink">€{itemsTotal.toFixed(2)}</b></span>
               <button type="button" onClick={() => onUseTotal(itemsTotal)} className="text-sm font-medium text-brand-600 active:scale-95">
-                Use as amount →
+                {t('Use as amount →')}
               </button>
             </div>
           )}

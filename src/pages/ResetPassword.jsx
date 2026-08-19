@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { t } from '../lib/i18n'
 
 // Shown automatically after opening a "reset password" email link — Supabase
 // detects the recovery token in the URL and fires a PASSWORD_RECOVERY event
@@ -14,18 +15,18 @@ export default function ResetPassword() {
   const submit = async (e) => {
     e.preventDefault()
     if (password.length < 6) {
-      setMsg({ type: 'err', text: 'Password must be at least 6 characters.' })
+      setMsg({ type: 'err', text: t('Password must be at least 6 characters.') })
       return
     }
     if (password !== confirm) {
-      setMsg({ type: 'err', text: "Passwords don't match." })
+      setMsg({ type: 'err', text: t("Passwords don't match.") })
       return
     }
     setBusy(true)
     setMsg(null)
     const { error } = await updatePassword(password)
     setBusy(false)
-    if (error) setMsg({ type: 'err', text: error.message || 'Something went wrong.' })
+    if (error) setMsg({ type: 'err', text: error.message || t('Something went wrong.') })
   }
 
   return (
@@ -33,13 +34,13 @@ export default function ResetPassword() {
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-8 text-center">
           <img src="/icon.svg" alt="" className="mx-auto h-20 w-20 rounded-3xl shadow-card" />
-          <h1 className="mt-4 text-3xl font-bold">Set a new password</h1>
-          <p className="text-muted">Choose a new password for your account.</p>
+          <h1 className="mt-4 text-3xl font-bold">{t('Set a new password')}</h1>
+          <p className="text-muted">{t('Choose a new password for your account.')}</p>
         </div>
 
         <form onSubmit={submit} className="card space-y-4">
           <div>
-            <label className="label">New password</label>
+            <label className="label">{t('New password')}</label>
             <input
               className="field"
               type="password"
@@ -51,7 +52,7 @@ export default function ResetPassword() {
             />
           </div>
           <div>
-            <label className="label">Confirm password</label>
+            <label className="label">{t('Confirm password')}</label>
             <input
               className="field"
               type="password"
@@ -66,7 +67,7 @@ export default function ResetPassword() {
           {msg && <p className="text-sm text-red-600">{msg.text}</p>}
 
           <button className="btn-primary w-full" disabled={busy}>
-            {busy ? 'Saving…' : 'Save new password'}
+            {busy ? t('Saving…') : t('Save new password')}
           </button>
         </form>
       </div>

@@ -4,6 +4,7 @@ import { estimate } from '../lib/tax'
 import { toCSV, downloadCSV } from '../lib/csv'
 import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
+import { t } from '../lib/i18n'
 
 const num = (s) => parseFloat((String(s) || '0').replace(',', '.')) || 0
 const field = (v, set, ph) => (
@@ -60,34 +61,34 @@ export default function Tax({ onClose }) {
   const exportCSV = () => {
     const pctByCat = Object.fromEntries(businessByCategory.map((c) => [c.category, c.pct]))
     const csv = toCSV(businessRows, [
-      { key: 'spent_at', label: 'Date' },
-      { key: 'category', label: 'Category' },
-      { key: 'amount', label: 'Amount (EUR)' },
-      { label: '% Deductible', get: (e) => pctByCat[e.category] ?? 100 },
-      { label: 'Deductible amount (EUR)', get: (e) => Math.round(Number(e.amount) * ((pctByCat[e.category] ?? 100) / 100) * 100) / 100 },
-      { key: 'note', label: 'Note' },
+      { key: 'spent_at', label: t('Date') },
+      { key: 'category', label: t('Category') },
+      { key: 'amount', label: t('Amount (EUR)') },
+      { label: t('% Deductible'), get: (e) => pctByCat[e.category] ?? 100 },
+      { label: t('Deductible amount (EUR)'), get: (e) => Math.round(Number(e.amount) * ((pctByCat[e.category] ?? 100) / 100) * 100) / 100 },
+      { key: 'note', label: t('Note') },
     ])
     downloadCSV(`business-expenses-${new Date().getFullYear()}.csv`, csv)
   }
 
   return (
     <div className={onClose ? '' : 'pb-28'}>
-      <TopBar title="Business tax" subtitle={`Autónomo · Madrid · ${new Date().getFullYear()} projection`} back onBack={onClose} />
+      <TopBar title={t('Business tax')} subtitle={t('Autónomo · Madrid · {year} projection', { year: new Date().getFullYear() })} back onBack={onClose} />
       <div className="mx-auto max-w-md px-4 space-y-4">
         {/* The one number this whole screen exists to answer, first — not
             after two cards of inputs and a category editor. Same mint-200
             treatment as every other hero number in the app (Wealth, Home,
             Together…), not the old one-off brand gradient this used to be. */}
         <div className="rounded-xl3 bg-mint-200 p-5">
-          <p className="label mb-0 text-center text-brand-700/70">Projected net in your pocket this year</p>
+          <p className="label mb-0 text-center text-brand-700/70">{t('Projected net in your pocket this year')}</p>
           <p className="figure mt-1 text-center text-brand-700">{money(netInPocket)}</p>
           <div className="mt-4 grid grid-cols-2 divide-x divide-brand-500/15 border-t border-brand-500/15 pt-3">
             <div className="text-center">
-              <p className="text-xs font-medium text-brand-700/70">Est. income tax (IRPF)</p>
+              <p className="text-xs font-medium text-brand-700/70">{t('Est. income tax (IRPF)')}</p>
               <p className="tnum font-bold text-brand-700">{money(est.tax)}</p>
             </div>
             <div className="text-center">
-              <p className="text-xs font-medium text-brand-700/70">Effective rate</p>
+              <p className="text-xs font-medium text-brand-700/70">{t('Effective rate')}</p>
               <p className="tnum font-bold text-brand-700">{Math.round(est.effectiveRate * 100)}%</p>
             </div>
           </div>
@@ -95,50 +96,50 @@ export default function Tax({ onClose }) {
 
         {/* Inputs */}
         <div className="card space-y-3">
-          <h2 className="font-semibold text-lg">Your numbers</h2>
-          <div><label className="label">Expected annual revenue (€)</label>{field(income, setIncome, 'e.g. 60000')}</div>
+          <h2 className="font-semibold text-lg">{t('Your numbers')}</h2>
+          <div><label className="label">{t('Expected annual revenue (€)')}</label>{field(income, setIncome, t('e.g. 60000'))}</div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="label">Social security / month (€)</label>{field(ss, setSs, 'e.g. 300')}</div>
-            <div><label className="label">Accountant / year (€)</label>{field(accountant, setAccountant, 'e.g. 600')}</div>
+            <div><label className="label">{t('Social security / month (€)')}</label>{field(ss, setSs, t('e.g. 300'))}</div>
+            <div><label className="label">{t('Accountant / year (€)')}</label>{field(accountant, setAccountant, t('e.g. 600'))}</div>
           </div>
-          <div><label className="label">Other deductible expenses / year (€)</label>{field(extra, setExtra, '0')}</div>
+          <div><label className="label">{t('Other deductible expenses / year (€)')}</label>{field(extra, setExtra, '0')}</div>
           <div className="rounded-2xl bg-slate-50 p-3 text-sm">
-            <div className="flex justify-between"><span className="text-muted">Business expenses logged so far</span><b>{money(businessThisYear)}</b></div>
-            <div className="flex justify-between"><span className="text-muted">→ of which deductible</span><b>{money(deductibleThisYear)}</b></div>
-            <div className="flex justify-between"><span className="text-muted">→ deductible, projected for full year</span><b>{money(projectedDeductible)}</b></div>
+            <div className="flex justify-between"><span className="text-muted">{t('Business expenses logged so far')}</span><b>{money(businessThisYear)}</b></div>
+            <div className="flex justify-between"><span className="text-muted">{t('→ of which deductible')}</span><b>{money(deductibleThisYear)}</b></div>
+            <div className="flex justify-between"><span className="text-muted">{t('→ deductible, projected for full year')}</span><b>{money(projectedDeductible)}</b></div>
           </div>
-          <button className="btn-primary w-full" onClick={doSave}>{saved ? 'Saved ✓' : 'Save'}</button>
+          <button className="btn-primary w-full" onClick={doSave}>{saved ? t('Saved ✓') : t('Save')}</button>
         </div>
 
         {/* Full-year breakdown */}
         <div className="card">
-          <h2 className="font-semibold text-lg mb-1">Projected year</h2>
-          <div className="flex justify-between py-1"><span className="text-muted">Revenue</span><b>{money(num(income))}</b></div>
-          <div className="flex justify-between py-1"><span className="text-muted">− Deductible business expenses</span><b>{money(projectedDeductible)}</b></div>
-          <div className="flex justify-between py-1"><span className="text-muted">− Social security</span><b>{money(ssAnnual)}</b></div>
-          <div className="flex justify-between py-1"><span className="text-muted">− Accountant</span><b>{money(num(accountant))}</b></div>
-          {num(extra) > 0 && <div className="flex justify-between py-1"><span className="text-muted">− Other deductibles</span><b>{money(num(extra))}</b></div>}
-          <div className="flex justify-between py-1 border-t border-slate-100 mt-1 pt-2"><span className="text-muted">= Taxable profit</span><b>{money(est.profit)}</b></div>
-          <div className="flex justify-between py-1"><span className="text-muted">− Estimated IRPF</span><b>{money(est.tax)}</b></div>
-          <div className="flex justify-between py-1 border-t border-slate-100 mt-1 pt-2"><span className="font-medium">= Net in your pocket</span><b className="text-brand-600">{money(netInPocket)}</b></div>
+          <h2 className="font-semibold text-lg mb-1">{t('Projected year')}</h2>
+          <div className="flex justify-between py-1"><span className="text-muted">{t('Revenue')}</span><b>{money(num(income))}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">{t('− Deductible business expenses')}</span><b>{money(projectedDeductible)}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">{t('− Social security')}</span><b>{money(ssAnnual)}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">{t('− Accountant')}</span><b>{money(num(accountant))}</b></div>
+          {num(extra) > 0 && <div className="flex justify-between py-1"><span className="text-muted">{t('− Other deductibles')}</span><b>{money(num(extra))}</b></div>}
+          <div className="flex justify-between py-1 border-t border-slate-100 mt-1 pt-2"><span className="text-muted">{t('= Taxable profit')}</span><b>{money(est.profit)}</b></div>
+          <div className="flex justify-between py-1"><span className="text-muted">{t('− Estimated IRPF')}</span><b>{money(est.tax)}</b></div>
+          <div className="flex justify-between py-1 border-t border-slate-100 mt-1 pt-2"><span className="font-medium">{t('= Net in your pocket')}</span><b className="text-brand-600">{money(netInPocket)}</b></div>
         </div>
 
         {/* Recommendation */}
         <div className="card">
-          <h2 className="font-semibold text-lg">💡 What this means</h2>
+          <h2 className="font-semibold text-lg">{t('💡 What this means')}</h2>
           <ul className="mt-2 space-y-2 text-sm">
-            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-green-500" />Your deductions cut your tax by about <b>{money(est.taxSaved)}</b> this year.</li>
-            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />Every extra €100 of legitimate business expense saves you ~<b>{money(est.marginalRate * 100)}</b> in tax (your {Math.round(est.marginalRate * 100)}% marginal rate).</li>
-            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />Set aside roughly <b>{money(est.tax)}</b> for IRPF{ssAnnual > 0 ? ` plus ${money(ssAnnual)} for social security` : ''} across the year.</li>
+            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-green-500" />{t('Your deductions cut your tax by about')} <b>{money(est.taxSaved)}</b> {t('this year.')}</li>
+            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />{t('Every extra €100 of legitimate business expense saves you')} ~<b>{money(est.marginalRate * 100)}</b> {t('in tax (your {pct}% marginal rate).', { pct: Math.round(est.marginalRate * 100) })}</li>
+            <li className="flex gap-2"><span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />{t('Set aside roughly')} <b>{money(est.tax)}</b> {ssAnnual > 0 ? t('for IRPF plus {v} for social security across the year.', { v: money(ssAnnual) }) : t('for IRPF across the year.')}</li>
           </ul>
         </div>
 
         {/* Per-category deductibility — set by you or your gestor, never assumed */}
         {businessByCategory.length > 0 && (
           <div className="card space-y-1">
-            <h2 className="font-semibold text-lg">Deductible % by category</h2>
+            <h2 className="font-semibold text-lg">{t('Deductible % by category')}</h2>
             <p className="text-sm text-muted mb-2">
-              Set what your gestor says is deductible per category — defaults to 100%. This is documentation, not tax advice.
+              {t('Set what your gestor says is deductible per category — defaults to 100%. This is documentation, not tax advice.')}
             </p>
             <div className="divide-y divide-slate-100">
               {businessByCategory.map((c) => (
@@ -149,13 +150,11 @@ export default function Tax({ onClose }) {
         )}
 
         <button className="btn-ghost w-full" onClick={exportCSV} disabled={businessRows.length === 0}>
-          ⬇︎ Export business expenses for gestor (CSV)
+          {t('⬇︎ Export business expenses for gestor (CSV)')}
         </button>
 
         <p className="text-xs text-muted px-1">
-          ⚠️ Projection for planning only — not official tax advice. Uses approximate combined state + Madrid IRPF
-          brackets, treats social security as deductible, and extrapolates your logged expenses to a full year.
-          Confirm real figures with your gestor.
+          {t('⚠️ Projection for planning only — not official tax advice. Uses approximate combined state + Madrid IRPF brackets, treats social security as deductible, and extrapolates your logged expenses to a full year. Confirm real figures with your gestor.')}
         </p>
       </div>
     </div>
@@ -177,7 +176,7 @@ function CategoryPctRow({ row, onSave }) {
     <div className="flex items-center gap-3 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="font-medium truncate">{row.category}</p>
-        <p className="text-xs text-muted">{money(row.total)} logged · {money(row.deductible)} deductible</p>
+        <p className="text-xs text-muted">{t('{a} logged · {b} deductible', { a: money(row.total), b: money(row.deductible) })}</p>
       </div>
       <div className="flex items-center gap-1 rounded-xl bg-slate-50 px-2.5 py-1.5">
         <input

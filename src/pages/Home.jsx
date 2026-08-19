@@ -15,6 +15,7 @@ import { setPendingScan } from '../lib/pendingScan'
 import MerchantLogo from '../components/MerchantLogo'
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel, dayLabel } from '../lib/format'
+import { t } from '../lib/i18n'
 import TopBar from '../components/TopBar'
 import AlertBell from '../components/AlertBell'
 import ReceiptViewer from '../components/ReceiptViewer'
@@ -30,10 +31,10 @@ const isThisMonth = (d) => {
 
 const greeting = () => {
   const h = new Date().getHours()
-  if (h < 5) return 'Good night'
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
+  if (h < 5) return t('Good night')
+  if (h < 12) return t('Good morning')
+  if (h < 18) return t('Good afternoon')
+  return t('Good evening')
 }
 
 // Three questions, in the order they get asked: how did this month go, what
@@ -61,7 +62,7 @@ export default function Home() {
 
   const shiftMonth = (d) => setMonthDate((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))
   const atCurrentMonth = isThisMonth(monthDate)
-  const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
+  const nameOf = (id) => (id === user?.id ? t('You') : members.find((m) => m.id === id)?.display_name || '—')
   const accountName = (id) => accounts.find((a) => a.id === id)?.name || null
 
   const mine = useMemo(() => all.filter((e) => e.scope === 'private' && e.paid_by === user?.id), [all, user?.id])
@@ -106,7 +107,7 @@ export default function Home() {
         id: `i-${b.id}`,
         type: 'income',
         direction: 'in',
-        label: b.note || b.bonus_type || 'Income',
+        label: b.note || b.bonus_type || t('Income'),
         amount: Number(b.amount),
         date: b.month,
         account_id: b.account_id,
@@ -169,7 +170,7 @@ export default function Home() {
             <Tap
               onClick={() => scanInputRef.current?.click()}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab"
-              aria-label="Scan receipt"
+              aria-label={t('Scan receipt')}
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 8h3l2-2h6l2 2h3v11H4z" /><circle cx="12" cy="13" r="3.2" />
@@ -178,7 +179,7 @@ export default function Home() {
             {/* Business already has a proper entry point on Wealth ("Business
                 tax" card) — no need to duplicate it here, and one fewer icon
                 keeps this row from crowding the bell off a narrow screen. */}
-            <Tap onClick={() => nav('/profile')} className="shrink-0 rounded-full" aria-label="Profile">
+            <Tap onClick={() => nav('/profile')} className="shrink-0 rounded-full" aria-label={t('Profile')}>
               <Avatar name={profile?.display_name} size={40} />
             </Tap>
           </div>
@@ -188,12 +189,12 @@ export default function Home() {
       <Screen className="mx-auto max-w-md px-4 space-y-4">
         {/* Month */}
         <div className="flex items-center justify-between">
-          <Tap onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card" aria-label="Previous month">
+          <Tap onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card" aria-label={t('Previous month')}>
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           </Tap>
           <span className="rounded-full bg-white px-6 py-2.5 font-semibold shadow-card">{monthLabel(monthDate)}</span>
           <Tap onClick={() => !atCurrentMonth && shiftMonth(1)} disabled={atCurrentMonth}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card disabled:opacity-30" aria-label="Next month">
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card disabled:opacity-30" aria-label={t('Next month')}>
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </Tap>
         </div>
@@ -201,7 +202,7 @@ export default function Home() {
         {/* 1 — Saved this month */}
         <div className={`rounded-xl3 p-5 text-center ${over ? 'bg-rose-100' : 'bg-mint-200'}`}>
           <p className={`label mb-0 ${over ? 'text-rose-700/70' : 'text-brand-700/70'}`}>
-            {over ? 'Overspent this month' : 'Saved this month'}
+            {over ? t('Overspent this month') : t('Saved this month')}
           </p>
           <p className={`figure mt-1 ${over ? 'text-rose-700' : 'text-brand-700'}`}>
             {over ? '−' : '+'}<Counter id="home-saved" ready={!loading} value={Math.abs(saved)} format={(n) => money(n)} />
@@ -213,7 +214,7 @@ export default function Home() {
               transition={{ delay: 0.35 }}
               className={`mt-2 inline-block rounded-full px-3 py-1 text-sm font-semibold ${over ? 'bg-white/60 text-rose-700' : 'bg-white/60 text-brand-700'}`}
             >
-              {Math.round(balance.pct)}% of your income
+              {t('{pct}% of your income', { pct: Math.round(balance.pct) })}
             </motion.span>
           )}
 
@@ -224,14 +225,14 @@ export default function Home() {
               onClick={() => setDirFilter((d) => (d === 'in' ? null : 'in'))}
               className={`rounded-xl2 py-1 transition-transform duration-100 active:scale-[0.96] ${dirFilter === 'in' ? 'bg-white/60' : ''}`}
             >
-              <p className="text-xs font-medium text-muted">Income</p>
+              <p className="text-xs font-medium text-muted">{t('Income')}</p>
               <p className="tnum font-bold text-earn">{money(balance.income)}</p>
             </button>
             <button
               onClick={() => setDirFilter((d) => (d === 'out' ? null : 'out'))}
               className={`rounded-xl2 py-1 transition-transform duration-100 active:scale-[0.96] ${dirFilter === 'out' ? 'bg-white/60' : ''}`}
             >
-              <p className="text-xs font-medium text-muted">Expenses</p>
+              <p className="text-xs font-medium text-muted">{t('Expenses')}</p>
               <p className="tnum font-bold text-spend">{money(balance.spent)}</p>
             </button>
           </div>
@@ -256,19 +257,19 @@ export default function Home() {
         <Item className="card">
           <div className="flex items-baseline justify-between">
             <h2 className="label mb-0">
-              {dirFilter === 'in' ? 'Recent income' : dirFilter === 'out' ? 'Recent expenses' : 'Recent'}
+              {dirFilter === 'in' ? t('Recent income') : dirFilter === 'out' ? t('Recent expenses') : t('Recent')}
             </h2>
-            <Link to="/movements" className="text-sm font-semibold text-brand-600">View all →</Link>
+            <Link to="/movements" className="text-sm font-semibold text-brand-600">{t('View all →')}</Link>
           </div>
 
           {loading && shownMovements.length === 0 && <SkeletonRows />}
           {!loading && shownMovements.length === 0 && (
             <p className="py-8 text-center text-muted">
               {dirFilter === 'in'
-                ? `No income logged in ${monthLabel(monthDate)} yet.`
+                ? t('No income logged in {month} yet.', { month: monthLabel(monthDate) })
                 : dirFilter === 'out'
-                  ? `Nothing spent in ${monthLabel(monthDate)} yet.`
-                  : `Nothing logged in ${monthLabel(monthDate)} yet.`}
+                  ? t('Nothing spent in {month} yet.', { month: monthLabel(monthDate) })
+                  : t('Nothing logged in {month} yet.', { month: monthLabel(monthDate) })}
             </p>
           )}
 
@@ -306,12 +307,12 @@ export default function Home() {
         {/* 3 — Upcoming */}
         <Item className="card">
             <div className="flex items-baseline justify-between">
-              <h2 className="label mb-0">Coming up</h2>
-              <Link to="/upcoming" className="text-sm font-semibold text-brand-600">View all →</Link>
+              <h2 className="label mb-0">{t('Coming up')}</h2>
+              <Link to="/upcoming" className="text-sm font-semibold text-brand-600">{t('View all →')}</Link>
             </div>
           {due.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted">
-              Nothing due in the next 25 days. Rent and monthly charges appear here as their date comes round.
+              {t('Nothing due in the next 25 days. Rent and monthly charges appear here as their date comes round.')}
             </p>
           ) : (
             <Stagger className="divide-y divide-slate-100">
@@ -324,7 +325,7 @@ export default function Home() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium">{u.label}</span>
                       <span className="block text-xs text-muted">
-                        {u.days === 0 ? 'Today' : u.days === 1 ? 'Tomorrow' : `In ${u.days} days`} · {dayLabel(u.date)}
+                        {u.days === 0 ? t('Today') : u.days === 1 ? t('Tomorrow') : t('In {n} days', { n: u.days })} · {dayLabel(u.date)}
                       </span>
                     </span>
                     {u.amount > 0 && (

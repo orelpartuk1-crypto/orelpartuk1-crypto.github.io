@@ -7,6 +7,7 @@ import { useAccounts } from '../hooks/useAccounts'
 import MerchantLogo from '../components/MerchantLogo'
 import { categoryMeta } from '../lib/categories'
 import { money, dayLabel } from '../lib/format'
+import { t } from '../lib/i18n'
 import TopBar from '../components/TopBar'
 import ReceiptViewer from '../components/ReceiptViewer'
 import MovementSheet from '../components/MovementSheet'
@@ -35,7 +36,7 @@ export default function Movements() {
   const [receipt, setReceipt] = useState(null)
   const [movement, setMovement] = useState(null)
 
-  const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
+  const nameOf = (id) => (id === user?.id ? t('You') : members.find((m) => m.id === id)?.display_name || '—')
   const accountName = (id) => accounts.find((a) => a.id === id)?.name || null
 
   const rows = useMemo(() => {
@@ -66,7 +67,7 @@ export default function Movements() {
         id: `i-${b.id}`,
         type: 'income',
         direction: 'in',
-        label: b.note || b.bonus_type || 'Income',
+        label: b.note || b.bonus_type || t('Income'),
         amount: Number(b.amount),
         date: b.month,
         paid_by: b.owner,
@@ -110,8 +111,12 @@ export default function Movements() {
   return (
     <div className="pb-28">
       <TopBar
-        title={scopeLocked ? 'Shared movements' : 'All movements'}
-        subtitle={scopeLocked ? `${filtered.length} entries · shared only` : `${filtered.length} entries`}
+        title={scopeLocked ? t('Shared movements') : t('All movements')}
+        subtitle={
+          scopeLocked
+            ? t('{n} entries · shared only', { n: filtered.length })
+            : t('{n} entries', { n: filtered.length })
+        }
         back
       />
       <Screen className="mx-auto max-w-md px-4 space-y-4">
@@ -125,9 +130,9 @@ export default function Movements() {
         {!scopeLocked && (
           <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
             {[
-              { k: 'all', l: 'All' },
-              { k: 'out', l: 'Out' },
-              { k: 'in', l: 'In' },
+              { k: 'all', l: t('All') },
+              { k: 'out', l: t('Out') },
+              { k: 'in', l: t('In') },
             ].map((o) => (
               <button
                 key={o.k}
@@ -148,7 +153,7 @@ export default function Movements() {
             device where "You" already means them, wasn't. */}
         {members.length > 1 && (
           <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
-            {[{ k: 'all', l: 'Both' }, { k: user?.id, l: 'You' }].map((o) => (
+            {[{ k: 'all', l: t('Both') }, { k: user?.id, l: t('You') }].map((o) => (
               <button
                 key={o.k}
                 type="button"
@@ -163,8 +168,8 @@ export default function Movements() {
           </div>
         )}
 
-        {loading && rows.length === 0 && <p className="py-6 text-center text-muted">Loading…</p>}
-        {!loading && filtered.length === 0 && <p className="py-10 text-center text-muted">Nothing matches.</p>}
+        {loading && rows.length === 0 && <p className="py-6 text-center text-muted">{t('Loading…')}</p>}
+        {!loading && filtered.length === 0 && <p className="py-10 text-center text-muted">{t('Nothing matches.')}</p>}
 
         {groups.map((g) => (
           <Item key={g.key} className="card">

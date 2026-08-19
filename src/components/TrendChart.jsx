@@ -1,4 +1,5 @@
 import { moneyShort, money } from '../lib/format'
+import { t } from '../lib/i18n'
 
 // Simple, dependency-free SVG bar chart of monthly spending.
 // Highlights the current (last) month and marks the average.
@@ -25,7 +26,7 @@ export default function TrendChart({ data: rawData }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Monthly spending trend">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={t('Monthly spending trend')}>
         {/* average line */}
         {avg > 0 && (
           <line
@@ -67,7 +68,7 @@ export default function TrendChart({ data: rawData }) {
         })}
       </svg>
       <p className="mt-1 text-xs text-muted text-center">
-        Dashed line = {money(avg)} monthly average
+        {t('Dashed line = {avg} monthly average', { avg: money(avg) })}
       </p>
     </div>
   )

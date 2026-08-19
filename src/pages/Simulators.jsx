@@ -2,18 +2,19 @@ import { useState } from 'react'
 import TopBar from '../components/TopBar'
 import { Sheet } from '../components/motion'
 import { money } from '../lib/format'
+import { t } from '../lib/i18n'
 import { loanSummary, futureValue, fireNumber, yearsToTarget, realValue, refinance } from '../lib/finance'
 
 const num = (s) => parseFloat((String(s) || '0').replace(',', '.')) || 0
 
 const SIMS = [
-  { key: 'loan', emoji: '💶', title: 'Loan', sub: 'Payment and total interest' },
-  { key: 'car', emoji: '🚗', title: 'Car', sub: 'Can you afford it?' },
-  { key: 'house', emoji: '🏠', title: 'House', sub: 'Mortgage and deposit' },
-  { key: 'fire', emoji: '⏳', title: 'Retirement', sub: 'Your FIRE number' },
-  { key: 'invest', emoji: '📈', title: 'Invest monthly', sub: 'Compound interest' },
-  { key: 'refi', emoji: '🔁', title: 'Refinancing', sub: 'Is it worth switching?' },
-  { key: 'inflation', emoji: '🔥', title: 'Inflation', sub: 'Your money in X years' },
+  { key: 'loan', emoji: '💶', title: t('Loan'), sub: t('Payment and total interest') },
+  { key: 'car', emoji: '🚗', title: t('Car'), sub: t('Can you afford it?') },
+  { key: 'house', emoji: '🏠', title: t('House'), sub: t('Mortgage and deposit') },
+  { key: 'fire', emoji: '⏳', title: t('Retirement'), sub: t('Your FIRE number') },
+  { key: 'invest', emoji: '📈', title: t('Invest monthly'), sub: t('Compound interest') },
+  { key: 'refi', emoji: '🔁', title: t('Refinancing'), sub: t('Is it worth switching?') },
+  { key: 'inflation', emoji: '🔥', title: t('Inflation'), sub: t('Your money in X years') },
 ]
 
 // `onClose`: present when opened as a sheet from Wealth rather than as its
@@ -23,7 +24,7 @@ export default function Simulators({ onClose }) {
 
   return (
     <div className={onClose ? '' : 'pb-28'}>
-      <TopBar title="Simulators" subtitle="Explore before deciding" back onBack={onClose} />
+      <TopBar title={t('Simulators')} subtitle={t('Explore before deciding')} back onBack={onClose} />
       <div className="mx-auto max-w-md px-4 space-y-3">
         <div className="card divide-y divide-slate-100">
           {SIMS.map((s) => (
@@ -43,8 +44,7 @@ export default function Simulators({ onClose }) {
         </div>
 
         <p className="px-1 text-xs text-muted">
-          These are plain calculators — they don't read or change anything you've logged, and none of
-          it is financial advice.
+          {t("These are plain calculators — they don't read or change anything you've logged, and none of it is financial advice.")}
         </p>
       </div>
 
@@ -71,7 +71,7 @@ function SimSheet({ which, onClose }) {
           {which === 'invest' && <InvestSim />}
           {which === 'refi' && <RefiSim />}
           {which === 'inflation' && <InflationSim />}
-          <button className="btn-ghost w-full" onClick={onClose}>Close</button>
+          <button className="btn-ghost w-full" onClick={onClose}>{t('Close')}</button>
         </div>
       )}
     </Sheet>
@@ -126,15 +126,15 @@ function LoanSim() {
   const s = loanSummary(num(amount), num(rate), num(years))
   return (
     <>
-      <Field label="Amount borrowed" value={amount} onChange={setAmount} suffix="€" />
-      <Field label="Interest rate" value={rate} onChange={setRate} suffix="% a year" />
-      <Field label="Over" value={years} onChange={setYears} suffix="years" />
+      <Field label={t('Amount borrowed')} value={amount} onChange={setAmount} suffix="€" />
+      <Field label={t('Interest rate')} value={rate} onChange={setRate} suffix={t('% a year')} />
+      <Field label={t('Over')} value={years} onChange={setYears} suffix={t('years')} />
       <Result
-        headline={{ label: 'Every month', value: money(s.payment) }}
+        headline={{ label: t('Every month'), value: money(s.payment) }}
         rows={[
-          { label: 'Payments', value: `${s.months}` },
-          { label: 'Total repaid', value: money(s.totalPaid) },
-          { label: 'Of which interest', value: money(s.totalInterest) },
+          { label: t('Payments'), value: `${s.months}` },
+          { label: t('Total repaid'), value: money(s.totalPaid) },
+          { label: t('Of which interest'), value: money(s.totalInterest) },
         ]}
       />
     </>
@@ -156,26 +156,26 @@ function CarSim() {
 
   return (
     <>
-      <Field label="Price" value={price} onChange={setPrice} suffix="€" />
-      <Field label="Deposit" value={deposit} onChange={setDeposit} suffix="€" />
-      <Field label="Interest rate" value={rate} onChange={setRate} suffix="% a year" />
-      <Field label="Over" value={years} onChange={setYears} suffix="years" />
-      <Field label="Running costs" value={running} onChange={setRunning} suffix="€/month" />
-      <Field label="Your monthly income" value={income} onChange={setIncome} suffix="€" />
+      <Field label={t('Price')} value={price} onChange={setPrice} suffix="€" />
+      <Field label={t('Deposit')} value={deposit} onChange={setDeposit} suffix="€" />
+      <Field label={t('Interest rate')} value={rate} onChange={setRate} suffix={t('% a year')} />
+      <Field label={t('Over')} value={years} onChange={setYears} suffix={t('years')} />
+      <Field label={t('Running costs')} value={running} onChange={setRunning} suffix={t('€/month')} />
+      <Field label={t('Your monthly income')} value={income} onChange={setIncome} suffix="€" />
       <Result
-        headline={{ label: 'All in, every month', value: money(perMonth) }}
+        headline={{ label: t('All in, every month'), value: money(perMonth) }}
         rows={[
-          { label: 'Finance', value: money(s.payment) },
-          { label: 'Running costs', value: money(num(running)) },
-          { label: 'Share of income', value: `${share.toFixed(0)}%` },
-          { label: 'Total interest', value: money(s.totalInterest) },
+          { label: t('Finance'), value: money(s.payment) },
+          { label: t('Running costs'), value: money(num(running)) },
+          { label: t('Share of income'), value: `${share.toFixed(0)}%` },
+          { label: t('Total interest'), value: money(s.totalInterest) },
         ]}
       />
       {share > 0 && (
         <p className={`rounded-2xl p-3 text-sm ${share > 20 ? 'bg-amber-50 text-amber-800' : 'bg-brand-50 text-brand-700'}`}>
           {share > 20
-            ? `That's ${share.toFixed(0)}% of your income going on one car. Comfortable is usually under 15–20%.`
-            : `${share.toFixed(0)}% of your income — within the range most people find comfortable.`}
+            ? t("That's {pct}% of your income going on one car. Comfortable is usually under 15–20%.", { pct: share.toFixed(0) })
+            : t('{pct}% of your income — within the range most people find comfortable.', { pct: share.toFixed(0) })}
         </p>
       )}
     </>
@@ -196,23 +196,22 @@ function HouseSim() {
 
   return (
     <>
-      <Field label="Price" value={price} onChange={setPrice} suffix="€" />
-      <Field label="Deposit" value={depositPct} onChange={setDepositPct} suffix="%" />
-      <Field label="Interest rate" value={rate} onChange={setRate} suffix="% a year" />
-      <Field label="Over" value={years} onChange={setYears} suffix="years" />
+      <Field label={t('Price')} value={price} onChange={setPrice} suffix="€" />
+      <Field label={t('Deposit')} value={depositPct} onChange={setDepositPct} suffix="%" />
+      <Field label={t('Interest rate')} value={rate} onChange={setRate} suffix={t('% a year')} />
+      <Field label={t('Over')} value={years} onChange={setYears} suffix={t('years')} />
       <Result
-        headline={{ label: 'Mortgage each month', value: money(s.payment) }}
+        headline={{ label: t('Mortgage each month'), value: money(s.payment) }}
         rows={[
-          { label: 'Deposit', value: money(deposit) },
-          { label: 'Taxes & fees (~11%)', value: money(fees) },
-          { label: 'Cash needed upfront', value: money(deposit + fees) },
-          { label: 'Borrowed', value: money(borrowed) },
-          { label: 'Total interest', value: money(s.totalInterest) },
+          { label: t('Deposit'), value: money(deposit) },
+          { label: t('Taxes & fees (~11%)'), value: money(fees) },
+          { label: t('Cash needed upfront'), value: money(deposit + fees) },
+          { label: t('Borrowed'), value: money(borrowed) },
+          { label: t('Total interest'), value: money(s.totalInterest) },
         ]}
       />
       <p className="rounded-2xl bg-slate-50 p-3 text-xs text-muted">
-        Fees are a rough 11% for Spain — transfer tax, notary and registry vary by region and by
-        whether the place is new or resale. Ask your gestor for the real figure.
+        {t('Fees are a rough 11% for Spain — transfer tax, notary and registry vary by region and by whether the place is new or resale. Ask your gestor for the real figure.')}
       </p>
     </>
   )
@@ -230,16 +229,16 @@ function FireSim() {
 
   return (
     <>
-      <Field label="What you'd spend a month" value={spend} onChange={setSpend} suffix="€" />
-      <Field label="Safe withdrawal rate" value={rate} onChange={setRate} suffix="%" />
-      <Field label="Saving each month" value={saving} onChange={setSaving} suffix="€" />
-      <Field label="Already invested" value={pot} onChange={setPot} suffix="€" />
-      <Field label="Expected return" value={growth} onChange={setGrowth} suffix="% a year" />
+      <Field label={t("What you'd spend a month")} value={spend} onChange={setSpend} suffix="€" />
+      <Field label={t('Safe withdrawal rate')} value={rate} onChange={setRate} suffix="%" />
+      <Field label={t('Saving each month')} value={saving} onChange={setSaving} suffix="€" />
+      <Field label={t('Already invested')} value={pot} onChange={setPot} suffix="€" />
+      <Field label={t('Expected return')} value={growth} onChange={setGrowth} suffix={t('% a year')} />
       <Result
-        headline={{ label: 'You would need', value: money(target) }}
+        headline={{ label: t('You would need'), value: money(target) }}
         rows={[
-          { label: 'At this pace', value: years == null ? 'Never at this rate' : `${years.toFixed(1)} years` },
-          { label: 'Yearly spending', value: money(num(spend) * 12) },
+          { label: t('At this pace'), value: years == null ? t('Never at this rate') : t('{n} years', { n: years.toFixed(1) }) },
+          { label: t('Yearly spending'), value: money(num(spend) * 12) },
         ]}
       />
     </>
@@ -257,19 +256,19 @@ function InvestSim() {
 
   return (
     <>
-      <Field label="Investing each month" value={monthly} onChange={setMonthly} suffix="€" />
-      <Field label="Starting with" value={initial} onChange={setInitial} suffix="€" />
-      <Field label="Expected return" value={rate} onChange={setRate} suffix="% a year" />
-      <Field label="For" value={years} onChange={setYears} suffix="years" />
+      <Field label={t('Investing each month')} value={monthly} onChange={setMonthly} suffix="€" />
+      <Field label={t('Starting with')} value={initial} onChange={setInitial} suffix="€" />
+      <Field label={t('Expected return')} value={rate} onChange={setRate} suffix={t('% a year')} />
+      <Field label={t('For')} value={years} onChange={setYears} suffix={t('years')} />
       <Result
-        headline={{ label: `After ${num(years) || 0} years`, value: money(end) }}
+        headline={{ label: t('After {n} years', { n: num(years) || 0 }), value: money(end) }}
         rows={[
-          { label: 'You put in', value: money(paidIn) },
-          { label: 'Growth', value: money(Math.max(0, end - paidIn)) },
+          { label: t('You put in'), value: money(paidIn) },
+          { label: t('Growth'), value: money(Math.max(0, end - paidIn)) },
         ]}
       />
       <p className="rounded-2xl bg-slate-50 p-3 text-xs text-muted">
-        A steady return is an assumption, not a promise — real markets don't move in a straight line.
+        {t("A steady return is an assumption, not a promise — real markets don't move in a straight line.")}
       </p>
     </>
   )
@@ -292,24 +291,24 @@ function RefiSim() {
 
   return (
     <>
-      <Field label="Outstanding balance" value={balance} onChange={setBalance} suffix="€" />
-      <Field label="Current rate" value={current} onChange={setCurrent} suffix="%" />
-      <Field label="New rate" value={next} onChange={setNext} suffix="%" />
-      <Field label="Years left" value={years} onChange={setYears} suffix="years" />
-      <Field label="Cost to switch" value={cost} onChange={setCost} suffix="€" />
+      <Field label={t('Outstanding balance')} value={balance} onChange={setBalance} suffix="€" />
+      <Field label={t('Current rate')} value={current} onChange={setCurrent} suffix="%" />
+      <Field label={t('New rate')} value={next} onChange={setNext} suffix="%" />
+      <Field label={t('Years left')} value={years} onChange={setYears} suffix={t('years')} />
+      <Field label={t('Cost to switch')} value={cost} onChange={setCost} suffix="€" />
       <Result
         headline={{
-          label: r.monthlySaving > 0 ? 'Saved every month' : 'Extra every month',
+          label: r.monthlySaving > 0 ? t('Saved every month') : t('Extra every month'),
           value: money(Math.abs(r.monthlySaving)),
         }}
         rows={[
-          { label: 'Now', value: money(r.now) },
-          { label: 'After switching', value: money(r.next) },
+          { label: t('Now'), value: money(r.now) },
+          { label: t('After switching'), value: money(r.next) },
           {
-            label: 'Pays for itself in',
-            value: r.breakEvenMonths == null ? 'Never — it costs more' : `${r.breakEvenMonths} months`,
+            label: t('Pays for itself in'),
+            value: r.breakEvenMonths == null ? t('Never — it costs more') : t('{n} months', { n: r.breakEvenMonths }),
           },
-          { label: 'Over the full term', value: money(r.lifetimeSaving) },
+          { label: t('Over the full term'), value: money(r.lifetimeSaving) },
         ]}
       />
     </>
@@ -326,14 +325,17 @@ function InflationSim() {
 
   return (
     <>
-      <Field label="Amount today" value={amount} onChange={setAmount} suffix="€" />
-      <Field label="Inflation" value={rate} onChange={setRate} suffix="% a year" />
-      <Field label="In" value={years} onChange={setYears} suffix="years" />
+      <Field label={t('Amount today')} value={amount} onChange={setAmount} suffix="€" />
+      <Field label={t('Inflation')} value={rate} onChange={setRate} suffix={t('% a year')} />
+      {/* Context-prefixed: the bare "In" is already a dictionary key for the
+          Movements direction filter ("incoming" -> Entradas), and this one
+          means "in N years' time". Same English word, unrelated meanings. */}
+      <Field label={t('duration|In')} value={years} onChange={setYears} suffix={t('years')} />
       <Result
-        headline={{ label: `Buys what ${money(worth)} buys today`, value: money(worth) }}
+        headline={{ label: t('Buys what {v} buys today', { v: money(worth) }), value: money(worth) }}
         rows={[
-          { label: 'Purchasing power lost', value: money(lost) },
-          { label: 'That is', value: `${num(amount) > 0 ? ((lost / num(amount)) * 100).toFixed(0) : 0}%` },
+          { label: t('Purchasing power lost'), value: money(lost) },
+          { label: t('That is'), value: `${num(amount) > 0 ? ((lost / num(amount)) * 100).toFixed(0) : 0}%` },
         ]}
       />
     </>

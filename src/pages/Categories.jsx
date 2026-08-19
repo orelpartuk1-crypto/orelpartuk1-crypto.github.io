@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { useCategories } from '../hooks/useCategories'
 import TopBar from '../components/TopBar'
 import Segmented from '../components/Segmented'
+import { t } from '../lib/i18n'
 
 const COLORS = [
   '#16a34a', '#2563eb', '#db2777', '#f97316', '#d946ef', '#0891b2',
@@ -28,19 +29,19 @@ export default function Categories() {
 
   return (
     <div className="pb-28">
-      <TopBar title="Categories" subtitle="Shared with your partner" back />
+      <TopBar title={t('Categories')} subtitle={t('Shared with your partner')} back />
       <div className="mx-auto max-w-md px-4 space-y-4">
         <Segmented
           options={[
-            { value: 'expense', label: 'Spending' },
-            { value: 'income', label: 'Income' },
-            ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
+            { value: 'expense', label: t('Spending') },
+            { value: 'income', label: t('Income') },
+            ...(hasBusiness ? [{ value: 'business', label: t('💼 Business') }] : []),
           ]}
           value={scope}
           onChange={setScope}
         />
 
-        {loading && <p className="text-muted">Loading…</p>}
+        {loading && <p className="text-muted">{t('Loading…')}</p>}
 
         <div className="card divide-y divide-slate-100 py-0">
           {list.map((parent) => (
@@ -55,13 +56,13 @@ export default function Categories() {
                 <button onClick={() => setEditing(parent)} className="min-w-0 flex-1 text-left active:opacity-60">
                   <span className="block truncate font-medium leading-tight">{parent.name}</span>
                   {parent.counts_as_expense === false && (
-                    <span className="block text-[11px] leading-tight text-muted">Not counted as spending</span>
+                    <span className="block text-[11px] leading-tight text-muted">{t('Not counted as spending')}</span>
                   )}
                 </button>
                 {parent.active && (
                   <button
                     onClick={() => setAddingUnder(parent)}
-                    aria-label={`Add subcategory to ${parent.name}`}
+                    aria-label={t('Add subcategory to {name}', { name: parent.name })}
                     className="shrink-0 rounded-lg px-2 py-1 text-sm font-semibold text-brand-600 active:scale-95"
                   >
                     +
@@ -69,7 +70,7 @@ export default function Categories() {
                 )}
                 <button
                   onClick={() => update(parent.id, { active: !parent.active })}
-                  aria-label={parent.active ? `Turn off ${parent.name}` : `Turn on ${parent.name}`}
+                  aria-label={parent.active ? t('Turn off {name}', { name: parent.name }) : t('Turn on {name}', { name: parent.name })}
                   className={`flex h-6 w-10 shrink-0 items-center rounded-full px-0.5 transition-colors ${
                     parent.active ? 'justify-end bg-brand-500' : 'justify-start bg-slate-300'
                   }`}
@@ -96,7 +97,7 @@ export default function Categories() {
         </div>
 
         {addingUnder === undefined ? (
-          <button className="btn-ghost w-full" onClick={() => setAddingUnder(null)}>+ Add category</button>
+          <button className="btn-ghost w-full" onClick={() => setAddingUnder(null)}>{t('+ Add category')}</button>
         ) : (
           <CategoryForm
             parent={addingUnder}
@@ -111,8 +112,7 @@ export default function Categories() {
         )}
 
         <p className="px-1 text-xs text-muted">
-          Renaming a category updates it everywhere. A subcategory always counts toward its parent in
-          reports, so your monthly totals stay comparable.
+          {t('Renaming a category updates it everywhere. A subcategory always counts toward its parent in reports, so your monthly totals stay comparable.')}
         </p>
 
         {editing && (
@@ -137,7 +137,7 @@ function CategoryForm({ parent, scope, onSave, onCancel }) {
   const [err, setErr] = useState(null)
 
   const submit = async () => {
-    if (!name.trim()) { setErr('Give it a name.'); return }
+    if (!name.trim()) { setErr(t('Give it a name.')); return }
     setBusy(true); setErr(null)
     const error = await onSave({
       name: name.trim(),
@@ -148,33 +148,33 @@ function CategoryForm({ parent, scope, onSave, onCancel }) {
       ...(parent ? {} : { spend_type: scope === 'business' ? null : spendType }),
     })
     setBusy(false)
-    if (error) setErr(error.message || 'Could not save.')
+    if (error) setErr(error.message || t('Could not save.'))
   }
 
   return (
     <div className="card space-y-3">
       <h2 className="font-semibold">
-        {parent ? `New subcategory under ${parent.name}` : 'New category'}
+        {parent ? t('New subcategory under {name}', { name: parent.name }) : t('New category')}
       </h2>
       <div className="grid grid-cols-4 gap-2">
         <input
           className="field text-center"
           value={emoji}
           onChange={(e) => setEmoji([...e.target.value].slice(-1).join(''))}
-          aria-label="Emoji"
+          aria-label={t('Emoji')}
         />
         <input
           className="field col-span-3"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder={parent ? 'e.g. Gym' : 'e.g. Subscriptions'}
+          placeholder={parent ? t('e.g. Gym') : t('e.g. Subscriptions')}
         />
       </div>
 
       {!parent && (
         <>
           <div>
-            <label className="label">Colour</label>
+            <label className="label">{t('Colour')}</label>
             <div className="flex flex-wrap gap-2">
               {COLORS.map((c) => (
                 <button
@@ -190,9 +190,9 @@ function CategoryForm({ parent, scope, onSave, onCancel }) {
           </div>
           {scope !== 'business' && (
             <div>
-              <label className="label">Usually a</label>
+              <label className="label">{t('Usually a')}</label>
               <Segmented
-                options={[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }]}
+                options={[{ value: 'need', label: t('🧺 Need') }, { value: 'treat', label: t('🍦 Treat') }]}
                 value={spendType}
                 onChange={setSpendType}
               />
@@ -203,9 +203,9 @@ function CategoryForm({ parent, scope, onSave, onCancel }) {
 
       {err && <p className="text-sm text-red-600">{err}</p>}
       <div className="flex gap-2">
-        <button className="btn-ghost flex-1 py-3 text-base" onClick={onCancel}>Cancel</button>
+        <button className="btn-ghost flex-1 py-3 text-base" onClick={onCancel}>{t('Cancel')}</button>
         <button className="btn-primary flex-1 py-3 text-base" disabled={busy} onClick={submit}>
-          {busy ? 'Saving…' : 'Save'}
+          {busy ? t('Saving…') : t('Save')}
         </button>
       </div>
     </div>
@@ -229,17 +229,17 @@ function EditSheet({ category, onClose, onSave, onDelete }) {
       >
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-slate-300" />
         <div className="mx-auto max-w-md space-y-3">
-          <h2 className="text-xl font-bold">{isParent ? 'Edit category' : 'Edit subcategory'}</h2>
+          <h2 className="text-xl font-bold">{isParent ? t('Edit category') : t('Edit subcategory')}</h2>
 
           <div className="grid grid-cols-4 gap-2">
-            <input className="field text-center" value={emoji} onChange={(e) => setEmoji([...e.target.value].slice(-1).join(''))} aria-label="Emoji" />
+            <input className="field text-center" value={emoji} onChange={(e) => setEmoji([...e.target.value].slice(-1).join(''))} aria-label={t('Emoji')} />
             <input className="field col-span-3" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
 
           {isParent && (
             <>
               <div>
-                <label className="label">Colour</label>
+                <label className="label">{t('Colour')}</label>
                 <div className="flex flex-wrap gap-2">
                   {COLORS.map((c) => (
                     <button
@@ -255,9 +255,9 @@ function EditSheet({ category, onClose, onSave, onDelete }) {
               </div>
               {category.scope !== 'business' && (
                 <div>
-                  <label className="label">Usually a</label>
+                  <label className="label">{t('Usually a')}</label>
                   <Segmented
-                    options={[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }]}
+                    options={[{ value: 'need', label: t('🧺 Need') }, { value: 'treat', label: t('🍦 Treat') }]}
                     value={spendType}
                     onChange={setSpendType}
                   />
@@ -276,26 +276,25 @@ function EditSheet({ category, onClose, onSave, onDelete }) {
               })
             }
           >
-            Save
+            {t('Save')}
           </button>
 
           {confirmDelete ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
               <p className="text-sm font-medium text-red-800">
-                Delete “{category.name}”?
-                {childCount > 0 && ` Its ${childCount} subcategor${childCount === 1 ? 'y goes' : 'ies go'} too.`}
-                {' '}Expenses already filed under it keep their history and their totals — they just stop
-                pointing at a category you can pick again.
+                {t('Delete “{name}”?', { name: category.name })}
+                {childCount > 0 && ` ${childCount === 1 ? t('Its 1 subcategory goes too.') : t('Its {n} subcategories go too.', { n: childCount })}`}
+                {' '}{t('Expenses already filed under it keep their history and their totals — they just stop pointing at a category you can pick again.')}
               </p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <button className="btn-ghost py-2.5 text-base" onClick={() => setConfirmDelete(false)}>Keep it</button>
-                <button className="btn py-2.5 text-base bg-red-600 text-white" onClick={onDelete}>Delete</button>
+                <button className="btn-ghost py-2.5 text-base" onClick={() => setConfirmDelete(false)}>{t('Keep it')}</button>
+                <button className="btn py-2.5 text-base bg-red-600 text-white" onClick={onDelete}>{t('Delete')}</button>
               </div>
             </div>
           ) : (
             <>
-              <button className="btn-ghost w-full" onClick={() => onSave({ active: false })}>Hide from the picker</button>
-              <button className="btn-ghost w-full text-red-600" onClick={() => setConfirmDelete(true)}>Delete</button>
+              <button className="btn-ghost w-full" onClick={() => onSave({ active: false })}>{t('Hide from the picker')}</button>
+              <button className="btn-ghost w-full text-red-600" onClick={() => setConfirmDelete(true)}>{t('Delete')}</button>
             </>
           )}
         </div>

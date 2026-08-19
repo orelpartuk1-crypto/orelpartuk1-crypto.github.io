@@ -15,6 +15,7 @@ import GrocerySelector from '../components/GrocerySelector'
 import Segmented from '../components/Segmented'
 import TopBar from '../components/TopBar'
 import { money, dayLabel, isoDay } from '../lib/format'
+import { t } from '../lib/i18n'
 
 export default function ScanReceipt() {
   const nav = useNavigate()
@@ -43,9 +44,9 @@ export default function ScanReceipt() {
   const [busy, setBusy] = useState(false)
 
   const scopeOptions = [
-    { value: 'shared', label: '🤝 Shared' },
-    { value: 'private', label: '👤 Private' },
-    ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
+    { value: 'shared', label: t('🤝 Shared') },
+    { value: 'private', label: t('👤 Private') },
+    ...(hasBusiness ? [{ value: 'business', label: t('💼 Business') }] : []),
   ]
   const changeScope = (s) => {
     if (s !== scope) setCategoryId(null)
@@ -111,7 +112,7 @@ export default function ScanReceipt() {
       })))
       setStage('review')
     } catch (e2) {
-      setErr('Could not read the receipt. Try a clearer, well-lit photo.')
+      setErr(t('Could not read the receipt. Try a clearer, well-lit photo.'))
       setStage('idle')
     }
   }
@@ -132,7 +133,7 @@ export default function ScanReceipt() {
     // Not gated for editAfter — that path is heading to the Add screen
     // specifically to fill this in, which has the identical requirement itself.
     if (needsDescription && !editAfter) {
-      setErr(`What was this ${category.toLowerCase()} for? Give it a name so you'll recognise it later.`)
+      setErr(t("What was this {category} for? Give it a name so you'll recognise it later.", { category: category.toLowerCase() }))
       return
     }
     if (editAfter) {
@@ -166,7 +167,7 @@ export default function ScanReceipt() {
     // A failed upload must not lose the expense itself, so it only warns.
     if (!error && saved?.id && imageFile) {
       const { error: upErr } = await uploadReceipt(saved.id, imageFile)
-      if (upErr) setShareMsg('Expense saved, but the receipt image could not be stored.')
+      if (upErr) setShareMsg(t('Expense saved, but the receipt image could not be stored.'))
     }
     setBusy(false)
     if (error) { setErr(error.message); return }
@@ -189,23 +190,23 @@ export default function ScanReceipt() {
       if (navigator.canShare && navigator.canShare({ files: [named] })) {
         // Files only — passing title/text makes Dropbox save a second .txt alongside the image.
         await navigator.share({ files: [named] })
-        setShareMsg('Share sheet opened — pick Dropbox to save it.')
+        setShareMsg(t('Share sheet opened — pick Dropbox to save it.'))
       } else {
         // Desktop / unsupported: download the image so it can be moved manually.
         const url = URL.createObjectURL(named)
         const a = document.createElement('a')
         a.href = url; a.download = named.name; a.click()
         URL.revokeObjectURL(url)
-        setShareMsg('Sharing isn’t supported here — image downloaded instead.')
+        setShareMsg(t('Sharing isn’t supported here — image downloaded instead.'))
       }
     } catch (e) {
-      if (e?.name !== 'AbortError') setShareMsg('Couldn’t open the share sheet.')
+      if (e?.name !== 'AbortError') setShareMsg(t('Couldn’t open the share sheet.'))
     }
   }
 
   return (
     <div className="pb-32">
-      <TopBar title="Scan receipt" back />
+      <TopBar title={t('Scan receipt')} back />
       <div className="mx-auto max-w-md px-4 space-y-4">
         <input
           ref={fileRef}
@@ -224,18 +225,18 @@ export default function ScanReceipt() {
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand-500">
               <CameraIcon className="h-8 w-8" />
             </span>
-            <span className="text-lg font-semibold">Snap a receipt</span>
-            <span className="text-sm text-muted">We'll read the total automatically</span>
+            <span className="text-lg font-semibold">{t('Snap a receipt')}</span>
+            <span className="text-sm text-muted">{t("We'll read the total automatically")}</span>
           </button>
         )}
 
         {preview && (
-          <img src={preview} alt="receipt" className="w-full rounded-xl2 object-cover max-h-56 shadow-card" />
+          <img src={preview} alt={t('receipt')} className="w-full rounded-xl2 object-cover max-h-56 shadow-card" />
         )}
 
         {stage === 'scanning' && (
           <div className="card">
-            <p className="font-semibold">Reading receipt…</p>
+            <p className="font-semibold">{t('Reading receipt…')}</p>
             <div className="mt-3 h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
               <div
                 className="h-full rounded-full bg-brand-500 transition-all"
@@ -249,7 +250,7 @@ export default function ScanReceipt() {
         {stage === 'review' && (
           <>
             <div className="card">
-              <p className="text-sm text-muted">Detected total</p>
+              <p className="text-sm text-muted">{t('Detected total')}</p>
               <div className="mt-1 flex items-center gap-2">
                 <span className="text-2xl font-bold text-muted">€</span>
                 <input
@@ -262,26 +263,26 @@ export default function ScanReceipt() {
               </div>
               {result?.amount == null && (
                 <p className="mt-1 text-sm text-amber-600">
-                  Couldn't detect a total — please type it in.
+                  {t("Couldn't detect a total — please type it in.")}
                 </p>
               )}
               {result?.date && (
                 <p className="mt-1 text-sm text-muted">
-                  Detected date: {dayLabel(result.date)}
+                  {t('Detected date: {d}', { d: dayLabel(result.date) })}
                 </p>
               )}
             </div>
 
             <div>
-              <label className="label">Type</label>
+              <label className="label">{t('Type')}</label>
               <Segmented options={scopeOptions} value={scope} onChange={changeScope} />
             </div>
 
             {scope !== 'business' && (
               <div>
-                <label className="label">Need or treat?</label>
+                <label className="label">{t('Need or treat?')}</label>
                 <Segmented
-                  options={[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }]}
+                  options={[{ value: 'need', label: t('🧺 Need') }, { value: 'treat', label: t('🍦 Treat') }]}
                   value={spendType}
                   onChange={setSpendType}
                 />
@@ -290,7 +291,7 @@ export default function ScanReceipt() {
 
             <div>
               <label className="label">
-                Category — guessed {categoryMeta(category).emoji}
+                {t('Category — guessed {emoji}', { emoji: categoryMeta(category).emoji })}
               </label>
               <CategoryPicker
                 value={categoryId || category}
@@ -312,7 +313,7 @@ export default function ScanReceipt() {
             {category === 'Groceries' && (
               <div>
                 <label className="label">
-                  Items {items.length > 0 ? `(${items.length} found)` : '— none detected, add them below'}
+                  {items.length > 0 ? t('Items ({n} found)', { n: items.length }) : t('Items — none detected, add them below')}
                 </label>
                 <GrocerySelector
                   items={items}
@@ -324,7 +325,7 @@ export default function ScanReceipt() {
 
             {myAccounts.length > 0 && (
               <div>
-                <label className="label">Paid from</label>
+                <label className="label">{t('Paid from')}</label>
                 <select
                   className="field"
                   value={accountId || defaultAccount?.id || ''}
@@ -337,23 +338,23 @@ export default function ScanReceipt() {
 
             <div>
               <label className="label">
-                What was it{SELF_EXPLANATORY.has(category) ? ' (optional)' : ''}
+                {SELF_EXPLANATORY.has(category) ? t('What was it (optional)') : t('What was it')}
               </label>
               <input
                 className={`field ${needsDescription && err ? 'border-spend' : ''}`}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g. dentist, haircut, massage"
+                placeholder={t('e.g. dentist, haircut, massage')}
               />
               <p className="mt-1 text-xs text-muted">
-                {result?.merchant ? 'Filled in from the receipt — change it if you prefer. ' : ''}
-                Also used as the filename when you save to Dropbox.
+                {result?.merchant ? `${t('Filled in from the receipt — change it if you prefer.')} ` : ''}
+                {t('Also used as the filename when you save to Dropbox.')}
               </p>
             </div>
 
             {result?.rawText && (
               <details className="text-xs text-muted">
-                <summary className="cursor-pointer">What the scan read (tap to view / send me)</summary>
+                <summary className="cursor-pointer">{t('What the scan read (tap to view / send me)')}</summary>
                 <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap rounded-xl bg-slate-50 p-2 text-[11px] leading-tight">{result.rawText}</pre>
               </details>
             )}
@@ -361,11 +362,11 @@ export default function ScanReceipt() {
             {dupWarn && (
               <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3">
                 <p className="text-sm font-medium text-amber-800">
-                  ⚠️ Possible duplicate — {money(value)} for {category} on {dayLabel(spentAt)} is already logged.
+                  {t('⚠️ Possible duplicate — {v} for {cat} on {d} is already logged.', { v: money(value), cat: category, d: dayLabel(spentAt) })}
                 </p>
                 <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button className="btn-ghost py-2.5 text-base" onClick={() => setDupWarn(false)}>Cancel</button>
-                  <button className="btn-primary py-2.5 text-base" disabled={busy} onClick={() => confirm(false, true)}>Add anyway</button>
+                  <button className="btn-ghost py-2.5 text-base" onClick={() => setDupWarn(false)}>{t('Cancel')}</button>
+                  <button className="btn-primary py-2.5 text-base" disabled={busy} onClick={() => confirm(false, true)}>{t('Add anyway')}</button>
                 </div>
               </div>
             )}
@@ -376,24 +377,24 @@ export default function ScanReceipt() {
                 onClick={saveToDropbox}
                 className="btn-ghost flex w-full items-center justify-center gap-2"
               >
-                <UploadIcon className="h-5 w-5" /> Save invoice to Dropbox
+                <UploadIcon className="h-5 w-5" /> {t('Save invoice to Dropbox')}
               </button>
             )}
             {shareMsg && <p className="text-center text-xs text-muted">{shareMsg}</p>}
 
             <div className="grid grid-cols-2 gap-3">
               <button className="btn-ghost" disabled={busy || value <= 0} onClick={() => confirm(true)}>
-                Edit details
+                {t('Edit details')}
               </button>
               <button className="btn-primary" disabled={busy || value <= 0} onClick={() => confirm(false)}>
-                {busy ? 'Saving…' : `Confirm ${money(value)}`}
+                {busy ? t('Saving…') : t('Confirm {v}', { v: money(value) })}
               </button>
             </div>
             <button
               className="w-full text-center text-muted"
               onClick={() => { setStage('idle'); setPreview(null); setResult(null); setImageFile(null); setShareMsg(null) }}
             >
-              Retake
+              {t('Retake')}
             </button>
           </>
         )}

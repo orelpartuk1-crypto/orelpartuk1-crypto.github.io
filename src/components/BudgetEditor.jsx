@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { categoryMeta } from '../lib/categories'
+import { t } from '../lib/i18n'
 import { Tap, Sheet } from './motion'
 
 // Shared by Analytics and Together's own Analysis tab — the two used to
@@ -20,19 +21,19 @@ export default function BudgetEditor({ cats, budgetMap, scope, onSet }) {
     <>
       <Tap
         onClick={() => setOpen(true)}
-        aria-label={`Set ${scope === 'shared' ? 'shared' : 'personal'} limits`}
+        aria-label={scope === 'shared' ? t('Set shared limits') : t('Set personal limits')}
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-muted"
       >
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
       </Tap>
       <Sheet open={open} onClose={() => setOpen(false)}>
         <div className="space-y-3">
-          <h2 className="text-xl font-bold">{scope === 'shared' ? 'Shared' : 'Personal'} limits</h2>
+          <h2 className="text-xl font-bold">{scope === 'shared' ? t('Shared limits') : t('Personal limits')}</h2>
           {options.length === 0 ? (
-            <p className="py-8 text-center text-muted">Log something first, then you can cap it.</p>
+            <p className="py-8 text-center text-muted">{t('Log something first, then you can cap it.')}</p>
           ) : (
             <>
-              <p className="text-sm text-muted">Every category paid for this month — cap what matters, leave the rest at 0.</p>
+              <p className="text-sm text-muted">{t('Every category paid for this month — cap what matters, leave the rest at 0.')}</p>
               <div className="space-y-1">
                 {options.map((category) => (
                   <LimitRow key={category} category={category} value={budgetMap[category] || 0} onSet={onSet} />
@@ -40,7 +41,7 @@ export default function BudgetEditor({ cats, budgetMap, scope, onSet }) {
               </div>
             </>
           )}
-          <button className="btn-primary w-full" onClick={() => setOpen(false)}>Done</button>
+          <button className="btn-primary w-full" onClick={() => setOpen(false)}>{t('Done')}</button>
         </div>
       </Sheet>
     </>

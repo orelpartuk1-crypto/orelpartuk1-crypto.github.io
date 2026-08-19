@@ -3,6 +3,7 @@ import { useRecurring } from '../hooks/useRecurring'
 import { useDates, daysUntil } from '../hooks/useDates'
 import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
+import { t } from '../lib/i18n'
 
 // What repeats every month, as opposed to the one-off transactions that go
 // through Add. Rent lives here too now — it's just a recurring expense like
@@ -19,19 +20,19 @@ export default function Plan() {
 
   return (
     <div className="pb-28">
-      <TopBar title="Every month" subtitle="What goes out before you spend a thing" back />
+      <TopBar title={t('Every month')} subtitle={t('What goes out before you spend a thing')} back />
       <div className="mx-auto max-w-md px-4 space-y-3">
         <Row
           to="/recurring"
           emoji="🔁"
-          title="Monthly expenses"
-          sub={activeRecurring.length ? `${activeRecurring.length} active · ${money(recurringTotal)} a month` : 'Nothing repeating yet — add rent and subscriptions here'}
+          title={t('Monthly expenses')}
+          sub={activeRecurring.length ? t('{n} active · {amount} a month', { n: activeRecurring.length, amount: money(recurringTotal) }) : t('Nothing repeating yet — add rent and subscriptions here')}
         />
         <Row
           to="/dates"
           emoji="🎂"
-          title="Important dates"
-          sub={soonest ? `${soonest.title} in ${soonest.days} day${soonest.days === 1 ? '' : 's'}` : 'Nothing coming up'}
+          title={t('Important dates')}
+          sub={soonest ? (soonest.days === 1 ? t('{title} in 1 day', { title: soonest.title }) : t('{title} in {n} days', { title: soonest.title, n: soonest.days })) : t('Nothing coming up')}
         />
       </div>
     </div>

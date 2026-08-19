@@ -11,6 +11,7 @@ import { byCategory, summarize, budgetStatus, vsLastMonth, onlySpending } from '
 import { monthlyTotals } from '../lib/coach'
 import { categoryMeta } from '../lib/categories'
 import { money, monthLabel } from '../lib/format'
+import { t } from '../lib/i18n'
 import TopBar from '../components/TopBar'
 import Donut from '../components/Donut'
 import Ring from '../components/Ring'
@@ -92,7 +93,7 @@ export default function Analytics() {
 
   const shiftMonth = (d) => setMonthDate((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))
   const atCurrentMonth = isThisMonth(monthDate)
-  const nameOf = (id) => (id === user?.id ? 'You' : members.find((m) => m.id === id)?.display_name || '—')
+  const nameOf = (id) => (id === user?.id ? t('You') : members.find((m) => m.id === id)?.display_name || '—')
 
   const sliceOf = (rows) =>
     rows.filter((e) => {
@@ -175,8 +176,8 @@ export default function Analytics() {
   const trend = useMemo(() => monthlyTotals(zoneHistory, { months: 6 }), [zoneHistory])
 
   const zones = [
-    { key: 'mine', label: '🔒 Mine' },
-    ...(hasBusiness ? [{ key: 'business', label: '💼 Business' }] : []),
+    { key: 'mine', label: '🔒 ' + t('Mine') },
+    ...(hasBusiness ? [{ key: 'business', label: '💼 ' + t('Business') }] : []),
   ]
 
   const selectCategory = (label) => setOpenCat(label)
@@ -184,25 +185,25 @@ export default function Analytics() {
   return (
     <div className="pb-28">
       <TopBar
-        title={filterType === 'need' ? 'Needs' : filterType === 'treat' ? 'Treats' : 'Analytics'}
-        subtitle={filterType === 'need' ? 'What you had to spend, together' : filterType === 'treat' ? 'What you chose to spend, together' : 'Where it went'}
+        title={filterType === 'need' ? t('Needs') : filterType === 'treat' ? t('Treats') : t('Analytics')}
+        subtitle={filterType === 'need' ? t('What you had to spend, together') : filterType === 'treat' ? t('What you chose to spend, together') : t('Where it went')}
         back={locked}
         right={
           <Link to="/movements" className="flex h-10 items-center gap-1.5 rounded-full bg-white px-3 font-medium text-brand-600 shadow-card active:scale-95">
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
             </svg>
-            All
+            {t('All')}
           </Link>
         }
       />
       <Screen className="mx-auto max-w-md px-4 space-y-4">
         <div className="flex items-center justify-between">
-          <Tap onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card" aria-label="Previous month">
+          <Tap onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card" aria-label={t('Previous month')}>
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
           </Tap>
           <span className="rounded-full bg-white px-6 py-2.5 font-semibold shadow-card">{monthLabel(monthDate)}</span>
-          <Tap onClick={() => !atCurrentMonth && shiftMonth(1)} disabled={atCurrentMonth} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card disabled:opacity-30" aria-label="Next month">
+          <Tap onClick={() => !atCurrentMonth && shiftMonth(1)} disabled={atCurrentMonth} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card disabled:opacity-30" aria-label={t('Next month')}>
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </Tap>
         </div>
@@ -223,10 +224,10 @@ export default function Analytics() {
           {/* One hero number, not two — this used to repeat the same total
               a second time in the donut's own center the moment it loaded. */}
           <div className="flex items-start justify-between">
-            <p className="label mb-0">{showingIncome ? 'Income' : 'Expenses'} by {showingIncome ? 'source' : 'category'}</p>
+            <p className="label mb-0">{showingIncome ? t('Income by source') : t('Expenses by category')}</p>
             {(activeZone === 'mine' || activeZone === 'business') && (
               <div className="flex rounded-full bg-black/[0.04] p-1 text-xs">
-                {[{ k: 'out', l: 'Out' }, { k: 'in', l: 'In' }].map((o) => (
+                {[{ k: 'out', l: t('Out') }, { k: 'in', l: t('In') }].map((o) => (
                   <Tap key={o.k} onClick={() => { setDirection(o.k); setOpenCat(null); setSpendFilter(null) }}
                     className={`rounded-full px-3 py-1.5 font-semibold ${direction === o.k ? `bg-white shadow-card ${o.k === 'in' ? 'text-earn' : 'text-spend'}` : 'text-muted'}`}>
                     {o.l}
@@ -238,7 +239,7 @@ export default function Analytics() {
 
           {loading && cats.length === 0 && <SkeletonRows />}
           {!loading && cats.length === 0 && (
-            <p className="py-8 text-center text-muted">Nothing here for {monthLabel(monthDate)}.</p>
+            <p className="py-8 text-center text-muted">{t('Nothing here for {month}.', { month: monthLabel(monthDate) })}</p>
           )}
 
           {cats.length > 0 && (
@@ -253,7 +254,7 @@ export default function Analytics() {
                   onSelect={(label) => selectCategory(label)}
                   center={
                     <>
-                      <span className="text-xs text-muted">{openCat || (spendFilter ? (spendFilter === 'need' ? '🧺 needs' : '🍦 treats') : 'total')}</span>
+                      <span className="text-xs text-muted">{openCat || (spendFilter ? (spendFilter === 'need' ? '🧺 ' + t('needs') : '🍦 ' + t('treats')) : t('total'))}</span>
                       <span className={`tnum text-2xl font-bold ${!openCat && !showingIncome ? 'text-spend' : !openCat ? 'text-earn' : ''}`}>
                         <Counter
                           id="analytics-donut"
@@ -275,9 +276,9 @@ export default function Analytics() {
               {/* Tapping a category opens its own analysis below, rather than
                   narrowing this same list down to one row. */}
               <Stagger className="divide-y divide-slate-100">
-                {displayCats.map(({ category, total: t }) => {
+                {displayCats.map(({ category, total: amt }) => {
                   const m = categoryMeta(category)
-                  const share = displayTotal > 0 ? Math.round((t / displayTotal) * 100) : 0
+                  const share = displayTotal > 0 ? Math.round((amt / displayTotal) * 100) : 0
                   const p = pace[category]
                   return (
                     <Item key={category} className="py-2">
@@ -290,14 +291,14 @@ export default function Analytics() {
                         <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ backgroundColor: m.color }} />
                         <span className="min-w-0 flex-1 truncate font-medium">{category}</span>
                         <span className="tnum shrink-0 text-sm text-muted">{share}%</span>
-                        <span className="tnum shrink-0 font-semibold">{money(t)}</span>
+                        <span className="tnum shrink-0 font-semibold">{money(amt)}</span>
                         {!showingIncome && <span className="shrink-0 text-muted">›</span>}
                       </button>
                       {p && (
                         <p className={`mt-0.5 pl-5 text-xs font-medium ${p.status === 'over' ? 'text-spend' : 'text-amber-600'}`}>
                           {p.status === 'over'
-                            ? `Past last month's ${money(p.prev)}`
-                            : `${money(p.left)} left before last month's ${money(p.prev)}`}
+                            ? t("Past last month's {prev}", { prev: money(p.prev) })
+                            : t("{left} left before last month's {prev}", { left: money(p.left), prev: money(p.prev) })}
                         </p>
                       )}
                     </Item>
@@ -322,7 +323,7 @@ export default function Analytics() {
                       onClick={() => toggleSpendFilter('need')}
                       className={`rounded-xl2 py-1 text-center transition-colors ${spendFilter === 'need' ? 'bg-brand-50' : ''}`}
                     >
-                      <p className="text-xs font-medium text-muted">🧺 Needs</p>
+                      <p className="text-xs font-medium text-muted">🧺 {t('Needs')}</p>
                       <p className="tnum font-bold text-brand-700">{money(totals.needs)}</p>
                       <p className="text-xs text-muted">{totals.total > 0 ? Math.round((totals.needs / totals.total) * 100) : 0}%</p>
                     </Tap>
@@ -330,7 +331,7 @@ export default function Analytics() {
                       onClick={() => toggleSpendFilter('treat')}
                       className={`rounded-xl2 py-1 text-center transition-colors ${spendFilter === 'treat' ? 'bg-brand-50' : ''}`}
                     >
-                      <p className="text-xs font-medium text-muted">🍦 Treats</p>
+                      <p className="text-xs font-medium text-muted">🍦 {t('Treats')}</p>
                       <p className="tnum font-bold text-brand-700">{money(totals.treats)}</p>
                       <p className="text-xs text-muted">{totals.total > 0 ? Math.round((totals.treats / totals.total) * 100) : 0}%</p>
                     </Tap>
@@ -345,10 +346,10 @@ export default function Analytics() {
         {budgetScope && !showingIncome && (
           <Item className="card">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="label mb-0">{budgetScope === 'shared' ? 'Shared budgets' : 'Your budgets'}</h2>
+              <h2 className="label mb-0">{budgetScope === 'shared' ? t('Shared budgets') : t('Your budgets')}</h2>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted">
-                  {budgetScope === 'shared' ? 'Both of you see these' : 'Only you see these'}
+                  {budgetScope === 'shared' ? t('Both of you see these') : t('Only you see these')}
                 </span>
                 <BudgetEditor
                   cats={cats}
@@ -361,13 +362,15 @@ export default function Analytics() {
 
             {budgeted.length === 0 ? (
               <p className="mt-2 text-sm text-muted">
-                No limits set for {budgetScope === 'shared' ? 'shared' : 'your private'} spending yet.
+                {budgetScope === 'shared'
+                  ? t('No limits set for shared spending yet.')
+                  : t('No limits set for your private spending yet.')}
               </p>
             ) : (
               <div className="mt-3 grid grid-cols-2 gap-3">
-                {budgeted.map(({ category, total: t }) => {
+                {budgeted.map(({ category, total: amt }) => {
                   const limit = budgetMap[category]
-                  const st = budgetStatus(t, limit)
+                  const st = budgetStatus(amt, limit)
                   const m = categoryMeta(category)
                   const color = st.status === 'over' ? '#d24a3c' : st.status === 'warn' ? '#b06a12' : m.color
                   return (
@@ -379,11 +382,13 @@ export default function Analytics() {
                       </div>
                       <p className="mt-3 text-sm font-semibold leading-tight">{category}</p>
                       <p className="tnum mt-1 text-base">
-                        <span className={st.status === 'over' ? 'font-bold text-spend' : 'font-bold text-ink'}>{money(t)}</span>
+                        <span className={st.status === 'over' ? 'font-bold text-spend' : 'font-bold text-ink'}>{money(amt)}</span>
                         <span className="text-muted"> / {money(limit)}</span>
                       </p>
                       <p className={`tnum mt-0.5 text-sm ${st.status === 'over' ? 'font-medium text-spend' : 'text-muted'}`}>
-                        {st.status === 'over' ? `${money(t - limit)} over` : `${money(limit - t)} left`}
+                        {st.status === 'over'
+                          ? t('{amount} over', { amount: money(amt - limit) })
+                          : t('{amount} left', { amount: money(limit - amt) })}
                       </p>
                     </div>
                   )
@@ -420,12 +425,12 @@ export default function Analytics() {
           return (
             <Item className="card">
               <div className="flex items-baseline justify-between">
-                <h2 className="label mb-0">Every month</h2>
+                <h2 className="label mb-0">{t('Every month')}</h2>
                 <span className={`tnum font-bold ${showingIncome ? 'text-earn' : 'text-spend'}`}>{money(monthly)}</span>
               </div>
               {scoped.length === 0 ? (
                 <p className="py-4 text-center text-sm text-muted">
-                  Nothing repeating here yet. Tick “Repeats monthly” when you add something.
+                  {t('Nothing repeating here yet. Tick “Repeats monthly” when you add something.')}
                 </p>
               ) : (
                 <Stagger className="divide-y divide-slate-100">
@@ -438,7 +443,7 @@ export default function Analytics() {
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium">{r.name}</span>
-                          <span className="block text-xs text-muted">{r.category || r.source || 'Monthly'}</span>
+                          <span className="block text-xs text-muted">{r.category || r.source || t('Monthly')}</span>
                         </span>
                         <span className="tnum shrink-0 font-semibold">{money(r.amount)}</span>
                       </Item>
@@ -446,7 +451,7 @@ export default function Analytics() {
                   })}
                 </Stagger>
               )}
-              <Link to="/recurring" className="mt-2 block text-sm font-semibold text-brand-600">Manage →</Link>
+              <Link to="/recurring" className="mt-2 block text-sm font-semibold text-brand-600">{t('Manage →')}</Link>
             </Item>
           )
         })()}
@@ -456,7 +461,7 @@ export default function Analytics() {
             hanging rather than as data still on its way in. */}
         {historyLoading && trend.length <= 1 && (
           <div className="card">
-            <h2 className="label">Last 6 months</h2>
+            <h2 className="label">{t('Last 6 months')}</h2>
             <div className="flex h-[150px] items-end gap-2 pb-[22px]">
               {[40, 65, 50, 80, 60, 90].map((h, i) => (
                 <div key={i} className="flex-1 animate-pulse rounded-lg bg-slate-100" style={{ height: `${h}%` }} />
@@ -466,7 +471,7 @@ export default function Analytics() {
         )}
         {trend.length > 1 && (
           <Item className="card">
-            <h2 className="label">Last 6 months</h2>
+            <h2 className="label">{t('Last 6 months')}</h2>
             <TrendChart data={trend} />
           </Item>
         )}
@@ -481,8 +486,8 @@ export default function Analytics() {
       <Sheet open={!!openCat && !showingIncome} onClose={() => setOpenCat(null)} className="!max-h-[55vh]">
         {openCat && (() => {
           const m = categoryMeta(openCat)
-          const t = displayCats.find((c) => c.category === openCat)?.total ?? 0
-          const share = displayTotal > 0 ? Math.round((t / displayTotal) * 100) : 0
+          const amt = displayCats.find((c) => c.category === openCat)?.total ?? 0
+          const share = displayTotal > 0 ? Math.round((amt / displayTotal) * 100) : 0
           const p = pace[openCat]
           const catExpenses = expenses.filter((e) => e.category === openCat && (!spendFilter || e.spend_type === spendFilter))
           return (
@@ -493,15 +498,15 @@ export default function Analytics() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-xl font-bold">{openCat}</h2>
-                  <p className="text-sm text-muted">{share}% of {monthLabel(monthDate)}</p>
+                  <p className="text-sm text-muted">{t('{pct}% of {month}', { pct: share, month: monthLabel(monthDate) })}</p>
                 </div>
-                <span className="tnum shrink-0 text-lg font-bold">{money(t)}</span>
+                <span className="tnum shrink-0 text-lg font-bold">{money(amt)}</span>
               </div>
               {p && (
                 <p className={`text-sm font-medium ${p.status === 'over' ? 'text-spend' : 'text-amber-600'}`}>
                   {p.status === 'over'
-                    ? `Past last month's ${money(p.prev)}`
-                    : `${money(p.left)} left before last month's ${money(p.prev)}`}
+                    ? t("Past last month's {prev}", { prev: money(p.prev) })
+                    : t("{left} left before last month's {prev}", { left: money(p.left), prev: money(p.prev) })}
                 </p>
               )}
               {openCat === 'Groceries' ? (

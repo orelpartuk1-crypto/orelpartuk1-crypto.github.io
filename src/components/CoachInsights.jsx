@@ -1,5 +1,6 @@
 import { insights } from '../lib/calc'
 import { trendInsights } from '../lib/coach'
+import { t } from '../lib/i18n'
 
 const TONE_ICON = { good: '✅', warn: '⚠️', bad: '🔴', info: '💡' }
 
@@ -20,7 +21,7 @@ export default function CoachInsights({ thisMonth, lastMonth, budgets = [], summ
 
   return (
     <div className="card space-y-1.5">
-      <h2 className="label mb-0">🧭 Worth knowing</h2>
+      <h2 className="label mb-0">🧭 {t('Worth knowing')}</h2>
       {top.map((i, idx) => (
         <p key={idx} className="text-sm leading-snug text-ink">
           {TONE_ICON[i.tone] || '💡'} {i.text}

@@ -4,6 +4,7 @@ import { groceryBreakdown } from '../lib/calc'
 import { money, monthLabel } from '../lib/format'
 import TopBar from '../components/TopBar'
 import { Screen, Stagger, Item } from '../components/motion'
+import { t } from '../lib/i18n'
 
 // What's actually in the trolley. Tapping Groceries in Analytics lands here
 // instead of just filtering the row below — a category total doesn't tell you
@@ -33,23 +34,25 @@ export default function GroceryAnalysis() {
       <TopBar title="Groceries" subtitle={monthLabel(monthDate)} back />
       <Screen className="mx-auto max-w-md px-4 space-y-4">
         <div className="rounded-xl3 bg-mint-200 p-5 text-center">
-          <p className="label mb-0 text-brand-700/70">Spent on groceries</p>
+          <p className="label mb-0 text-brand-700/70">{t('Spent on groceries')}</p>
           <p className="figure mt-1 text-brand-700">{money(receiptsTotal)}</p>
           <p className="mt-1 text-sm text-brand-700/70">
-            {groceryExpenses.length} shop{groceryExpenses.length === 1 ? '' : 's'} · {rows.length} distinct item{rows.length === 1 ? '' : 's'}
+            {groceryExpenses.length === 1 ? t('1 shop') : t('{n} shops', { n: groceryExpenses.length })}
+            {' · '}
+            {rows.length === 1 ? t('1 distinct item') : t('{n} distinct items', { n: rows.length })}
           </p>
         </div>
 
-        {loading && rows.length === 0 && <p className="py-8 text-center text-muted">Loading…</p>}
+        {loading && rows.length === 0 && <p className="py-8 text-center text-muted">{t('Loading…')}</p>}
         {!loading && rows.length === 0 && (
           <p className="py-10 text-center text-muted">
-            No itemised shops yet — scan a grocery receipt and its products will show up here.
+            {t('No itemised shops yet — scan a grocery receipt and its products will show up here.')}
           </p>
         )}
 
         {rows.length > 0 && (
           <Item className="card">
-            <h2 className="label">What you bought</h2>
+            <h2 className="label">{t('What you bought')}</h2>
             <Stagger className="divide-y divide-slate-100">
               {rows.map((r) => (
                 <Item key={r.name} className="flex items-center justify-between py-2.5">
@@ -61,7 +64,7 @@ export default function GroceryAnalysis() {
             </Stagger>
             {unitemised > 0.5 && (
               <p className="mt-3 border-t border-slate-100 pt-2 text-xs text-muted">
-                +{money(unitemised)} from shops that weren't itemised.
+                {t("+{amount} from shops that weren't itemised.", { amount: money(unitemised) })}
               </p>
             )}
           </Item>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
+import { t } from '../lib/i18n'
 
 const num = (s) => parseFloat((s || '0').replace(',', '.')) || 0
 
@@ -26,12 +27,12 @@ export default function Salary() {
 
   return (
     <div className="pb-28">
-      <TopBar title="Salary" subtitle="Your fixed monthly income" back />
+      <TopBar title={t('Salary')} subtitle={t('Your fixed monthly income')} back />
       <div className="mx-auto max-w-md px-4 space-y-4">
         <div className="card space-y-3">
-          <h2 className="font-semibold text-lg">Monthly salary</h2>
+          <h2 className="font-semibold text-lg">{t('Monthly salary')}</h2>
           <p className="text-sm text-muted">
-            What lands in your account every month, before anything extra. Change it here whenever it changes.
+            {t('What lands in your account every month, before anything extra. Change it here whenever it changes.')}
           </p>
           <div className="flex gap-2">
             <input
@@ -39,25 +40,24 @@ export default function Salary() {
               inputMode="decimal"
               value={salary}
               onChange={(e) => setSalary(e.target.value.replace(/[^0-9.,]/g, ''))}
-              placeholder="e.g. 2200"
+              placeholder={t('e.g. 2200')}
             />
             <button className="btn-primary px-5" onClick={save}>
-              {saved ? 'Saved ✓' : 'Save'}
+              {saved ? t('Saved ✓') : t('Save')}
             </button>
           </div>
           {current > 0 && (
-            <p className="text-sm text-muted">Currently counted as {money(current)} every month.</p>
+            <p className="text-sm text-muted">{t('Currently counted as {amount} every month.', { amount: money(current) })}</p>
           )}
         </div>
 
         <div className="card">
-          <h2 className="font-semibold">Got something extra?</h2>
+          <h2 className="font-semibold">{t('Got something extra?')}</h2>
           <p className="mt-1 text-sm text-muted">
-            A bonus, a freelance payment, a sale — those change month to month, so add them as income
-            on the Add screen and they'll count only in the month they arrived.
+            {t("A bonus, a freelance payment, a sale — those change month to month, so add them as income on the Add screen and they'll count only in the month they arrived.")}
           </p>
           <Link to="/add" className="btn-ghost mt-3 block w-full py-2.5 text-center text-base">
-            Add income
+            {t('Add income')}
           </Link>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { t } from '../lib/i18n'
 
 const DISMISS_KEY = 'db_install_dismissed'
 
@@ -61,19 +62,19 @@ export default function InstallPrompt() {
         <div className="flex items-start gap-3">
           <img src="/icon.svg" alt="" className="h-11 w-11 rounded-xl2" />
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">Install Duo Budget</p>
+            <p className="font-semibold">{t('Install Duo Budget')}</p>
             {isIOS() && !deferred ? (
               <p className="mt-0.5 text-sm text-muted">
-                Tap <ShareIcon className="inline h-4 w-4 -mt-0.5 text-brand-500" /> <b>Share</b>,
-                then <b>Add to Home Screen</b> — it opens full-screen like a normal app.
+                {t('Tap')} <ShareIcon className="inline h-4 w-4 -mt-0.5 text-brand-500" /> <b>{t('Share')}</b>,
+                {' '}{t('then')} <b>{t('Add to Home Screen')}</b> {t('— it opens full-screen like a normal app.')}
               </p>
             ) : (
               <p className="mt-0.5 text-sm text-muted">
-                Add it to your home screen for a full-screen, offline app.
+                {t('Add it to your home screen for a full-screen, offline app.')}
               </p>
             )}
           </div>
-          <button onClick={dismiss} className="p-1 text-slate-400" aria-label="Dismiss">
+          <button onClick={dismiss} className="p-1 text-slate-400" aria-label={t('Dismiss')}>
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M6 6l12 12M18 6 6 18" />
             </svg>
@@ -82,7 +83,7 @@ export default function InstallPrompt() {
 
         {deferred && (
           <button onClick={install} className="btn-primary mt-3 w-full py-3 text-base">
-            Install app
+            {t('Install app')}
           </button>
         )}
       </div>

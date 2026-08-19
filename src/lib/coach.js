@@ -1,6 +1,7 @@
 // Money-coach logic. Pure functions over already zone-scoped expense rows,
 // so the same helpers work for the Together and Mine zones.
 import { money } from './format'
+import { t } from './i18n'
 
 const num = (v) => Number(v) || 0
 const monthKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
@@ -62,18 +63,18 @@ export function trendInsights({ history = [], now = new Date(), months = 6 } = {
 
     // Rising streak: three completed months strictly up, latest meaningful.
     if (c >= 30 && c > b && b > a && a > 0) {
-      out.push({ tone: 'warn', category, priority: 3, text: `${category} has climbed 3 months running (${trail}).` })
+      out.push({ tone: 'warn', category, priority: 3, text: t('{category} has climbed 3 months running ({trail}).', { category, trail }) })
       continue
     }
     // Falling streak: a genuine, sustained cut — celebrate it.
     if (a >= 30 && c < b && b < a) {
-      out.push({ tone: 'good', category, priority: 3, text: `Nice — ${category} is down 3 months running (${trail}). Keep it up! 🎉` })
+      out.push({ tone: 'good', category, priority: 3, text: t('Nice — {category} is down 3 months running ({trail}). Keep it up! 🎉', { category, trail }) })
       continue
     }
     // Above its own usual: latest completed month well over the trailing average.
     if (c >= 30 && avgPrior >= 15 && c > avgPrior * 1.4) {
       const pct = Math.round(((c - avgPrior) / avgPrior) * 100)
-      out.push({ tone: 'warn', category, priority: 2, text: `${category} was ${money(c)} last month — ${pct}% above your usual ${money(avgPrior)}.` })
+      out.push({ tone: 'warn', category, priority: 2, text: t('{category} was {amount} last month — {pct}% above your usual {usual}.', { category, amount: money(c), pct, usual: money(avgPrior) }) })
     }
   }
 
@@ -155,13 +156,19 @@ export function savingsNudges({ expenses = [], budgets = [], goals = [], savedBy
     const remaining = g.target - g.saved
     const move = Math.min(headroom, remaining)
     nudges.push({
-      text: `You have about ${money(headroom)} of unused budget so far this month. Move ${money(move)} toward “${g.name}” (${money(g.saved)} / ${money(g.target)})?`,
-      cta: { label: 'Add to savings →', to: '/savings' },
+      text: t('You have about {headroom} of unused budget so far this month. Move {move} toward “{goal}” ({saved} / {target})?', {
+        headroom: money(headroom),
+        move: money(move),
+        goal: g.name,
+        saved: money(g.saved),
+        target: money(g.target),
+      }),
+      cta: { label: t('Add to savings →'), to: '/savings' },
     })
   } else {
     nudges.push({
-      text: `You have about ${money(headroom)} of unused budget so far this month. Set a savings goal and put it to work.`,
-      cta: { label: 'Create a goal →', to: '/savings' },
+      text: t('You have about {headroom} of unused budget so far this month. Set a savings goal and put it to work.', { headroom: money(headroom) }),
+      cta: { label: t('Create a goal →'), to: '/savings' },
     })
   }
   return nudges

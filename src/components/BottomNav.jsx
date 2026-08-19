@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useKeyboardInset } from '../hooks/useKeyboardInset'
+import { t } from '../lib/i18n'
 
 // Add is the single way in for any transaction — one-off or repeating, money
 // out or money in. The rest of the bar is for looking, not entering: what was
@@ -40,7 +41,7 @@ export default function BottomNav() {
         {items.map(({ to, label, icon: Icon, end, primary }) =>
           primary ? (
             // Raised above the bar so it reads as the main action, not a tab.
-            <NavLink key={to} to={to} aria-label={label} className="-mt-7 px-1">
+            <NavLink key={to} to={to} aria-label={t(label)} className="-mt-7 px-1">
               <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab transition-transform duration-150 active:scale-90">
                 <Icon className="h-7 w-7" />
               </span>
@@ -56,7 +57,7 @@ export default function BottomNav() {
               key={to}
               to={to}
               end={end}
-              aria-label={label}
+              aria-label={t(label)}
               className="flex flex-1 items-center justify-center py-1.5"
             >
               {({ isActive }) => (

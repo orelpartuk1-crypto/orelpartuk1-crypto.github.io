@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { receiptUrl } from '../lib/receipts'
 import { money, dayLabel } from '../lib/format'
+import { t } from '../lib/i18n'
 
 // Full-screen look at a stored receipt — the point is remembering what a line
 // on the list actually was, so the expense's own details sit under the picture.
@@ -42,14 +43,14 @@ export default function ReceiptViewer({ expense, onClose }) {
           <p className="truncate font-semibold">{expense.category}{expense.note ? ` · ${expense.note}` : ''}</p>
           <p className="text-sm text-white/70">{dayLabel(expense.spent_at)} · {money(expense.amount)}</p>
         </div>
-        <button onClick={onClose} aria-label="Close" className="ml-3 shrink-0 rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold">
-          Close
+        <button onClick={onClose} aria-label={t('Close')} className="ml-3 shrink-0 rounded-full bg-white/15 px-3 py-1.5 text-sm font-semibold">
+          {t('Close')}
         </button>
       </div>
       <div className="flex flex-1 items-center justify-center overflow-auto p-4" onClick={(e) => e.stopPropagation()}>
-        {!url && !failed && <p className="text-white/70">Loading receipt…</p>}
-        {failed && <p className="text-white/70">That receipt image could not be loaded.</p>}
-        {url && <img src={url} alt="Receipt" className="max-h-full max-w-full rounded-xl object-contain" />}
+        {!url && !failed && <p className="text-white/70">{t('Loading receipt…')}</p>}
+        {failed && <p className="text-white/70">{t('That receipt image could not be loaded.')}</p>}
+        {url && <img src={url} alt={t('Receipt')} className="max-h-full max-w-full rounded-xl object-contain" />}
       </div>
     </div>
   )

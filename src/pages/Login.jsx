@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { t } from '../lib/i18n'
 
 export default function Login() {
   const { signIn, signUp } = useAuth()
@@ -18,14 +19,14 @@ export default function Login() {
       if (mode === 'signup') {
         const { error } = await signUp(email.trim(), password, name.trim() || 'Me')
         if (error) throw error
-        setMsg({ type: 'ok', text: 'Account created! Check your email if confirmation is on, then sign in.' })
+        setMsg({ type: 'ok', text: t('Account created! Check your email if confirmation is on, then sign in.') })
         setMode('signin')
       } else {
         const { error } = await signIn(email.trim(), password)
         if (error) throw error
       }
     } catch (err) {
-      setMsg({ type: 'err', text: err.message || 'Something went wrong.' })
+      setMsg({ type: 'err', text: err.message || t('Something went wrong.') })
     } finally {
       setBusy(false)
     }
@@ -37,24 +38,24 @@ export default function Login() {
         <div className="mb-8 text-center">
           <img src="/icon.svg" alt="" className="mx-auto h-20 w-20 rounded-3xl shadow-card" />
           <h1 className="mt-4 text-3xl font-bold">Duo Budget</h1>
-          <p className="text-muted">Track spending together, save apart.</p>
+          <p className="text-muted">{t('Track spending together, save apart.')}</p>
         </div>
 
         <form onSubmit={submit} className="card space-y-4">
           {mode === 'signup' && (
             <div>
-              <label className="label">Your name</label>
+              <label className="label">{t('Your name')}</label>
               <input
                 className="field"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Alex"
+                placeholder={t('e.g. Alex')}
                 autoComplete="name"
               />
             </div>
           )}
           <div>
-            <label className="label">Email</label>
+            <label className="label">{t('Email')}</label>
             <input
               className="field"
               type="email"
@@ -66,7 +67,7 @@ export default function Login() {
             />
           </div>
           <div>
-            <label className="label">Password</label>
+            <label className="label">{t('Password')}</label>
             <input
               className="field"
               type="password"
@@ -85,7 +86,7 @@ export default function Login() {
           )}
 
           <button className="btn-primary w-full" disabled={busy}>
-            {busy ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
+            {busy ? t('Please wait…') : mode === 'signup' ? t('Create account') : t('Sign in')}
           </button>
         </form>
 
@@ -96,7 +97,7 @@ export default function Login() {
             setMsg(null)
           }}
         >
-          {mode === 'signin' ? "New here? Create an account" : 'Already have an account? Sign in'}
+          {mode === 'signin' ? t('New here? Create an account') : t('Already have an account? Sign in')}
         </button>
       </div>
     </div>

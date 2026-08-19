@@ -1,4 +1,5 @@
 import { money, dayLabel } from '../lib/format'
+import { t } from '../lib/i18n'
 
 // The individual expenses behind one category total, shown when you tap it.
 export default function MiniExpenseList({ expenses, nameOf, onReceipt }) {
@@ -19,7 +20,7 @@ export default function MiniExpenseList({ expenses, nameOf, onReceipt }) {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">
                   {e.note || e.category}
-                  {hasReceipt && <span className="ml-1 text-muted" aria-label="Has a receipt">🧾</span>}
+                  {hasReceipt && <span className="ml-1 text-muted" aria-label={t('Has a receipt')}>🧾</span>}
                 </p>
                 <p className="text-xs text-muted">
                   {dayLabel(e.spent_at)}{nameOf ? ` · ${nameOf(e.paid_by)}` : ''}

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { Sheet, Tap } from './motion'
 import { money, dayLabel } from '../lib/format'
 import { categoryMeta } from '../lib/categories'
+import { t } from '../lib/i18n'
 
 // The detail behind one line on the home screen. Everything about a movement in
 // one place, including the receipt, so tapping a row answers "what was that?"
@@ -21,13 +22,13 @@ export default function MovementSheet({ movement, accountName, nameOf, onClose, 
 
   const rows = m
     ? [
-        ['When', dayLabel(m.date)],
-        m.category && ['Category', m.category],
-        m.scope && ['Type', m.scope === 'shared' ? 'Shared' : m.scope === 'business' ? 'Business' : 'Private'],
-        m.spend_type && m.scope !== 'business' && ['Need or treat', m.spend_type === 'treat' ? 'Treat' : 'Need'],
-        accountName && ['Account', accountName],
-        m.paid_by && nameOf && ['Paid by', nameOf(m.paid_by)],
-        m.owed_amount > 0 && ['Owed back', money(m.owed_amount)],
+        [t('When'), dayLabel(m.date)],
+        m.category && [t('Category'), m.category],
+        m.scope && [t('Type'), m.scope === 'shared' ? t('Shared') : m.scope === 'business' ? t('Business') : t('Private')],
+        m.spend_type && m.scope !== 'business' && [t('Need or treat'), m.spend_type === 'treat' ? t('Treat') : t('Need')],
+        accountName && [t('Account'), accountName],
+        m.paid_by && nameOf && [t('Paid by'), nameOf(m.paid_by)],
+        m.owed_amount > 0 && [t('Owed back'), money(m.owed_amount)],
       ].filter(Boolean)
     : []
 
@@ -59,7 +60,7 @@ export default function MovementSheet({ movement, accountName, nameOf, onClose, 
 
         {Array.isArray(m.items) && m.items.length > 0 && (
           <div className="card">
-            <h3 className="label">What was in it</h3>
+            <h3 className="label">{t('What was in it')}</h3>
             <ul className="divide-y divide-slate-100">
               {m.items.map((it, i) => (
                 <li key={i} className="flex justify-between py-2 text-sm">
@@ -73,13 +74,13 @@ export default function MovementSheet({ movement, accountName, nameOf, onClose, 
 
         <div className="grid grid-cols-2 gap-2">
           {m.receipt_path ? (
-            <Tap className="btn-ghost py-3 text-base" onClick={() => onReceipt(m.raw)}>🧾 Receipt</Tap>
+            <Tap className="btn-ghost py-3 text-base" onClick={() => onReceipt(m.raw)}>{t('🧾 Receipt')}</Tap>
           ) : (
             <span />
           )}
           {canEdit && (
             <Tap className="btn-primary py-3 text-base" onClick={() => nav('/add', { state: { edit: m.raw } })}>
-              Edit
+              {t('Edit')}
             </Tap>
           )}
         </div>

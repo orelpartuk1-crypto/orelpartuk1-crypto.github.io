@@ -4,6 +4,7 @@ import Donut from '../components/Donut'
 import Segmented from '../components/Segmented'
 import TopBar from '../components/TopBar'
 import { money, isoDay } from '../lib/format'
+import { t } from '../lib/i18n'
 
 // `onClose`: present when opened as a sheet from Wealth rather than as its
 // own route — swaps nav(-1) for actually closing the sheet, and drops the
@@ -18,24 +19,24 @@ export default function Savings({ onClose }) {
   const [kind, setKind] = useState('saving')
 
   const createGoal = async () => {
-    const t = parseFloat((target || '').replace(',', '.'))
-    if (!name.trim() || !(t > 0)) return
-    await addGoal(name.trim(), t, scope, targetDate || null, kind)
+    const amount = parseFloat((target || '').replace(',', '.'))
+    if (!name.trim() || !(amount > 0)) return
+    await addGoal(name.trim(), amount, scope, targetDate || null, kind)
     setName(''); setTarget(''); setScope('private'); setTargetDate(''); setKind('saving'); setShowNew(false)
   }
 
   return (
     <div className={onClose ? '' : 'pb-28'}>
       <TopBar
-        title="Savings"
-        subtitle="Private to you"
+        title={t('Savings')}
+        subtitle={t('Private to you')}
         back={!!onClose}
         onBack={onClose}
         right={
           <button
             onClick={() => setShowNew((s) => !s)}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab active:scale-95"
-            aria-label="New goal"
+            aria-label={t('New goal')}
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M12 5v14M5 12h14" />
@@ -47,43 +48,43 @@ export default function Savings({ onClose }) {
       <div className="mx-auto max-w-md px-4 space-y-4">
         {showNew && (
           <div className="card space-y-3">
-            <h2 className="font-semibold text-lg">New savings goal</h2>
+            <h2 className="font-semibold text-lg">{t('New savings goal')}</h2>
             <div>
-              <label className="label">Goal name</label>
-              <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Trip to Italy" />
+              <label className="label">{t('Goal name')}</label>
+              <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Trip to Italy')} />
             </div>
             <div>
-              <label className="label">Target (€)</label>
+              <label className="label">{t('Target (€)')}</label>
               <input className="field" inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="500" />
             </div>
             <div>
-              <label className="label">Target date (optional)</label>
+              <label className="label">{t('Target date (optional)')}</label>
               <input className="field" type="date" value={targetDate} min={isoDay(new Date())} onChange={(e) => setTargetDate(e.target.value)} />
-              <p className="mt-1 text-xs text-muted">Set a date to see how much to save each month.</p>
+              <p className="mt-1 text-xs text-muted">{t('Set a date to see how much to save each month.')}</p>
             </div>
             <div>
-              <label className="label">Type</label>
+              <label className="label">{t('Type')}</label>
               <Segmented
                 options={[
-                  { value: 'saving', label: '🐷 Saving' },
-                  { value: 'investment', label: '📈 Investment' },
+                  { value: 'saving', label: t('🐷 Saving') },
+                  { value: 'investment', label: t('📈 Investment') },
                 ]}
                 value={kind}
                 onChange={setKind}
               />
             </div>
             <div>
-              <label className="label">Who's it for?</label>
+              <label className="label">{t("Who's it for?")}</label>
               <Segmented
                 options={[
-                  { value: 'private', label: '🔒 Just me' },
-                  { value: 'shared', label: '👫 Shared' },
+                  { value: 'private', label: t('🔒 Just me') },
+                  { value: 'shared', label: t('👫 Shared') },
                 ]}
                 value={scope}
                 onChange={setScope}
               />
             </div>
-            <button className="btn-primary w-full" onClick={createGoal}>Create goal</button>
+            <button className="btn-primary w-full" onClick={createGoal}>{t('Create goal')}</button>
           </div>
         )}
 
@@ -99,15 +100,15 @@ export default function Savings({ onClose }) {
         {!loading && goals.length === 0 && !showNew && (
           <div className="card py-10 text-center">
             <p className="text-4xl">🎯</p>
-            <p className="mt-2 font-semibold">No goals yet</p>
-            <p className="text-muted text-sm">Create one to start saving toward something.</p>
-            <button className="btn-primary mt-4 inline-flex" onClick={() => setShowNew(true)}>New goal</button>
+            <p className="mt-2 font-semibold">{t('No goals yet')}</p>
+            <p className="text-muted text-sm">{t('Create one to start saving toward something.')}</p>
+            <button className="btn-primary mt-4 inline-flex" onClick={() => setShowNew(true)}>{t('New goal')}</button>
           </div>
         )}
 
         {goals.some((g) => (g.kind || 'saving') === 'saving') && (
           <div className="space-y-4">
-            <h2 className="label px-1">🐷 Savings</h2>
+            <h2 className="label px-1">{t('🐷 Savings')}</h2>
             {goals.filter((g) => (g.kind || 'saving') === 'saving').map((g) => (
               <GoalCard
                 key={g.id}
@@ -122,7 +123,7 @@ export default function Savings({ onClose }) {
 
         {goals.some((g) => g.kind === 'investment') && (
           <div className="space-y-4">
-            <h2 className="label px-1">📈 Investments</h2>
+            <h2 className="label px-1">{t('📈 Investments')}</h2>
             {goals.filter((g) => g.kind === 'investment').map((g) => (
               <GoalCard
                 key={g.id}
@@ -151,12 +152,13 @@ function monthsUntil(iso) {
 
 function timeLeftLabel(months) {
   if (months == null) return null
-  if (months === 0) return 'Target date reached'
-  if (months < 1) return 'Less than a month left'
-  if (months < 12) return `${months} month${months > 1 ? 's' : ''} left`
+  if (months === 0) return t('Target date reached')
+  if (months < 1) return t('Less than a month left')
+  if (months < 12) return months > 1 ? t('{n} months left', { n: months }) : t('{n} month left', { n: months })
   const y = Math.floor(months / 12)
   const m = months % 12
-  return `${y} yr${y > 1 ? 's' : ''}${m ? ` ${m} mo` : ''} left`
+  const years = y > 1 ? t('{n} yrs', { n: y }) : t('{n} yr', { n: y })
+  return m ? t('{years} {n} mo left', { years, n: m }) : t('{years} left', { years })
 }
 
 function GoalCardSkeleton() {
@@ -208,14 +210,14 @@ function GoalCard({ goal, saved, onContribute, onDelete }) {
           <div className="flex flex-wrap items-center gap-1.5">
             <h3 className="text-lg font-semibold">{goal.name}</h3>
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${goal.scope === 'shared' ? 'bg-brand-50 text-brand-700' : 'bg-slate-100 text-muted'}`}>
-              {goal.scope === 'shared' ? '👫 Shared' : '🔒 Private'}
+              {goal.scope === 'shared' ? t('👫 Shared') : t('🔒 Private')}
             </span>
           </div>
           <p className="text-sm text-muted">
-            {money(saved)} of {money(target)} {done && '· reached! 🎉'}
+            {t('{a} of {b}', { a: money(saved), b: money(target) })} {done && t('· reached! 🎉')}
           </p>
         </div>
-        <button onClick={onDelete} className="shrink-0 text-slate-300 hover:text-red-500" aria-label="Delete goal">
+        <button onClick={onDelete} className="shrink-0 text-slate-300 hover:text-red-500" aria-label={t('Delete goal')}>
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" />
           </svg>
@@ -225,10 +227,10 @@ function GoalCard({ goal, saved, onContribute, onDelete }) {
       {goal.target_date && !done && (
         <div className={`mt-2 flex items-center justify-between rounded-2xl p-2.5 text-sm ${overdue ? 'bg-red-50 text-red-700' : 'bg-brand-50 text-brand-700'}`}>
           <span className="font-medium">
-            {overdue ? '⏰ Past target date' : `📅 ${timeLeftLabel(months)}`}
+            {overdue ? t('⏰ Past target date') : `📅 ${timeLeftLabel(months)}`}
           </span>
           {perMonth != null && (
-            <span className="font-semibold">Save {money(perMonth)}/mo</span>
+            <span className="font-semibold">{t('Save {v}/mo', { v: money(perMonth) })}</span>
           )}
         </div>
       )}
@@ -239,11 +241,11 @@ function GoalCard({ goal, saved, onContribute, onDelete }) {
           inputMode="decimal"
           value={amt}
           onChange={(e) => setAmt(e.target.value.replace(/[^0-9.,-]/g, ''))}
-          placeholder="Add contribution €"
+          placeholder={t('Add contribution €')}
         />
-        <button className="btn-primary px-5" onClick={contribute}>Add</button>
+        <button className="btn-primary px-5" onClick={contribute}>{t('Add')}</button>
       </div>
-      <p className="mt-1.5 text-xs text-muted">Tip: use a negative number to record a withdrawal.</p>
+      <p className="mt-1.5 text-xs text-muted">{t('Tip: use a negative number to record a withdrawal.')}</p>
     </div>
   )
 }

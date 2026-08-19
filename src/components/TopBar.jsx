@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { t } from '../lib/i18n'
 
 // Reusable page header. Optional back button + right-side action slot.
 // `wrap`: let the title break onto a second line instead of ellipsizing —
@@ -32,7 +33,7 @@ export default function TopBar({ title, subtitle, back = false, right = null, wr
           <button
             onClick={onBack || goBack}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-card transition-transform duration-150 active:scale-90"
-            aria-label="Back"
+            aria-label={t('Back')}
           >
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m15 18-6-6 6-6" />

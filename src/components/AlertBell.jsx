@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Sheet } from './motion'
+import { t } from '../lib/i18n'
 
 // Alerts are derived on every render from the live numbers, so they can never
 // drift out of sync with what they describe. Only "I've seen this" is stored,
@@ -69,7 +70,7 @@ export default function AlertBell({ alerts = [] }) {
       <button
         onClick={() => setOpen(true)}
         className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-card transition-transform duration-150 active:scale-90"
-        aria-label={unseen.length ? `${unseen.length} alerts` : 'Alerts'}
+        aria-label={unseen.length ? t('{n} alerts', { n: unseen.length }) : t('Alerts')}
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -85,16 +86,16 @@ export default function AlertBell({ alerts = [] }) {
       <Sheet open={open} onClose={() => setOpen(false)}>
         <div className="space-y-2">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-xl font-bold">Worth knowing</h2>
+            <h2 className="text-xl font-bold">{t('Worth knowing')}</h2>
             {alerts.length > 0 && (
               <button className="text-sm font-semibold text-brand-600" onClick={dismissAll}>
-                Mark all seen
+                {t('Mark all seen')}
               </button>
             )}
           </div>
 
           {alerts.length === 0 && (
-            <p className="py-10 text-center text-muted">Nothing needs you right now.</p>
+            <p className="py-10 text-center text-muted">{t('Nothing needs you right now.')}</p>
           )}
 
           {alerts.map((a) => (
@@ -110,13 +111,13 @@ export default function AlertBell({ alerts = [] }) {
               </div>
               {!dismissed.has(a.id) && (
                 <button onClick={() => dismiss(a.id)} className="shrink-0 text-sm font-semibold underline">
-                  Seen
+                  {t('Seen')}
                 </button>
               )}
             </div>
           ))}
 
-          <button className="btn-ghost mt-2 w-full" onClick={() => setOpen(false)}>Close</button>
+          <button className="btn-ghost mt-2 w-full" onClick={() => setOpen(false)}>{t('Close')}</button>
         </div>
       </Sheet>
     </>

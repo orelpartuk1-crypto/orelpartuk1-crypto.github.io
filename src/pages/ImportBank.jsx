@@ -9,6 +9,7 @@ import { CATEGORIES } from '../lib/categories'
 import TopBar from '../components/TopBar'
 import Segmented from '../components/Segmented'
 import { money, dayLabel } from '../lib/format'
+import { t } from '../lib/i18n'
 
 export default function ImportBank() {
   const nav = useNavigate()
@@ -35,13 +36,13 @@ export default function ImportBank() {
     try {
       const text = await file.text()
       const p = parseCSV(text)
-      if (!p.rows.length) { setErr("Couldn't find any rows in that file."); return }
+      if (!p.rows.length) { setErr(t("Couldn't find any rows in that file.")); return }
       setParsed(p)
       setMapping(guessColumns(p.headers))
       setAccountId(defaultAccount?.id || null)
       setStage('map')
     } catch {
-      setErr("Couldn't read that file. Export it as CSV from your bank and try again.")
+      setErr(t("Couldn't read that file. Export it as CSV from your bank and try again."))
     }
   }
 
@@ -87,7 +88,7 @@ export default function ImportBank() {
     let done = 0
     for (let i = 0; i < rows.length; i += 100) {
       const { error } = await supabase.from('expenses').insert(rows.slice(i, i + 100))
-      if (error) { setErr(`${error.message} — ${done} of ${rows.length} imported.`); break }
+      if (error) { setErr(`${error.message} — ${t('{done} of {total} imported.', { done, total: rows.length })}`); break }
       done += Math.min(100, rows.length - i)
     }
     setImported(done)
@@ -98,7 +99,7 @@ export default function ImportBank() {
 
   return (
     <div className="pb-28">
-      <TopBar title="Import statement" subtitle="CSV from your bank" back />
+      <TopBar title={t('Import statement')} subtitle={t('CSV from your bank')} back />
       <div className="mx-auto max-w-md px-4 space-y-4">
         {err && <p className="rounded-2xl bg-red-50 p-3 text-sm text-red-700">{err}</p>}
 
@@ -110,18 +111,16 @@ export default function ImportBank() {
               className="card flex w-full flex-col items-center gap-3 border-2 border-dashed border-slate-200 py-14 active:scale-[0.99]"
             >
               <span className="text-4xl">📄</span>
-              <span className="text-lg font-semibold">Choose a CSV file</span>
-              <span className="text-sm text-muted">Semicolons or commas, Spanish or English formats</span>
+              <span className="text-lg font-semibold">{t('Choose a CSV file')}</span>
+              <span className="text-sm text-muted">{t('Semicolons or commas, Spanish or English formats')}</span>
             </button>
             <div className="card text-sm text-muted">
-              <p className="font-semibold text-ink">Getting the file from Santander</p>
+              <p className="font-semibold text-ink">{t('Getting the file from Santander')}</p>
               <p className="mt-1">
-                Online banking → your account → movements → export. Pick CSV rather than Excel or PDF;
-                Excel files aren't readable here.
+                {t("Online banking → your account → movements → export. Pick CSV rather than Excel or PDF; Excel files aren't readable here.")}
               </p>
               <p className="mt-2">
-                Money coming in is ignored on purpose — salary and transfers are already handled
-                properly elsewhere, and importing them as spending would distort every total.
+                {t('Money coming in is ignored on purpose — salary and transfers are already handled properly elsewhere, and importing them as spending would distort every total.')}
               </p>
             </div>
           </>
@@ -130,19 +129,19 @@ export default function ImportBank() {
         {stage === 'map' && (
           <>
             <div className="card space-y-3">
-              <h2 className="font-semibold">Which column is which?</h2>
+              <h2 className="font-semibold">{t('Which column is which?')}</h2>
               <p className="text-sm text-muted">
-                Found {parsed.rows.length} rows. Check these look right — change any that don't.
+                {t("Found {n} rows. Check these look right — change any that don't.", { n: parsed.rows.length })}
               </p>
               {['date', 'description', 'amount'].map((field) => (
                 <div key={field}>
-                  <label className="label">{field}</label>
+                  <label className="label">{t(`column|${field}`)}</label>
                   <select
                     className="field"
                     value={mapping[field] || ''}
                     onChange={(e) => setMapping((m) => ({ ...m, [field]: e.target.value || null }))}
                   >
-                    <option value="">— none —</option>
+                    <option value="">{t('— none —')}</option>
                     {parsed.headers.map((h) => <option key={h} value={h}>{h}</option>)}
                   </select>
                 </div>
@@ -151,26 +150,26 @@ export default function ImportBank() {
 
             <div className="card space-y-3">
               <div>
-                <label className="label">Import into</label>
+                <label className="label">{t('Import into')}</label>
                 <select className="field" value={accountId || ''} onChange={(e) => setAccountId(e.target.value)}>
                   {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Treat as</label>
+                <label className="label">{t('Treat as')}</label>
                 <Segmented
-                  options={[{ value: 'private', label: '👤 Private' }, { value: 'shared', label: '🤝 Shared' }]}
+                  options={[{ value: 'private', label: t('👤 Private') }, { value: 'shared', label: t('🤝 Shared') }]}
                   value={scope}
                   onChange={setScope}
                 />
               </div>
               <div>
-                <label className="label">Category for all of them</label>
+                <label className="label">{t('Category for all of them')}</label>
                 <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
                   {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.emoji} {c.key}</option>)}
                 </select>
                 <p className="mt-1 text-xs text-muted">
-                  One category for the batch — sort them properly afterwards from the expenses list.
+                  {t('One category for the batch — sort them properly afterwards from the expenses list.')}
                 </p>
               </div>
             </div>
@@ -180,11 +179,11 @@ export default function ImportBank() {
               disabled={!mapping.date || !mapping.amount || !accountId || candidates.length === 0}
               onClick={goReview}
             >
-              Preview {candidates.length} {candidates.length === 1 ? 'payment' : 'payments'}
+              {candidates.length === 1 ? t('Preview 1 payment') : t('Preview {n} payments', { n: candidates.length })}
             </button>
             {candidates.length === 0 && (
               <p className="text-center text-sm text-muted">
-                No spending found with those columns — check the date and amount pickers.
+                {t('No spending found with those columns — check the date and amount pickers.')}
               </p>
             )}
           </>
@@ -194,13 +193,14 @@ export default function ImportBank() {
           <>
             <div className="card">
               <div className="flex items-baseline justify-between">
-                <span className="label mb-0">Selected</span>
+                <span className="label mb-0">{t('Selected')}</span>
                 <span className="tnum font-bold">{selectedCount} · {money(selectedTotal)}</span>
               </div>
               {dupes.length > 0 && (
                 <p className="mt-2 rounded-2xl bg-amber-50 p-2.5 text-sm text-amber-800">
-                  {dupes.length} {dupes.length === 1 ? 'payment looks' : 'payments look'} like {dupes.length === 1 ? 'one' : 'ones'} you
-                  already logged, so {dupes.length === 1 ? "it's" : "they're"} unticked. Tick one only if it's genuinely separate.
+                  {dupes.length === 1
+                    ? t("1 payment looks like one you already logged, so it's unticked. Tick one only if it's genuinely separate.")
+                    : t("{n} payments look like ones you already logged, so they're unticked. Tick one only if it's genuinely separate.", { n: dupes.length })}
                 </p>
               )}
             </div>
@@ -220,7 +220,7 @@ export default function ImportBank() {
                       <p className="text-xs text-muted">{dayLabel(c.date)}</p>
                       {c.duplicateOf && (
                         <p className="mt-0.5 text-xs font-medium text-amber-700">
-                          Already logged {dayLabel(c.duplicateOf.spent_at)}
+                          {t('Already logged {date}', { date: dayLabel(c.duplicateOf.spent_at) })}
                           {c.duplicateOf.note ? ` · ${c.duplicateOf.note}` : ''}
                         </p>
                       )}
@@ -232,9 +232,9 @@ export default function ImportBank() {
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <button className="btn-ghost py-3 text-base" onClick={() => setStage('map')}>Back</button>
+              <button className="btn-ghost py-3 text-base" onClick={() => setStage('map')}>{t('Back')}</button>
               <button className="btn-primary py-3 text-base" disabled={busy || selectedCount === 0} onClick={runImport}>
-                {busy ? 'Importing…' : `Import ${selectedCount}`}
+                {busy ? t('Importing…') : t('Import {n}', { n: selectedCount })}
               </button>
             </div>
           </>
@@ -244,14 +244,14 @@ export default function ImportBank() {
           <div className="card py-10 text-center">
             <p className="text-4xl">{imported > 0 ? '✅' : '🤷'}</p>
             <p className="mt-2 text-lg font-semibold">
-              {imported > 0 ? `${imported} imported` : 'Nothing imported'}
+              {imported > 0 ? t('{n} imported', { n: imported }) : t('Nothing imported')}
             </p>
             <p className="mt-1 text-sm text-muted">
               {imported > 0
-                ? 'They all landed on one category — sort them from the expenses list.'
-                : 'Everything in that file was already in the app.'}
+                ? t('They all landed on one category — sort them from the expenses list.')
+                : t('Everything in that file was already in the app.')}
             </p>
-            <button className="btn-primary mt-4 w-full" onClick={() => nav('/expenses')}>See expenses</button>
+            <button className="btn-primary mt-4 w-full" onClick={() => nav('/expenses')}>{t('See expenses')}</button>
           </div>
         )}
       </div>

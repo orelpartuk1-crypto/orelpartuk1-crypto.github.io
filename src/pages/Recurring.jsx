@@ -5,6 +5,7 @@ import { useRecurring } from '../hooks/useRecurring'
 import Segmented from '../components/Segmented'
 import TopBar from '../components/TopBar'
 import { money } from '../lib/format'
+import { t } from '../lib/i18n'
 import { categoryMeta, CATEGORIES, BUSINESS_CATEGORIES } from '../lib/categories'
 import CategoryPicker from '../components/CategoryPicker'
 
@@ -42,7 +43,7 @@ export default function Recurring() {
   // what already repeats. Fixed salary never belongs in this table — it has its
   // own field, and duplicating it there is what once made income read too high.
   const create = async () => {
-    if (!name.trim() || num(amount) <= 0) { setErr('Enter a name and an amount.'); return }
+    if (!name.trim() || num(amount) <= 0) { setErr(t('Enter a name and an amount.')); return }
     setErr(null); setBusy(true)
     // Was hardcoded to 'Subscriptions', which is a Business category — so every
     // private or shared item created here landed on a category that doesn't
@@ -50,55 +51,55 @@ export default function Recurring() {
     const payload = { kind: 'expense', name: name.trim(), amount: num(amount), scope, spend_type: spendType, category }
     const { error } = await add(payload)
     setBusy(false)
-    if (error) { setErr(error.message || 'Could not save.'); return }
+    if (error) { setErr(error.message || t('Could not save.')); return }
     setName(''); setAmount('')
   }
 
   return (
     <div className="pb-28">
-      <TopBar title="Every month" subtitle="Rent, subscriptions, anything regular" back />
+      <TopBar title={t('Every month')} subtitle={t('Rent, subscriptions, anything regular')} back />
       <div className="mx-auto max-w-md px-4 space-y-4">
         {/* Add form */}
         <div className="card space-y-3">
           <div className="grid grid-cols-3 gap-2">
-            <input className="field col-span-2" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Netflix" />
+            <input className="field col-span-2" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('e.g. Netflix')} />
             <input className="field" inputMode="decimal" value={amount}
               onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="€" />
           </div>
           <Segmented
             options={[
-              { value: 'shared', label: '🤝 Shared' },
-              { value: 'private', label: '👤 Private' },
-              ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
+              { value: 'shared', label: t('🤝 Shared') },
+              { value: 'private', label: t('👤 Private') },
+              ...(hasBusiness ? [{ value: 'business', label: t('💼 Business') }] : []),
             ]}
             value={scope}
             onChange={changeScope}
           />
           {scope !== 'business' && (
             <Segmented
-              options={[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }]}
+              options={[{ value: 'need', label: t('🧺 Need') }, { value: 'treat', label: t('🍦 Treat') }]}
               value={spendType}
               onChange={setSpendType}
             />
           )}
 
           <div>
-            <label className="label">Category</label>
+            <label className="label">{t('Category')}</label>
             <CategoryPicker value={category} onChange={setCategory} items={categoryList} />
           </div>
 
           {err && <p className="text-sm text-red-600">{err}</p>}
-          <button className="btn-primary w-full" disabled={busy} onClick={create}>{busy ? 'Saving…' : 'Add monthly expense'}</button>
+          <button className="btn-primary w-full" disabled={busy} onClick={create}>{busy ? t('Saving…') : t('Add monthly expense')}</button>
           <p className="text-xs text-muted">
-            You can also check "Repeats monthly" right on the Add Expense screen — this does the same thing.
+            {t('You can also check "Repeats monthly" right on the Add Expense screen — this does the same thing.')}
           </p>
         </div>
 
-        {loading && <p className="text-muted">Loading…</p>}
+        {loading && <p className="text-muted">{t('Loading…')}</p>}
 
         {expenses.length > 0 && (
           <div className="card">
-            <h2 className="font-semibold text-lg mb-1">Monthly expenses</h2>
+            <h2 className="font-semibold text-lg mb-1">{t('Monthly expenses')}</h2>
             <ul className="divide-y divide-slate-100">
               {expenses.map((i) => <Row key={i.id} item={i} onToggle={toggle} onRename={rename} onRemove={remove} />)}
             </ul>
@@ -106,11 +107,11 @@ export default function Recurring() {
         )}
         {incomes.length > 0 && (
           <div className="card">
-            <h2 className="font-semibold text-lg mb-1">Monthly income</h2>
+            <h2 className="font-semibold text-lg mb-1">{t('Monthly income')}</h2>
             <p className="text-sm text-muted mb-2">
-              Add these from the Add screen. Your fixed salary is the exception — it belongs only in{' '}
-              <Link to="/salary" className="text-brand-600 underline">Salary</Link>, so if one of these is
-              your salary, remove it here or it gets counted twice.
+              {t('Add these from the Add screen. Your fixed salary is the exception — it belongs only in')}{' '}
+              <Link to="/salary" className="text-brand-600 underline">{t('Salary')}</Link>
+              {t(', so if one of these is your salary, remove it here or it gets counted twice.')}
             </p>
             <ul className="divide-y divide-slate-100">
               {incomes.map((i) => <Row key={i.id} item={i} onToggle={toggle} onRename={rename} onRemove={remove} income />)}
@@ -120,16 +121,16 @@ export default function Recurring() {
         {!loading && expenses.length === 0 && incomes.length === 0 && (
           <div className="card py-10 text-center">
             <p className="text-4xl">🔁</p>
-            <p className="mt-2 font-semibold">Nothing repeating yet</p>
-            <p className="text-muted text-sm">Rent, the gym, Netflix — add them here and they'll count every month on their own.</p>
+            <p className="mt-2 font-semibold">{t('Nothing repeating yet')}</p>
+            <p className="text-muted text-sm">{t("Rent, the gym, Netflix — add them here and they'll count every month on their own.")}</p>
           </div>
         )}
 
         {fromBefore.length > 0 && (
           <div className="card">
-            <h2 className="font-semibold text-lg">From before</h2>
+            <h2 className="font-semibold text-lg">{t('From before')}</h2>
             <p className="mb-2 text-sm text-muted">
-              These were switched off so you could set this up fresh. Nothing was lost — tap to bring one back.
+              {t('These were switched off so you could set this up fresh. Nothing was lost — tap to bring one back.')}
             </p>
             <ul className="divide-y divide-slate-100">
               {fromBefore.map((i) => {
@@ -142,16 +143,16 @@ export default function Recurring() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-medium text-muted">{i.name}</span>
                       <span className="block text-xs text-muted">
-                        {money(i.amount)}/mo{i.scope ? ` · ${i.scope}` : ''}
+                        {t('{v}/mo', { v: money(i.amount) })}{i.scope ? ` · ${i.scope}` : ''}
                       </span>
                     </span>
                     <button
                       onClick={() => toggle(i.id, true)}
                       className="shrink-0 rounded-full bg-brand-50 px-3 py-1.5 text-sm font-semibold text-brand-600 active:scale-95"
                     >
-                      Add back
+                      {t('Add back')}
                     </button>
-                    <button onClick={() => remove(i.id)} className="shrink-0 px-1 text-slate-300 active:text-red-500" aria-label={`Delete ${i.name}`}>
+                    <button onClick={() => remove(i.id)} className="shrink-0 px-1 text-slate-300 active:text-red-500" aria-label={t('Delete {name}', { name: i.name })}>
                       <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
                     </button>
                   </li>
@@ -207,20 +208,20 @@ function Row({ item, onToggle, onRename, onRemove, income }) {
             }}
           />
         ) : (
-          <button onClick={startEditing} className="block w-full text-left active:opacity-60" aria-label="Rename">
+          <button onClick={startEditing} className="block w-full text-left active:opacity-60" aria-label={t('Rename')}>
             <span className={`font-medium truncate ${item.active ? '' : 'text-slate-400 line-through'}`}>{item.name}</span>
             <span className="ml-1 text-xs text-muted">✎</span>
           </button>
         )}
         <p className="text-xs text-muted">
-          {money(item.amount)}/mo{!income && item.scope ? ` · ${item.scope}` : ''}{income && item.source ? ` · ${item.source}` : ''}
+          {t('{v}/mo', { v: money(item.amount) })}{!income && item.scope ? ` · ${item.scope}` : ''}{income && item.source ? ` · ${item.source}` : ''}
         </p>
       </div>
       <button onClick={() => onToggle(item.id, !item.active)}
-        className={`flex h-6 w-11 items-center rounded-full px-0.5 transition ${item.active ? 'bg-brand-500 justify-end' : 'bg-slate-200 justify-start'}`} aria-label="Toggle active">
+        className={`flex h-6 w-11 items-center rounded-full px-0.5 transition ${item.active ? 'bg-brand-500 justify-end' : 'bg-slate-200 justify-start'}`} aria-label={t('Toggle active')}>
         <span className="h-5 w-5 rounded-full bg-white shadow" />
       </button>
-      <button onClick={() => onRemove(item.id)} className="text-slate-300 hover:text-red-500 px-1" aria-label="Delete">
+      <button onClick={() => onRemove(item.id)} className="text-slate-300 hover:text-red-500 px-1" aria-label={t('Delete')}>
         <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13" /></svg>
       </button>
     </li>

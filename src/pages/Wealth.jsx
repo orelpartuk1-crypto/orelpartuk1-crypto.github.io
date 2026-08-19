@@ -10,6 +10,7 @@ import Donut from '../components/Donut'
 import NetWorthChart from '../components/NetWorthChart'
 import { Screen, Item, Tap, Counter, Sheet, motion } from '../components/motion'
 import { money, isoDay } from '../lib/format'
+import { t } from '../lib/i18n'
 // Savings, Tax and Simulators open as sheets from here now instead of
 // navigating away — same components, still reachable at their own routes
 // directly (a saved link still lands somewhere), just not how Wealth links
@@ -23,12 +24,12 @@ const RANGE_DAYS = { Week: 7, Month: 31, '3M': 92, '6M': 183, '1Y': 366, All: In
 const num = (s) => parseFloat((String(s) || '0').replace(',', '.')) || 0
 
 const ACCOUNT_KINDS = [
-  { value: 'bank', label: 'Main account', emoji: '🏦' },
-  { value: 'savings', label: 'Savings account', emoji: '🐷' },
-  { value: 'cash', label: 'Cash', emoji: '💶' },
-  { value: 'card', label: 'Card', emoji: '💳' },
+  { value: 'bank', label: t('Main account'), emoji: '🏦' },
+  { value: 'savings', label: t('Savings account'), emoji: '🐷' },
+  { value: 'cash', label: t('Cash'), emoji: '💶' },
+  { value: 'card', label: t('Card'), emoji: '💳' },
 ]
-const kindLabel = (k) => ACCOUNT_KINDS.find((x) => x.value === k)?.label || 'Account'
+const kindLabel = (k) => ACCOUNT_KINDS.find((x) => x.value === k)?.label || t('Account')
 const kindEmoji = (k) => ACCOUNT_KINDS.find((x) => x.value === k)?.emoji || '🏦'
 
 const SLICE_COLORS = ['#0f7a3e', '#6d8fd6', '#d946ef', '#ca8a04', '#0891b2', '#7c3aed', '#16a34a', '#db2777']
@@ -67,7 +68,7 @@ export default function Wealth() {
   const composition = useMemo(() => {
     const parts = [
       ...accounts.map((a) => ({ key: `a-${a.id}`, label: a.name, sub: kindLabel(a.kind), emoji: kindEmoji(a.kind), value: balances[a.id] ?? 0, group: 'liquid' })),
-      ...assets.map((h) => ({ key: `h-${h.id}`, label: h.name, sub: 'Asset', emoji: '📈', value: Number(h.value), group: 'assets', raw: h })),
+      ...assets.map((h) => ({ key: `h-${h.id}`, label: h.name, sub: t('Asset'), emoji: '📈', value: Number(h.value), group: 'assets', raw: h })),
     ].filter((p) => p.value > 0)
     return parts
       .sort((a, b) => b.value - a.value)
@@ -103,9 +104,9 @@ export default function Wealth() {
   return (
     <div className="pb-28">
       <TopBar
-        title="Wealth"
+        title={t('Wealth')}
         right={
-          <Tap onClick={() => setAddOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab" aria-label="Add">
+          <Tap onClick={() => setAddOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-500 text-white shadow-fab" aria-label={t('Add')}>
             <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
           </Tap>
         }
@@ -122,11 +123,11 @@ export default function Wealth() {
                   onClick={() => setRange(r)}
                   className={`rounded-full px-2.5 py-1 transition ${range === r ? 'bg-white text-brand-700 shadow-card' : 'text-brand-700/60'}`}
                 >
-                  {r}
+                  {t(r)}
                 </button>
               ))}
             </div>
-            <Tap onClick={() => setHidden(!hidden)} aria-label={hidden ? 'Show amounts' : 'Hide amounts'} className="ml-2 text-brand-700/70">
+            <Tap onClick={() => setHidden(!hidden)} aria-label={hidden ? t('Show amounts') : t('Hide amounts')} className="ml-2 text-brand-700/70">
               {hidden ? (
                 <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.4 5.2A9.6 9.6 0 0112 5c5 0 9 4.5 9 7a11 11 0 01-2.2 3.3M6.2 6.2A11.6 11.6 0 003 12c0 2.5 4 7 9 7a9.9 9.9 0 003.6-.7" /></svg>
               ) : (
@@ -135,7 +136,7 @@ export default function Wealth() {
             </Tap>
           </div>
 
-          <p className="label mb-0 mt-3 text-center text-brand-700/70">Net worth</p>
+          <p className="label mb-0 mt-3 text-center text-brand-700/70">{t('Net worth')}</p>
           <Tap
             as="button"
             onClick={() => { setBreakdown(!breakdown); setSlice(null) }}
@@ -146,7 +147,7 @@ export default function Wealth() {
             </span>
           </Tap>
           <p className="mt-1 text-center text-xs text-brand-700/60">
-            {breakdown ? 'Tap to close' : 'Tap to see what it’s made of'}
+            {breakdown ? t('Tap to close') : t('Tap to see what it’s made of')}
           </p>
 
           {chartPoints.length >= 2 ? (
@@ -162,8 +163,8 @@ export default function Wealth() {
             // on, so there is nothing to draw before it exists.
             <p className="mt-4 rounded-2xl bg-white/40 p-2.5 text-center text-xs text-brand-700/70">
               {historyLoading
-                ? 'Loading…'
-                : `The chart fills in day by day from today — check back tomorrow.`}
+                ? t('Loading…')
+                : t('The chart fills in day by day from today — check back tomorrow.')}
             </p>
           )}
         </div>
@@ -171,7 +172,7 @@ export default function Wealth() {
         {/* Composition */}
         {breakdown && composition.length > 0 && (
           <Item className="card">
-            <h2 className="label">What it's made of</h2>
+            <h2 className="label">{t("What it's made of")}</h2>
             <div className="my-3 flex justify-center">
               <Donut
                 size={180}
@@ -180,7 +181,7 @@ export default function Wealth() {
                 total={gross}
                 center={
                   <>
-                    <span className="text-xs text-muted">{slice ? 'selected' : 'held'}</span>
+                    <span className="text-xs text-muted">{slice ? t('selected') : t('held')}</span>
                     <span className="tnum text-lg font-bold">
                       {money$(slice ? composition.find((c) => c.key === slice)?.value || 0 : gross)}
                     </span>
@@ -210,21 +211,24 @@ export default function Wealth() {
               })}
             </div>
             {slice && (
-              <p className="mt-2 text-center text-xs text-muted">Showing one holding — tap it again for all.</p>
+              <p className="mt-2 text-center text-xs text-muted">{t('Showing one holding — tap it again for all.')}</p>
             )}
           </Item>
         )}
 
-        {loading && <p className="text-muted">Loading…</p>}
+        {loading && <p className="text-muted">{t('Loading…')}</p>}
 
         {/* Cash, assets, debts */}
         <Item className="card space-y-3">
-          <Bar to="/accounts" emoji="🏦" title="Cash" sub={`${accounts.length} account${accounts.length === 1 ? '' : 's'}`}
+          <Bar to="/accounts" emoji="🏦" title={t('Cash')}
+            sub={accounts.length === 1 ? t('{n} account', { n: accounts.length }) : t('{n} accounts', { n: accounts.length })}
             value={money$(liquid)} pct={pct(liquid)} color="#0f7a3e" />
-          <Bar onClick={() => setAssetsOpen(true)} emoji="📈" title="Assets"
-            sub={assets.length ? `${assets.length} position${assets.length === 1 ? '' : 's'}` : 'Nothing yet'}
+          <Bar onClick={() => setAssetsOpen(true)} emoji="📈" title={t('Assets')}
+            sub={assets.length
+              ? (assets.length === 1 ? t('{n} position', { n: assets.length }) : t('{n} positions', { n: assets.length }))
+              : t('Nothing yet')}
             value={money$(assetsTotal)} pct={pct(assetsTotal)} color="#6d8fd6" />
-          <Bar emoji="💳" title="Debts" sub={debtsTotal > 0 ? `${debts.length} owed` : 'No debts'}
+          <Bar emoji="💳" title={t('Debts')} sub={debtsTotal > 0 ? t('{n} owed', { n: debts.length }) : t('No debts')}
             value={money$(debtsTotal)} pct={gross > 0 ? Math.min(100, Math.round((debtsTotal / gross) * 100)) : 0}
             color="#d24a3c" flat />
         </Item>
@@ -233,13 +237,13 @@ export default function Wealth() {
             in Plan/Profile, so it doesn't need a second home here. Each opens
             a sheet instead of navigating to its own page. */}
         <Item className="flex justify-around py-1">
-          <IconLink onClick={() => setSheet('savings')} emoji="🎯" label="Savings" />
-          {hasBusiness && <IconLink onClick={() => setSheet('tax')} emoji="🧾" label="Tax" />}
-          <IconLink onClick={() => setSheet('simulators')} emoji="🧮" label="Simulators" />
+          <IconLink onClick={() => setSheet('savings')} emoji="🎯" label={t('Savings')} />
+          {hasBusiness && <IconLink onClick={() => setSheet('tax')} emoji="🧾" label={t('Tax')} />}
+          <IconLink onClick={() => setSheet('simulators')} emoji="🧮" label={t('Simulators')} />
         </Item>
 
         <p className="px-1 text-xs text-muted">
-          Asset values are whatever you last typed — nothing here tracks live prices.
+          {t('Asset values are whatever you last typed — nothing here tracks live prices.')}
         </p>
       </Screen>
 
@@ -256,11 +260,11 @@ export default function Wealth() {
       <Sheet open={assetsOpen} onClose={() => setAssetsOpen(false)}>
         <div className="space-y-3">
           <div className="flex items-baseline justify-between">
-            <h2 className="text-xl font-bold">Assets</h2>
+            <h2 className="text-xl font-bold">{t('Assets')}</h2>
             <span className="tnum font-bold">{money$(assetsTotal)}</span>
           </div>
 
-          {assets.length === 0 && <p className="py-8 text-center text-muted">Nothing yet.</p>}
+          {assets.length === 0 && <p className="py-8 text-center text-muted">{t('Nothing yet.')}</p>}
 
           <div className="card divide-y divide-slate-100 py-0">
             {assets.map((h) => (
@@ -276,7 +280,7 @@ export default function Wealth() {
           </div>
 
           <Tap className="btn-primary w-full" onClick={() => { setAssetsOpen(false); setAddOpen(true) }}>
-            + Add an asset
+            {t('+ Add an asset')}
           </Tap>
         </div>
       </Sheet>
@@ -366,26 +370,26 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
   const [err, setErr] = useState(null)
 
   const options = [
-    { key: 'savings', emoji: '🐷', title: 'Savings account', sub: 'Money set aside in a bank' },
-    { key: 'cash', emoji: '💶', title: 'Cash savings', sub: 'Money you hold yourself' },
-    { key: 'stock', emoji: '📈', title: 'Stocks', sub: 'A holding you top up' },
+    { key: 'savings', emoji: '🐷', title: t('Savings account'), sub: t('Money set aside in a bank') },
+    { key: 'cash', emoji: '💶', title: t('Cash savings'), sub: t('Money you hold yourself') },
+    { key: 'stock', emoji: '📈', title: t('Stocks'), sub: t('A holding you top up') },
   ]
 
   const submit = async () => {
-    if (!name.trim()) { setErr('Give it a name.'); return }
+    if (!name.trim()) { setErr(t('Give it a name.')); return }
     setBusy(true); setErr(null)
     const res = what === 'stock'
       ? await onHolding({ kind: 'investment', name: name.trim(), value: Math.abs(num(value)), note: ticker.trim() || null })
       : await onAccount({ name: name.trim(), kind: what === 'cash' ? 'cash' : 'savings', opening_balance: num(value) })
     setBusy(false)
-    if (res?.error) { setErr(res.error.message || 'Could not save.'); return }
+    if (res?.error) { setErr(res.error.message || t('Could not save.')); return }
     onClose()
   }
 
   if (!what) {
     return (
       <div className="space-y-3">
-        <h2 className="text-xl font-bold">Add to net worth</h2>
+        <h2 className="text-xl font-bold">{t('Add to net worth')}</h2>
         {options.map((o) => (
           <Tap key={o.key} onClick={() => setWhat(o.key)} className="card-tap flex w-full items-center gap-3 text-left">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xl">{o.emoji}</span>
@@ -405,25 +409,25 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
     <div className="space-y-3">
       <h2 className="text-xl font-bold">{options.find((o) => o.key === what).title}</h2>
       <div>
-        <label className="label">Name</label>
+        <label className="label">{t('Name')}</label>
         <input className="field" value={name} onChange={(e) => setName(e.target.value)}
-          placeholder={isStock ? 'e.g. S&P 500 fund' : what === 'cash' ? 'e.g. Cash at home' : 'e.g. Santander savings'} />
+          placeholder={isStock ? t('e.g. S&P 500 fund') : what === 'cash' ? t('e.g. Cash at home') : t('e.g. Santander savings')} />
       </div>
       {isStock && (
         <div>
-          <label className="label">Ticker (optional)</label>
-          <input className="field" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} placeholder="e.g. VUAA" />
+          <label className="label">{t('Ticker (optional)')}</label>
+          <input className="field" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} placeholder={t('e.g. VUAA')} />
         </div>
       )}
       <div>
-        <label className="label">{isStock ? 'What it is worth today' : 'Balance today'}</label>
+        <label className="label">{isStock ? t('What it is worth today') : t('Balance today')}</label>
         <input className="field" inputMode="decimal" value={value}
           onChange={(e) => setValue(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0" />
       </div>
       {err && <p className="text-sm text-spend">{err}</p>}
       <div className="grid grid-cols-2 gap-2">
-        <Tap className="btn-ghost py-3 text-base" onClick={() => setWhat(null)}>Back</Tap>
-        <Tap className="btn-primary py-3 text-base" disabled={busy} onClick={submit}>{busy ? 'Saving…' : 'Add'}</Tap>
+        <Tap className="btn-ghost py-3 text-base" onClick={() => setWhat(null)}>{t('Back')}</Tap>
+        <Tap className="btn-primary py-3 text-base" disabled={busy} onClick={submit}>{busy ? t('Saving…') : t('Add')}</Tap>
       </div>
     </div>
   )
@@ -438,32 +442,32 @@ function EditHolding({ holding, onClose, onSave, onDelete }) {
   return (
     <Sheet open onClose={onClose}>
       <div className="space-y-3">
-        <h2 className="text-xl font-bold">Update value</h2>
+        <h2 className="text-xl font-bold">{t('Update value')}</h2>
         <div>
-          <label className="label">Name</label>
+          <label className="label">{t('Name')}</label>
           <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
-          <label className="label">Ticker (optional)</label>
+          <label className="label">{t('Ticker (optional)')}</label>
           <input className="field" value={note} onChange={(e) => setNote(e.target.value.toUpperCase())} />
         </div>
         <div>
-          <label className="label">What it is worth today</label>
+          <label className="label">{t('What it is worth today')}</label>
           <input className="field" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value.replace(/[^0-9.,]/g, ''))} />
         </div>
         <Tap className="btn-primary w-full" onClick={() => onSave({ name: name.trim() || holding.name, value: Math.abs(num(value)), note: note.trim() || null })}>
-          Save
+          {t('Save')}
         </Tap>
         {confirm ? (
           <div className="rounded-2xl border border-red-200 bg-red-50 p-3">
-            <p className="text-sm font-medium text-red-800">Remove “{holding.name}” from your net worth?</p>
+            <p className="text-sm font-medium text-red-800">{t('Remove “{name}” from your net worth?', { name: holding.name })}</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Tap className="btn-ghost py-2.5 text-base" onClick={() => setConfirm(false)}>Keep it</Tap>
-              <Tap className="btn py-2.5 text-base bg-red-600 text-white" onClick={onDelete}>Remove</Tap>
+              <Tap className="btn-ghost py-2.5 text-base" onClick={() => setConfirm(false)}>{t('Keep it')}</Tap>
+              <Tap className="btn py-2.5 text-base bg-red-600 text-white" onClick={onDelete}>{t('Remove')}</Tap>
             </div>
           </div>
         ) : (
-          <Tap className="btn-ghost w-full text-spend" onClick={() => setConfirm(true)}>Remove</Tap>
+          <Tap className="btn-ghost w-full text-spend" onClick={() => setConfirm(true)}>{t('Remove')}</Tap>
         )}
       </div>
     </Sheet>

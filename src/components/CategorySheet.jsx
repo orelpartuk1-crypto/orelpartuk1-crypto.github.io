@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Sheet, Tap } from './motion'
+import { t } from '../lib/i18n'
 
 // Picking a category is its own screen rather than a grid squeezed into the
 // form — with subcategories and a list this long, a search box beats scrolling.
-export default function CategorySheet({ open, onClose, items, value, onPick, title = 'Category' }) {
+export default function CategorySheet({ open, onClose, items, value, onPick, title = t('Category') }) {
   const [q, setQ] = useState('')
 
   const filtered = useMemo(() => {
@@ -20,11 +21,11 @@ export default function CategorySheet({ open, onClose, items, value, onPick, tit
           className="field"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search…"
+          placeholder={t('Search…')}
           autoComplete="off"
         />
 
-        {filtered.length === 0 && <p className="py-8 text-center text-muted">Nothing matches “{q}”.</p>}
+        {filtered.length === 0 && <p className="py-8 text-center text-muted">{t('Nothing matches “{q}”.', { q })}</p>}
 
         <div className="grid grid-cols-4 gap-2">
           {filtered.map((c) => {

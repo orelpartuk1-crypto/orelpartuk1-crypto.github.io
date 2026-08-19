@@ -4,6 +4,7 @@
 // (shared only) plus recurring bills (rent).
 
 import { canonicalizeGroceryName } from './groceryItems'
+import { t } from './i18n'
 
 const num = (v) => Number(v) || 0
 const sum = (arr, f = (e) => e.amount) => arr.reduce((t, e) => t + num(f(e)), 0)
@@ -172,17 +173,34 @@ export function insights({ thisMonth, lastMonth, budgets = [], summary }) {
     const prev = catPrev[cat] || 0
     if (prev >= 20 && now >= 20 && now > prev * 1.4) {
       const pct = Math.round(((now - prev) / prev) * 100)
-      out.push({ tone: 'warn', text: `${cat} is up ${pct}% vs last month (€${now.toFixed(0)} vs €${prev.toFixed(0)}).` })
+      out.push({
+        tone: 'warn',
+        text: t('{cat} is up {pct}% vs last month ({now} vs {prev}).', {
+          cat,
+          pct,
+          now: `€${now.toFixed(0)}`,
+          prev: `€${prev.toFixed(0)}`,
+        }),
+      })
     }
   }
   for (const [cat, now] of Object.entries(catNow)) {
     const lim = budgetMap[cat]
-    if (lim > 0 && now > lim) out.push({ tone: 'bad', text: `Over budget on ${cat}: €${now.toFixed(0)} of €${lim.toFixed(0)}.` })
+    if (lim > 0 && now > lim) {
+      out.push({
+        tone: 'bad',
+        text: t('Over budget on {cat}: {now} of {limit}.', {
+          cat,
+          now: `€${now.toFixed(0)}`,
+          limit: `€${lim.toFixed(0)}`,
+        }),
+      })
+    }
   }
   if (summary && summary.total > 0) {
     const treatPct = Math.round((summary.treats / summary.total) * 100)
-    if (treatPct >= 40) out.push({ tone: 'warn', text: `Treats are ${treatPct}% of spending — a good place to trim to save more.` })
-    else if (summary.count >= 5 && treatPct <= 15) out.push({ tone: 'good', text: `Nice discipline — treats are only ${treatPct}% of spending.` })
+    if (treatPct >= 40) out.push({ tone: 'warn', text: t('Treats are {pct}% of spending — a good place to trim to save more.', { pct: treatPct }) })
+    else if (summary.count >= 5 && treatPct <= 15) out.push({ tone: 'good', text: t('Nice discipline — treats are only {pct}% of spending.', { pct: treatPct }) })
   }
   // "Biggest category" used to be pushed here unconditionally — on a quiet
   // month with nothing actually up, over, or treat-heavy, that was the ONLY

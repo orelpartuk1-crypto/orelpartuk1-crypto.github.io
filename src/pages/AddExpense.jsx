@@ -14,6 +14,7 @@ import TopBar from '../components/TopBar'
 import { Screen, Tap, Sheet } from '../components/motion'
 import { useKeyboardInset } from '../hooks/useKeyboardInset'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
+import { t } from '../lib/i18n'
 import { merchantDomain, merchantCategory } from '../lib/merchants'
 import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
@@ -139,9 +140,9 @@ export default function AddExpense() {
   const owedAmount = null
 
   const scopeOptions = [
-    { value: 'shared', label: '🤝 Together' },
-    { value: 'private', label: '👤 Mine' },
-    ...(hasBusiness ? [{ value: 'business', label: '💼 Business' }] : []),
+    { value: 'shared', label: t('🤝 Together') },
+    { value: 'private', label: t('👤 Mine') },
+    ...(hasBusiness ? [{ value: 'business', label: t('💼 Business') }] : []),
   ]
 
   const changeScope = (s) => {
@@ -193,7 +194,7 @@ export default function AddExpense() {
     if (value <= 0) return
     setErr(null)
     if (needsDescription) {
-      setErr(`What was this ${category.toLowerCase()} for? Give it a name so you'll recognise it later.`)
+      setErr(t("What was this {category} for? Give it a name so you'll recognise it later.", { category: category.toLowerCase() }))
       return
     }
 
@@ -272,7 +273,7 @@ export default function AddExpense() {
   return (
     <div className="pb-36">
       <TopBar
-        title={editing ? 'Edit' : isIncome ? 'New income' : 'New expense'}
+        title={editing ? t('Edit') : isIncome ? t('New income') : t('New expense')}
         back
         right={
           !editing && !isIncome && (
@@ -280,7 +281,7 @@ export default function AddExpense() {
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 8h3l2-2h6l2 2h3v11H4z" /><circle cx="12" cy="13" r="3.2" />
               </svg>
-              Scan
+              {t('Scan')}
             </Tap>
           )
         }
@@ -290,8 +291,11 @@ export default function AddExpense() {
         {isIncomeCapable && (
           <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
             {[
-              { value: 'expense', label: 'Expense', cls: 'text-spend' },
-              { value: 'income', label: 'Income', cls: 'text-earn' },
+              // Singular here — this toggle picks ONE kind of entry. The
+              // Home card's "Income" is plural because it sits beside
+              // "Expenses" as a total. Same English word, different Spanish.
+              { value: 'expense', label: t('mode|Expense'), cls: 'text-spend' },
+              { value: 'income', label: t('mode|Income'), cls: 'text-earn' },
             ].map((o) => (
               <button
                 key={o.value}
@@ -324,7 +328,7 @@ export default function AddExpense() {
             value={amount}
             onChange={(e) => setAmount(e.target.value.replace(/[^0-9.,]/g, '').replace('.', ','))}
             placeholder="0"
-            aria-label="Amount"
+            aria-label={t('Amount')}
           />
           <span className="shrink-0 text-2xl text-muted">€</span>
         </div>
@@ -357,7 +361,7 @@ export default function AddExpense() {
             appear is the confirmation that it recognised the place. */}
         <div>
           <label className="label">
-            What was it{!isIncome && !SELF_EXPLANATORY.has(category) ? '' : ' (optional)'}
+            {!isIncome && !SELF_EXPLANATORY.has(category) ? t('What was it') : t('What was it (optional)')}
           </label>
           <div
             className={`field flex items-center gap-2.5 !py-2.5 ${needsDescription && err ? 'border-spend' : ''}`}
@@ -369,7 +373,7 @@ export default function AddExpense() {
               className="min-w-0 flex-1 bg-transparent text-lg outline-none"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={isIncome ? 'e.g. August invoice' : 'e.g. Lidl, dentist, haircut'}
+              placeholder={isIncome ? t('e.g. August invoice') : t('e.g. Lidl, dentist, haircut')}
             />
           </div>
         </div>
@@ -397,7 +401,7 @@ export default function AddExpense() {
             </div>
             {scope !== 'business' && (
               <div className="flex rounded-full bg-black/[0.04] p-1 dark:bg-white/[0.06]">
-                {[{ value: 'need', label: '🧺 Need' }, { value: 'treat', label: '🍦 Treat' }].map((o) => (
+                {[{ value: 'need', label: t('🧺 Need') }, { value: 'treat', label: t('🍦 Treat') }].map((o) => (
                   <button
                     key={o.value}
                     type="button"
@@ -425,7 +429,7 @@ export default function AddExpense() {
             className="flex w-full items-center gap-3 py-3 text-left transition-transform duration-100 active:scale-[0.99]"
           >
             <span className="text-xl">{chosenCat?.emoji || categoryMeta(category).emoji}</span>
-            <span className="text-sm text-muted">Category</span>
+            <span className="text-sm text-muted">{t('Category')}</span>
             <span className="min-w-0 flex-1 truncate text-right font-medium">{chosenCat?.name || chosenCat?.key || category}</span>
             <span className="shrink-0 text-muted">›</span>
           </button>
@@ -439,7 +443,7 @@ export default function AddExpense() {
               className="flex w-full items-center gap-3 py-3 text-left transition-transform duration-100 active:scale-[0.99]"
             >
               <span className="text-xl">{ACCOUNT_EMOJI[currentAccount.kind] || '🏦'}</span>
-              <span className="shrink-0 text-sm text-muted">Account</span>
+              <span className="shrink-0 text-sm text-muted">{t('Account')}</span>
               <span className="min-w-0 flex-1 truncate text-right font-medium">{currentAccount.name}</span>
               {myAccounts.length > 1 && <span className="shrink-0 text-muted">›</span>}
             </button>
@@ -447,7 +451,7 @@ export default function AddExpense() {
 
           <label className="flex w-full items-center gap-3 py-3 text-left">
             <span className="text-xl">📅</span>
-            <span className="shrink-0 text-sm text-muted">Date</span>
+            <span className="shrink-0 text-sm text-muted">{t('Date')}</span>
             <span className="min-w-0 flex-1 text-right">
               <input
                 className="w-full bg-transparent text-right font-medium outline-none"
@@ -480,7 +484,7 @@ export default function AddExpense() {
             className="flex cursor-pointer items-center gap-2.5 rounded-2xl bg-white px-4 py-3 shadow-card"
           >
             <span className="text-lg">🔁</span>
-            <span className="min-w-0 flex-1 font-medium">Repeats monthly</span>
+            <span className="min-w-0 flex-1 font-medium">{t('Repeats monthly')}</span>
             <span className={`flex h-6 w-10 shrink-0 items-center rounded-full px-0.5 transition ${repeats ? 'justify-end bg-brand-500' : 'justify-start bg-slate-200'}`}>
               <span className="h-5 w-5 rounded-full bg-white shadow" />
             </span>
@@ -494,8 +498,8 @@ export default function AddExpense() {
           <Tap as={Link} to="/scan" className="card-tap flex w-full items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📦</span>
             <span className="min-w-0 flex-1 text-left">
-              <span className="block font-semibold">Scan and save to Dropbox</span>
-              <span className="block text-sm text-muted">Keeps the invoice for your gestor</span>
+              <span className="block font-semibold">{t('Scan and save to Dropbox')}</span>
+              <span className="block text-sm text-muted">{t('Keeps the invoice for your gestor')}</span>
             </span>
             <span className="text-muted">›</span>
           </Tap>
@@ -506,14 +510,14 @@ export default function AddExpense() {
         {!editing && (
           <details>
             <summary className="cursor-pointer list-none text-center text-sm font-semibold text-brand-600 marker:content-none">
-              More ways to add expenses
+              {t('More ways to add expenses')}
             </summary>
             <div className="mt-2.5 space-y-2.5">
               <Tap as={Link} to="/import" className="card-tap flex w-full items-center gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-lg">📄</span>
                 <span className="min-w-0 flex-1 text-left">
-                  <span className="block font-semibold">Import from bank</span>
-                  <span className="block text-sm text-muted">CSV statement</span>
+                  <span className="block font-semibold">{t('Import from bank')}</span>
+                  <span className="block text-sm text-muted">{t('CSV statement')}</span>
                 </span>
                 <span className="text-muted">›</span>
               </Tap>
@@ -524,7 +528,7 @@ export default function AddExpense() {
         {err && <p className="text-sm text-spend">{err}</p>}
 
         {editing && (
-          <Tap className="btn-ghost w-full text-spend" disabled={busy} onClick={remove}>Delete</Tap>
+          <Tap className="btn-ghost w-full text-spend" disabled={busy} onClick={remove}>{t('Delete')}</Tap>
         )}
       </Screen>
 
@@ -540,7 +544,13 @@ export default function AddExpense() {
               disabled={busy || value <= 0}
               onClick={() => save()}
             >
-              {busy ? 'Saving…' : editing ? `Update ${money(value)}` : isIncome ? `Save income ${money(value)}` : `Save ${money(value)}`}
+              {busy
+                ? t('Saving…')
+                : editing
+                  ? t('Update {amount}', { amount: money(value) })
+                  : isIncome
+                    ? t('Save income {amount}', { amount: money(value) })
+                    : t('Save {amount}', { amount: money(value) })}
             </Tap>
           </div>
         </div>
@@ -552,12 +562,12 @@ export default function AddExpense() {
         items={catItems}
         value={categoryId || category}
         onPick={pickCategory}
-        title={isIncome ? 'Where from' : 'Category'}
+        title={isIncome ? t('Where from') : t('Category')}
       />
 
       <Sheet open={acctOpen} onClose={() => setAcctOpen(false)}>
         <div className="space-y-3">
-          <h2 className="text-xl font-bold">Account</h2>
+          <h2 className="text-xl font-bold">{t('Account')}</h2>
           <div className="space-y-2">
             {myAccounts.map((a) => (
               <Tap
@@ -578,14 +588,18 @@ export default function AddExpense() {
 
       <Sheet open={dupWarn} onClose={() => setDupWarn(false)}>
         <div className="space-y-3">
-          <h2 className="text-xl font-bold">Possibly already logged</h2>
+          <h2 className="text-xl font-bold">{t('Possibly already logged')}</h2>
           <p className="text-muted">
-            You already have {money(value)} for {category} on {dayLabel(spentAt)}. Add it anyway?
+            {t('You already have {amount} for {category} on {date}. Add it anyway?', {
+              amount: money(value),
+              category,
+              date: dayLabel(spentAt),
+            })}
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <Tap className="btn-ghost py-3 text-base" onClick={() => setDupWarn(false)}>Cancel</Tap>
+            <Tap className="btn-ghost py-3 text-base" onClick={() => setDupWarn(false)}>{t('Cancel')}</Tap>
             <Tap className="btn-primary py-3 text-base" disabled={busy} onClick={() => { setDupWarn(false); save(true) }}>
-              Add anyway
+              {t('Add anyway')}
             </Tap>
           </div>
         </div>
