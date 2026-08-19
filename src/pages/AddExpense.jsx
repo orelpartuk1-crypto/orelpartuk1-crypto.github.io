@@ -366,8 +366,20 @@ export default function AddExpense() {
           <div
             className={`field flex items-center gap-2.5 !py-2.5 ${needsDescription && err ? 'border-spend' : ''}`}
           >
+            {/* The category emoji is the fallback, not a letter badge — the
+                category has already been set from the brand by this point, so
+                the emoji is a meaningful placeholder while a logo loads (or
+                if none exists) rather than a third kind of marker. */}
             {!isIncome && merchantDomain(note) && (
-              <MerchantLogo name={note} size={28} />
+              <MerchantLogo
+                name={note}
+                size={28}
+                fallback={
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-base" style={{ backgroundColor: categoryMeta(category).color + '22' }}>
+                    {chosenCat?.emoji || categoryMeta(category).emoji}
+                  </span>
+                }
+              />
             )}
             <input
               className="min-w-0 flex-1 bg-transparent text-lg outline-none"

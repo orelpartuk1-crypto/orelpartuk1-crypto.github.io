@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabase'
 import { t } from '../lib/i18n'
 import TopBar from '../components/TopBar'
-import { Screen, Item, Tap } from '../components/motion'
+import { Screen, Item, Tap, Sheet } from '../components/motion'
+import { Group, Row } from '../components/SettingsRows'
 
 // A name is enough to make an avatar: initials on a colour derived from the
 // name itself, so everyone gets a distinct one without anyone uploading a file.
@@ -38,6 +39,8 @@ export function Avatar({ name, size = 40, className = '' }) {
 export default function Profile() {
   const { profile, household, members, user, updateDisplayName, signOut } = useAuth()
   const [name, setName] = useState(profile?.display_name || '')
+  const [editing, setEditing] = useState(false)
+  const [pwOpen, setPwOpen] = useState(false)
   const [saved, setSaved] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -45,6 +48,7 @@ export default function Profile() {
 
   const save = async () => {
     await updateDisplayName(name.trim() || 'Me')
+    setEditing(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 1500)
   }
@@ -57,123 +61,124 @@ export default function Profile() {
     } catch { /* the code is visible anyway */ }
   }
 
+  const partner = members.find((m) => m.id !== user?.id)
+
   return (
     <div className="pb-28">
       <TopBar title={t('Profile')} back />
-      <Screen className="mx-auto max-w-md px-4 space-y-4">
-        <Item className="card flex flex-col items-center gap-3 py-6">
-          <Avatar name={name || profile?.display_name} size={84} />
-          <div className="w-full">
-            <label className="label">{t('Your name')}</label>
-            <input className="field text-center" value={name} onChange={(e) => setName(e.target.value)} />
+      <Screen className="mx-auto max-w-md px-4 space-y-5">
+        {/* Identity up top, editable in place rather than behind a form: the
+            name was a labelled text field plus its own Save button, which made
+            the first thing on the screen look like a settings form instead of
+            you. */}
+        <Item className="card flex items-center gap-4">
+          <Avatar name={name || profile?.display_name} size={64} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xl font-bold">{name || profile?.display_name || t('You')}</p>
+            <p className="truncate text-sm text-muted">{user?.email}</p>
+            {saved && <p className="mt-0.5 text-xs font-medium text-brand-600">{t('Saved ✓')}</p>}
           </div>
-          <Tap className="btn-primary w-full" onClick={save}>{saved ? t('Saved ✓') : t('Save')}</Tap>
-          <p className="text-xs text-muted">{user?.email}</p>
-        </Item>
-
-        <Item className="card">
-          <h2 className="label">{household?.name || t('Your household')}</h2>
-          <ul className="divide-y divide-slate-100">
-            {members.map((m) => (
-              <li key={m.id} className="flex items-center gap-3 py-2.5">
-                <Avatar name={m.display_name} size={40} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{m.display_name}</span>
-                  <span className="block text-xs text-muted">{m.id === user?.id ? t('You') : t('Partner')}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-
-          <p className="mt-3 text-sm text-muted">{t('Share this code so someone can join:')}</p>
           <Tap
-            onClick={copyCode}
-            className="mt-2 flex w-full items-center justify-between rounded-2xl bg-slate-50 px-4 py-3"
+            onClick={() => setEditing(true)}
+            aria-label={t('Edit name')}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-50 text-muted"
           >
-            <span className="text-2xl font-bold tracking-widest">{household?.invite_code}</span>
-            <span className="font-medium text-brand-600">{copied ? t('Copied!') : t('Copy')}</span>
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+            </svg>
           </Tap>
         </Item>
 
-        <Item><ChangePassword /></Item>
-
-        <Item>
-          <Link to="/settings" className="card-tap flex items-center justify-between">
-            <span className="flex items-center gap-3">
-              <span className="text-2xl">⚙️</span>
-              <span>
-                <span className="block font-semibold">{t('Settings')}</span>
-                <span className="block text-sm text-muted">{t('Appearance, categories, reminders')}</span>
+        <Group title={t('Household')} footer={t('Share this code so someone can join:')}>
+          {members.map((m) => (
+            <Row key={m.id}>
+              <Avatar name={m.display_name} size={36} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{m.display_name}</span>
+                <span className="block text-xs text-muted">{m.id === user?.id ? t('You') : t('Partner')}</span>
               </span>
-            </span>
-            <span className="text-muted">›</span>
-          </Link>
-        </Item>
+            </Row>
+          ))}
+          <Row
+            icon="🔑"
+            label={household?.invite_code || '—'}
+            sub={household?.name}
+            onClick={copyCode}
+            right={<span className="shrink-0 text-sm font-semibold text-brand-600">{copied ? t('Copied!') : t('Copy')}</span>}
+          />
+          {!partner && (
+            <Row icon="👋" label={t('Nobody has joined yet')} sub={t('Send them the code above.')} />
+          )}
+        </Group>
+
+        <Group title={t('Account')}>
+          <Row icon="🔒" label={t('Change password')} onClick={() => setPwOpen(true)} />
+          <Row icon="⚙️" label={t('Settings')} sub={t('Appearance, categories, reminders')} to="/settings" />
+        </Group>
 
         <Item>
           <Tap className="btn-ghost w-full text-spend" onClick={signOut}>{t('Sign out')}</Tap>
         </Item>
       </Screen>
+
+      <Sheet open={editing} onClose={() => setEditing(false)}>
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold">{t('Your name')}</h2>
+          <input
+            className="field"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('Your name')}
+          />
+          <Tap className="btn-primary w-full" onClick={save}>{t('Save')}</Tap>
+        </div>
+      </Sheet>
+
+      <ChangePasswordSheet open={pwOpen} onClose={() => setPwOpen(false)} />
     </div>
   )
 }
 
-function ChangePassword() {
-  const [open, setOpen] = useState(false)
+// Changing a password is a rare, focused job — a sheet, not a card that
+// expands the profile list into a form in place.
+function ChangePasswordSheet({ open, onClose }) {
   const [pw, setPw] = useState('')
   const [pw2, setPw2] = useState('')
   const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState(null)
   const [err, setErr] = useState(null)
+  const [done, setDone] = useState(false)
 
   const submit = async () => {
-    setErr(null); setMsg(null)
+    setErr(null)
     if (pw.length < 8) { setErr(t('Use at least 8 characters.')); return }
     if (pw !== pw2) { setErr(t("Those two don't match.")); return }
     setBusy(true)
     const { error } = await supabase.auth.updateUser({ password: pw })
     setBusy(false)
     if (error) { setErr(error.message); return }
-    setPw(''); setPw2(''); setOpen(false)
-    setMsg(t('Password changed.'))
-    setTimeout(() => setMsg(null), 3000)
-  }
-
-  if (!open) {
-    return (
-      <div className="card">
-        <Tap className="flex w-full items-center justify-between" onClick={() => setOpen(true)}>
-          <span className="flex items-center gap-3">
-            <span className="text-2xl">🔑</span>
-            <span className="text-left">
-              <span className="block font-semibold">{t('Change password')}</span>
-              <span className="block text-sm text-muted">{msg || t('For this account')}</span>
-            </span>
-          </span>
-          <span className="text-muted">›</span>
-        </Tap>
-      </div>
-    )
+    setPw(''); setPw2('')
+    setDone(true)
+    setTimeout(() => { setDone(false); onClose() }, 1200)
   }
 
   return (
-    <div className="card space-y-3">
-      <h2 className="font-semibold">{t('Change password')}</h2>
-      <div>
-        <label className="label">{t('New password')}</label>
-        <input className="field" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" />
-      </div>
-      <div>
-        <label className="label">{t('Again')}</label>
-        <input className="field" type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" />
-      </div>
-      {err && <p className="text-sm text-spend">{err}</p>}
-      <div className="grid grid-cols-2 gap-2">
-        <Tap className="btn-ghost py-3 text-base" onClick={() => { setOpen(false); setErr(null) }}>{t('Cancel')}</Tap>
-        <Tap className="btn-primary py-3 text-base" disabled={busy} onClick={submit}>
+    <Sheet open={open} onClose={onClose}>
+      <div className="space-y-3">
+        <h2 className="text-xl font-bold">{t('Change password')}</h2>
+        <div>
+          <label className="label">{t('New password')}</label>
+          <input className="field" type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" />
+        </div>
+        <div>
+          <label className="label">{t('Again')}</label>
+          <input className="field" type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} autoComplete="new-password" />
+        </div>
+        {err && <p className="text-sm text-spend">{err}</p>}
+        {done && <p className="text-sm font-medium text-brand-600">{t('Password changed.')}</p>}
+        <Tap className="btn-primary w-full" disabled={busy} onClick={submit}>
           {busy ? t('Saving…') : t('Change')}
         </Tap>
       </div>
-    </div>
+    </Sheet>
   )
 }

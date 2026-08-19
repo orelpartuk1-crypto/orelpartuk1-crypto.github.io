@@ -893,4 +893,20 @@ export const es = {
   'Loading receipt…': 'Cargando recibo…',
   'That receipt image could not be loaded.': 'No se ha podido cargar la imagen del recibo.',
   'Receipt': 'Recibo',
+
+  // Settings / Profile grouped-list rebuild (2026-08-19)
+  'Edit name': 'Editar nombre',
+  'Household': 'Hogar',
+  'Nobody has joined yet': 'Todavía no se ha unido nadie',
+  'Send them the code above.': 'Mándale el código de arriba.',
+  'Preferences': 'Preferencias',
+  'Notifications': 'Notificaciones',
+  'Daily reminder': 'Recordatorio diario',
+  'Add Duo Budget to your home screen first, then open it from there.':
+    'Añade Duo Budget a tu pantalla de inicio y ábrelo desde ahí.',
+  'Coming payments, weekly summary and nudges.':
+    'Pagos que vienen, resumen semanal y avisos.',
+  'Adding a business gives you a Business zone and its tax estimate.':
+    'Activar negocio añade la zona Negocio y su estimación de impuestos.',
+  'Members': 'Miembros',
 }
