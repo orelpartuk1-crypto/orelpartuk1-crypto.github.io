@@ -952,4 +952,61 @@ export const es = {
   'Start using it': 'Empezar a usarla',
   'Let’s go': 'Vamos',
   'Continue': 'Continuar',
+
+  // Intro questionnaire, rebuilt around a running net-worth total (2026-08-19)
+  'Five minutes now, and every screen has your real numbers in it.':
+    'Cinco minutos ahora y todas las pantallas tendrán tus números de verdad.',
+  'You can skip any of them, and change all of them later.':
+    'Puedes saltarte cualquiera y cambiarlas todas después.',
+  'Now the important bit. Where do you keep your money?':
+    'Vamos a lo importante. ¿Dónde guardas tu dinero?',
+  'Bank, savings or cash. This is the first brick of your number.':
+    'Banco, ahorros o efectivo. Es el primer ladrillo de tu número.',
+  'Add another account': 'Añadir otra cuenta',
+  'Add an account': 'Añadir cuenta',
+  'And is any of it invested? Shares, funds, crypto…':
+    '¿Y tienes algo invertido? Acciones, fondos, cripto…',
+  'Shares, ETFs, crypto, a flat — anything that holds value.':
+    'Acciones, ETFs, cripto, un piso… cualquier cosa que tenga valor.',
+  'Add another asset': 'Añadir otro activo',
+  'Add an asset': 'Añadir activo',
+  'Now what you owe. This counts too, and you are going to have it in view.':
+    'Ahora lo que debes. Esto también cuenta, y lo vas a tener controlado.',
+  'Mortgage, loans, cards… add whatever you owe.':
+    'Hipoteca, préstamos, tarjetas… añade lo que debas.',
+  'Add another debt': 'Añadir otra deuda',
+  'Add a debt': 'Añadir deuda',
+  'Two numbers and I can show you where you are heading.':
+    'Dos números y te enseño a dónde vas.',
+  'Last stop: what comes in and what goes out?':
+    'Última parada: ¿qué entra y qué sale cada mes?',
+  'Salary and other income': 'Nómina y otros ingresos',
+  'Save my salary as recurring income': 'Guardar mi nómina como ingreso recurrente',
+  'One last thing, so I know when to expect it.':
+    'Una última cosa, para saber cuándo esperarla.',
+  'What day does it arrive?': '¿Qué día te llega?',
+  'So "Coming up" knows when to expect it, instead of assuming the 1st.':
+    'Así «Próximos» sabe cuándo esperarlo, en vez de suponer el día 1.',
+  'In shorter months this moves to the last day.':
+    'En los meses más cortos pasa al último día.',
+  "I don't have investments": 'No tengo inversiones',
+  'I’d rather not say': 'Prefiero no decirlo',
+  'That’s {v} so far': 'Llevas {v}',
+  'e.g. Car loan': 'p. ej. Préstamo del coche',
+  'By total': 'Por importe',
+  'By units': 'Por cantidad',
+  'Quantity': 'Cantidad',
+  'Cost per unit': 'Coste/unidad',
+  'How much is left to pay?': '¿Cuánto queda por pagar?',
+  '{q} × {p}': '{q} × {p}',
+  'Projection': 'Proyección',
+  'Saving {v} a month. Simple arithmetic — no investment growth assumed.':
+    'Ahorrando {v} al mes. Cuentas simples — sin suponer rentabilidad.',
+  'Shares': 'Acciones',
+  'Crypto': 'Cripto',
+  'Property': 'Inmueble',
+  'Fund': 'Fondo',
+  'Mortgage': 'Hipoteca',
+  'Loan': 'Préstamo',
+  'Today': 'Hoy',
 }

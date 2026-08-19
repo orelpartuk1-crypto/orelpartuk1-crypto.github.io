@@ -6,15 +6,25 @@ import { isoDay } from './format'
 
 const num = (v) => Number(v) || 0
 
-// A monthly item lands on the same day each month. Recurring charges don't
-// carry a day of their own, so they're treated as due on the 1st, which is
-// when materialize_recurring actually creates them.
-function nextOccurrence(dayOfMonth, from = new Date()) {
-  const d = new Date(from.getFullYear(), from.getMonth(), dayOfMonth)
-  if (d < new Date(from.getFullYear(), from.getMonth(), from.getDate())) {
-    return new Date(from.getFullYear(), from.getMonth() + 1, dayOfMonth)
-  }
-  return d
+// A monthly item lands on the same day each month. Items now carry their own
+// day (recurring.day_of_month); anything without one falls back to the 1st,
+// which is when materialize_recurring actually creates them.
+//
+// Clamped to the length of the target month, because `new Date(y, m, 31)` for
+// a 30-day month silently rolls into the 1st of the next one — so a rent due
+// on the 31st used to be reported as due in April on the 1st of May, and the
+// "in N days" beside it was wrong by a whole month.
+function onDay(year, month, dayOfMonth) {
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  return new Date(year, month, Math.min(dayOfMonth, lastDay))
+}
+
+function nextOccurrence(dayOfMonth = 1, from = new Date()) {
+  const day = Math.min(Math.max(Number(dayOfMonth) || 1, 1), 31)
+  const thisMonth = onDay(from.getFullYear(), from.getMonth(), day)
+  const today = new Date(from.getFullYear(), from.getMonth(), from.getDate())
+  if (thisMonth < today) return onDay(from.getFullYear(), from.getMonth() + 1, day)
+  return thisMonth
 }
 
 export function upcomingPayments({
@@ -29,7 +39,7 @@ export function upcomingPayments({
 
   for (const r of recurring) {
     if (!r.active) continue
-    const when = nextOccurrence(1, now)
+    const when = nextOccurrence(r.day_of_month, now)
     out.push({
       id: `rec-${r.id}`,
       kind: r.kind === 'income' ? 'income' : 'recurring',
