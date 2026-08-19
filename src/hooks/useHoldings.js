@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { fetchQuotes, holdingValue, isTracked } from '../lib/quotes'
 
 // What you own and owe outside your day-to-day accounts. Personal, like the
 // accounts themselves — there is no shared net worth.
@@ -31,6 +32,55 @@ export function useHoldings() {
   }, [user?.id])
 
   useEffect(() => { load() }, [load])
+
+  // Live prices for anything that names a ticker and a number of units.
+  // Everything else — a flat, a car, cash — keeps the value you typed, so
+  // this does nothing at all for a household that tracks no investments.
+  const [quotes, setQuotes] = useState({})
+  const tickers = rows.filter(isTracked).map((r) => r.ticker).join(',')
+  useEffect(() => {
+    if (!tickers) { setQuotes({}); return }
+    let alive = true
+    fetchQuotes(tickers.split(',')).then((q) => { if (alive) setQuotes(q) })
+    return () => { alive = false }
+  }, [tickers])
+
+  // Write the live figure back to the row. Everything that reads `holdings`
+  // without going through this hook — net-worth snapshots most of all — would
+  // otherwise keep recording the number last typed by hand.
+  //
+  // Only when it actually moved by more than a cent, so this doesn't turn into
+  // a write on every render or every app open.
+  useEffect(() => {
+    const changed = rows.filter((r) => {
+      if (!isTracked(r) || !quotes[String(r.ticker).toUpperCase()]) return false
+      return Math.abs(holdingValue(r, quotes) - Number(r.value || 0)) > 0.01
+    })
+    if (!changed.length) return
+    let alive = true
+    ;(async () => {
+      for (const r of changed) {
+        const q = quotes[String(r.ticker).toUpperCase()]
+        if (!alive) return
+        await supabase
+          .from('holdings')
+          .update({
+            value: holdingValue(r, quotes),
+            unit_price: q.price,
+            price_currency: q.currency,
+            priced_at: new Date().toISOString(),
+          })
+          .eq('id', r.id)
+      }
+    })()
+    return () => { alive = false }
+  }, [quotes, rows])
+
+  const refreshPrices = useCallback(async () => {
+    const list = rows.filter(isTracked).map((r) => r.ticker)
+    if (!list.length) return
+    setQuotes(await fetchQuotes(list, { force: true }))
+  }, [rows])
 
   const add = useCallback(
     async (row) => {
@@ -66,11 +116,16 @@ export function useHoldings() {
     [load]
   )
 
-  const active = rows.filter((r) => r.active)
+  // Every row carries the value the rest of the app should use, so nothing
+  // downstream needs to know whether a price came from the market or from you.
+  const priced = rows.map((r) =>
+    isTracked(r) ? { ...r, value: holdingValue(r, quotes), live: !!quotes[String(r.ticker).toUpperCase()] } : r
+  )
+  const active = priced.filter((r) => r.active)
   const assets = active.filter((r) => r.kind !== 'debt')
   const debts = active.filter((r) => r.kind === 'debt')
   const assetsTotal = assets.reduce((t, r) => t + Number(r.value || 0), 0)
   const debtsTotal = debts.reduce((t, r) => t + Number(r.value || 0), 0)
 
-  return { rows, active, assets, debts, assetsTotal, debtsTotal, loading, add, update, remove, reload: load }
+  return { rows: priced, active, assets, debts, assetsTotal, debtsTotal, loading, quotes, refreshPrices, add, update, remove, reload: load }
 }

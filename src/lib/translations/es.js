@@ -1012,4 +1012,17 @@ export const es = {
   '{n} waiting to sync…': '{n} esperando para sincronizarse…',
   '{n} saved on this phone — they’ll sync when you’re back online.': '{n} guardados en este móvil: se sincronizarán cuando vuelvas a tener conexión.',
   'Set up your accounts, assets and monthly rhythm': 'Configura tus cuentas, bienes y ritmo mensual',
+  'Use the exchange suffix — VUAA.L (London), VWCE.DE (Xetra), SAN.MC (Madrid). No suffix means a US listing.':
+    'Usa el sufijo del mercado: VUAA.L (Londres), VWCE.DE (Xetra), SAN.MC (Madrid). Sin sufijo es una cotización de EE. UU.',
+  'How many units': 'Cuántas participaciones',
+  'e.g. 12': 'p. ej. 12',
+  'e.g. VUAA.L': 'p. ej. VUAA.L',
+  'Looking up {ticker}…': 'Buscando {ticker}…',
+  'No live price for that ticker — it will use the value you type. Check the exchange suffix.':
+    'No hay precio en vivo para ese símbolo: se usará el valor que escribas. Revisa el sufijo del mercado.',
+  '{ticker} · {price} per unit': '{ticker} · {price} por participación',
+  ' (converted from {cur})': ' (convertido desde {cur})',
+  '{units} × {ticker} · live': '{units} × {ticker} · en vivo',
+  'Holdings with a ticker and a number of units follow the market. Everything else is whatever you last typed.':
+    'Las inversiones con símbolo y número de participaciones siguen al mercado. Todo lo demás es lo último que escribiste.',
 }
