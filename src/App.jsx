@@ -7,6 +7,7 @@ import InstallPrompt from './components/InstallPrompt'
 import Login from './pages/Login'
 import ResetPassword from './pages/ResetPassword'
 import Onboarding from './pages/Onboarding'
+import Intro from './pages/Intro'
 import Home from './pages/Home'
 import Couple from './pages/Couple'
 import Profile from './pages/Profile'
@@ -97,6 +98,7 @@ function Shell() {
               inline insight lines on Together and Analytics now. Old
               links land somewhere real instead of 404ing. */}
           <Route path="/coach" element={<Navigate to="/together" replace />} />
+          <Route path="/intro" element={<Intro />} />
           <Route path="/add" element={<AddExpense />} />
           <Route path="/scan" element={<ScanReceipt />} />
           <Route path="/savings" element={<Savings />} />

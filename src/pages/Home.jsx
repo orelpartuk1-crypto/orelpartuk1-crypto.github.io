@@ -9,6 +9,7 @@ import { useRecurring } from '../hooks/useRecurring'
 import { useDates } from '../hooks/useDates'
 import { useBudgets } from '../hooks/useBudgets'
 import { useSettlements } from '../hooks/useSettlements'
+import { useIntro } from '../hooks/useIntro'
 import { byCategory, settlement, myShareOfShared, summarize, onlySpending } from '../lib/calc'
 import { upcomingPayments, buildAlerts } from '../lib/upcoming'
 import { setPendingScan } from '../lib/pendingScan'
@@ -52,6 +53,7 @@ export default function Home() {
   const { shared: sharedBudgets, personal: personalBudgets } = useBudgets()
   const { notSpending } = useCategories()
   const { rows: settlements } = useSettlements()
+  const { shouldOffer: offerIntro } = useIntro()
 
   const [receipt, setReceipt] = useState(null)
   const [movement, setMovement] = useState(null)
@@ -133,7 +135,7 @@ export default function Home() {
 
   const alerts = useMemo(() => {
     const spendByCategory = Object.fromEntries(byCategory(shared).map((c) => [c.category, c.total]))
-    return buildAlerts({
+    const built = buildAlerts({
       budgetMap: { ...sharedBudgets, ...personalBudgets },
       spendByCategory,
       upcoming: due,
@@ -141,8 +143,26 @@ export default function Home() {
       nameOf,
       myId: user?.id,
     })
+    // The intro questionnaire waits here rather than opening itself. It is an
+    // offer you come back to when you feel like it — an unbidden wall of
+    // questions on launch is the fastest way to make someone close an app.
+    // Dismissing it in the bell hides it for this device; "Not now" inside the
+    // flow snoozes it properly, for everyone, for a week.
+    return offerIntro
+      ? [
+          {
+            id: 'intro-offer',
+            tone: 'info',
+            title: t('Tell me about your money'),
+            body: t('Five short questions so every screen has your real numbers in it.'),
+            to: '/intro',
+            cta: t('Start →'),
+          },
+          ...built,
+        ]
+      : built
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shared, sharedBudgets, personalBudgets, due, members, settlements, user?.id])
+  }, [shared, sharedBudgets, personalBudgets, due, members, settlements, user?.id, offerIntro])
 
   const saved = balance.saved
   const over = saved < 0

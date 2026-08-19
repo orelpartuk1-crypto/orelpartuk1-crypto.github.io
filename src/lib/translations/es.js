@@ -909,4 +909,47 @@ export const es = {
   'Adding a business gives you a Business zone and its tax estimate.':
     'Activar negocio añade la zona Negocio y su estimación de impuestos.',
   'Members': 'Miembros',
+
+  // "Get to know you" intro questionnaire (2026-08-19)
+  'Open': 'Abrir',
+  'Tell me about your money': 'Cuéntame sobre tu dinero',
+  'Five short questions so every screen has your real numbers in it.':
+    'Cinco preguntas cortas y todas las pantallas tendrán tus números de verdad.',
+  'Start →': 'Empezar →',
+  'Cash and accounts': 'Efectivo y cuentas',
+  'Investments': 'Inversiones',
+  'Debts': 'Deudas',
+  'Not now': 'Ahora no',
+  'Getting to know you': 'Vamos a conocerte',
+  'A few questions, then the app is yours': 'Unas preguntas y la app es tuya',
+  'Five short answers and every screen has real numbers in it. You can skip any of them, and change all of them later.':
+    'Cinco respuestas cortas y todas las pantallas tendrán números de verdad. Puedes saltarte cualquiera y cambiarlas todas después.',
+  'Your accounts': 'Tus cuentas',
+  'How much do you have right now?': '¿Cuánto tienes ahora mismo?',
+  'What sits in your bank accounts and in cash. Investments and property come next.':
+    'Lo que hay en tus cuentas del banco y en efectivo. Las inversiones y la vivienda vienen después.',
+  'Your assets': 'Tus activos',
+  'Any investments or property?': '¿Tienes inversiones o propiedades?',
+  'Shares, funds, crypto, a flat — roughly what it is all worth today. Leave it empty if none.':
+    'Acciones, fondos, cripto, un piso… más o menos lo que valen hoy. Déjalo vacío si no tienes.',
+  'What you owe': 'Lo que debes',
+  'Mortgage or loans?': '¿Hipoteca o préstamos?',
+  'This counts too, and you are going to have it in view. Leave it empty if none.':
+    'Esto también cuenta, y lo vas a tener controlado. Déjalo vacío si no tienes.',
+  'Your monthly rhythm': 'Tu ritmo mensual',
+  'How much comes in each month?': '¿Cuánto ingresas al mes?',
+  'Salary and anything else regular. This is what "saved this month" is measured against.':
+    'Nómina y cualquier otro ingreso fijo. Es la referencia de «ahorrado este mes».',
+  'And roughly how much goes out?': '¿Y cuánto gastas al mes, más o menos?',
+  'A rough number is fine — the app will learn the real one as you log things.':
+    'Con un número aproximado vale — la app aprenderá el real a medida que apuntes cosas.',
+  'That leaves about {v} a month.': 'Te quedan unos {v} al mes.',
+  'Your net worth': 'Tu patrimonio',
+  'And it updates itself from now on.': 'Y se actualiza solo a partir de ahora.',
+  'Keeping this pace': 'A este ritmo',
+  'In three years, saving {v} a month. Simple arithmetic — no investment growth assumed.':
+    'En tres años, ahorrando {v} al mes. Cuentas simples — sin suponer rentabilidad.',
+  'Start using it': 'Empezar a usarla',
+  'Let’s go': 'Vamos',
+  'Continue': 'Continuar',
 }

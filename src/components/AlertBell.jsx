@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Sheet } from './motion'
 import { t } from '../lib/i18n'
 
@@ -108,6 +109,17 @@ export default function AlertBell({ alerts = [] }) {
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{a.title}</p>
                 <p className="text-sm opacity-80">{a.body}</p>
+                {/* Some alerts are things you can act on rather than just
+                    read — those carry a destination and get a link. */}
+                {a.to && (
+                  <Link
+                    to={a.to}
+                    onClick={() => setOpen(false)}
+                    className="mt-1 inline-block text-sm font-semibold underline"
+                  >
+                    {a.cta || t('Open')}
+                  </Link>
+                )}
               </div>
               {!dismissed.has(a.id) && (
                 <button onClick={() => dismiss(a.id)} className="shrink-0 text-sm font-semibold underline">
