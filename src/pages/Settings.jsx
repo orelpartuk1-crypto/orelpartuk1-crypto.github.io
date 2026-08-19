@@ -70,6 +70,10 @@ export default function Settings() {
           <Row icon="🏷️" label={t('Categories')} sub={t('Rename, recolour, add subcategories')} to="/categories" />
           <Row icon="🔁" label={t('Every month')} sub={t('Rent, subscriptions and important dates')} to="/plan" />
           <Row icon="⚡" label={t('Log faster')} sub={t('Apple Pay auto-log, Siri, home-screen icons')} to="/automate" />
+          {/* Always reachable. The questionnaire is otherwise only offered in
+              the alert bell, which can be dismissed or snoozed — and then
+              there is no way back to it at all. */}
+          <Row icon="👋" label={t('Tell me about your money')} sub={t('Set up your accounts, assets and monthly rhythm')} to="/intro" />
         </Group>
 
         <div>

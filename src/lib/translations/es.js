@@ -1009,4 +1009,7 @@ export const es = {
   'Mortgage': 'Hipoteca',
   'Loan': 'Préstamo',
   'Today': 'Hoy',
+  '{n} waiting to sync…': '{n} esperando para sincronizarse…',
+  '{n} saved on this phone — they’ll sync when you’re back online.': '{n} guardados en este móvil: se sincronizarán cuando vuelvas a tener conexión.',
+  'Set up your accounts, assets and monthly rhythm': 'Configura tus cuentas, bienes y ritmo mensual',
 }

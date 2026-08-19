@@ -10,6 +10,7 @@ import { useDates } from '../hooks/useDates'
 import { useBudgets } from '../hooks/useBudgets'
 import { useSettlements } from '../hooks/useSettlements'
 import { useIntro } from '../hooks/useIntro'
+import { useOutbox } from '../hooks/useOutbox'
 import { byCategory, settlement, myShareOfShared, summarize, onlySpending } from '../lib/calc'
 import { upcomingPayments, buildAlerts } from '../lib/upcoming'
 import { setPendingScan } from '../lib/pendingScan'
@@ -54,6 +55,7 @@ export default function Home() {
   const { notSpending } = useCategories()
   const { rows: settlements } = useSettlements()
   const { shouldOffer: offerIntro } = useIntro()
+  const { waiting, online } = useOutbox()
 
   const [receipt, setReceipt] = useState(null)
   const [movement, setMovement] = useState(null)
@@ -207,6 +209,20 @@ export default function Home() {
       />
 
       <Screen className="mx-auto max-w-md px-4 space-y-4">
+        {/* Anything logged without a connection is on the phone, not on the
+            server. Saying so plainly beats letting someone assume it synced
+            and discover otherwise later. It clears itself once the queue
+            drains. */}
+        {waiting > 0 && (
+          <Item className="flex items-center gap-3 rounded-2xl bg-amber-50 px-4 py-3 text-amber-800">
+            <span className="text-lg">{online ? '🔄' : '📴'}</span>
+            <span className="min-w-0 flex-1 text-sm font-medium">
+              {online
+                ? t('{n} waiting to sync…', { n: waiting })
+                : t('{n} saved on this phone — they’ll sync when you’re back online.', { n: waiting })}
+            </span>
+          </Item>
+        )}
         {/* Month */}
         <div className="flex items-center justify-between">
           <Tap onClick={() => shiftMonth(-1)} className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card" aria-label={t('Previous month')}>

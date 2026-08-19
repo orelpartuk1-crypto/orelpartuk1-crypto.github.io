@@ -110,9 +110,13 @@ export default function Intro() {
       <div className="safe-top sticky top-0 z-20 bg-surface px-4 pb-3">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
+            {/* Back just leaves. It used to double as "not now" and snooze the
+                whole questionnaire for a week — an invisible, week-long
+                consequence for tapping the one control everybody taps to go
+                back. Only the explicit "Not now" button snoozes. */}
             <Tap
-              onClick={() => (step === 0 ? later() : go(-1))}
-              aria-label={step === 0 ? t('Not now') : t('Back')}
+              onClick={() => (step === 0 ? nav('/') : go(-1))}
+              aria-label={t('Back')}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-card"
             >
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>

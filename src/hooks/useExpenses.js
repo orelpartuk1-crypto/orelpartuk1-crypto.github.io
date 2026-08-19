@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { monthRange } from '../lib/format'
+import { enqueue } from '../lib/outbox'
 
 // Fetches expenses + category budgets for the household, scoped to a month.
 export function useExpenses(base = new Date()) {
@@ -44,15 +45,30 @@ export function useExpenses(base = new Date()) {
 
   // Returns the inserted row too — the scan flow needs its id to file the
   // receipt image under a path the storage policies can check.
+  //
+  // If the request can't reach the server at all, the expense is queued in
+  // IndexedDB and replayed on reconnect rather than lost. `queued: true` comes
+  // back so the caller can say so instead of claiming it saved. Note there is
+  // no row id in that case, so anything that needs one (filing a receipt
+  // image) has to stay online — it says so where it matters.
   const addExpense = useCallback(
     async (row) => {
-      const { data, error } = await supabase
-        .from('expenses')
-        .insert({ household_id: household.id, ...row })
-        .select()
-        .single()
-      if (!error) await load()
-      return { data, error }
+      const payload = { household_id: household.id, ...row }
+      try {
+        const { data, error } = await supabase.from('expenses').insert(payload).select().single()
+        if (!error) {
+          await load()
+          return { data, error }
+        }
+        // The server answered and refused — a real error, not a missing
+        // network. Surfacing it beats silently queueing a write that would be
+        // rejected again on every retry.
+        return { data: null, error }
+      } catch {
+        await enqueue({ table: 'expenses', op: 'insert', payload })
+        window.dispatchEvent(new Event('outbox-changed'))
+        return { data: null, error: null, queued: true }
+      }
     },
     [household?.id, load]
   )

@@ -252,7 +252,15 @@ export default function AddExpense() {
       })(),
     }
 
-    const { data: saved, error } = editing ? await updateExpense(editing.id, row) : await addExpense(row)
+    const { data: saved, error, queued } = editing ? await updateExpense(editing.id, row) : await addExpense(row)
+    // Saved on the phone, not on the server yet. Say so rather than letting it
+    // look identical to a normal save — and skip the receipt upload, which
+    // needs the row id the server hasn't given us.
+    if (queued) {
+      setBusy(false)
+      nav('/', { state: { queued: true } })
+      return
+    }
     if (!error && !editing && saved?.id && pendingReceipt.current) {
       await uploadReceipt(saved.id, pendingReceipt.current)
       pendingReceipt.current = null
