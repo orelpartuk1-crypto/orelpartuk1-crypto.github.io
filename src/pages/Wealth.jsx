@@ -11,7 +11,8 @@ import NetWorthChart from '../components/NetWorthChart'
 import { Screen, Item, Tap, Counter, Sheet, motion } from '../components/motion'
 import { money, isoDay } from '../lib/format'
 import { t } from '../lib/i18n'
-import { fetchQuotes } from '../lib/quotes'
+import { useAssetLookup } from '../hooks/useAssetLookup'
+import Segmented from '../components/Segmented'
 // Savings, Tax and Simulators open as sheets from here now instead of
 // navigating away — same components, still reachable at their own routes
 // directly (a saved link still lands somewhere), just not how Wealth links
@@ -279,10 +280,17 @@ export default function Wealth() {
                       goes stale. */}
                   {h.live ? (
                     <span className="block text-xs text-brand-600">
-                      {t('{units} × {ticker} · live', { units: h.units, ticker: h.ticker })}
+                      {t('{units} × {ticker} · live', { units: h.units, ticker: h.asset_type === 'fund' ? h.isin : h.ticker })}
                     </span>
                   ) : (
-                    (h.ticker || h.note) && <span className="block text-xs text-muted">{h.ticker || h.note}</span>
+                    (h.ticker || h.isin || h.note) && <span className="block text-xs text-muted">{h.ticker || h.isin || h.note}</span>
+                  )}
+                  {/* Real money in vs. what it's worth now — nothing else on
+                      this row says whether a holding is actually up or down. */}
+                  {h.pnl && (
+                    <span className={`block text-xs font-medium ${h.pnl.amount >= 0 ? 'text-brand-600' : 'text-spend'}`}>
+                      {h.pnl.amount >= 0 ? '▲' : '▼'} {money$(Math.abs(h.pnl.amount))} ({(h.pnl.pct * 100).toFixed(1)}%)
+                    </span>
                   )}
                 </span>
                 <span className="tnum shrink-0 font-semibold">{money$(h.value)}</span>
@@ -376,54 +384,49 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
   const [what, setWhat] = useState(null) // 'savings' | 'cash' | 'stock'
   const [name, setName] = useState('')
   const [value, setValue] = useState('')
-  const [ticker, setTicker] = useState('')
+  const [assetType, setAssetType] = useState('stock') // 'stock' | 'fund'
+  const [identifier, setIdentifier] = useState('') // ticker or ISIN, by assetType
   const [units, setUnits] = useState('')
+  const [costBasis, setCostBasis] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
   const options = [
     { key: 'savings', emoji: '🐷', title: t('Savings account'), sub: t('Money set aside in a bank') },
     { key: 'cash', emoji: '💶', title: t('Cash savings'), sub: t('Money you hold yourself') },
-    { key: 'stock', emoji: '📈', title: t('Stocks'), sub: t('A holding you top up') },
+    { key: 'stock', emoji: '📈', title: t('Investments'), sub: t('A stock, ETF or mutual fund you top up') },
   ]
 
-  // Look the ticker up while you type it, so a typo shows itself here rather
-  // than as a holding that silently never moves.
-  const [livePrice, setLivePrice] = useState(null)
-  const [lookingUp, setLookingUp] = useState(false)
-  useEffect(() => {
-    const tick = ticker.trim().toUpperCase()
-    if (what !== 'stock' || tick.length < 1) { setLivePrice(null); setLookingUp(false); return }
-    let alive = true
-    setLookingUp(true)
-    const timer = setTimeout(async () => {
-      const q = await fetchQuotes([tick])
-      if (!alive) return
-      setLivePrice(q[tick] || null)
-      setLookingUp(false)
-    }, 500)
-    return () => { alive = false; clearTimeout(timer) }
-  }, [ticker, what])
+  const isStock = what === 'stock'
+  const isFund = assetType === 'fund'
+  // Look the identifier up while you type it, so a typo — or the wrong ISIN
+  // for a fund — shows itself here rather than as a holding that silently
+  // never moves.
+  const { livePrice, lookingUp } = useAssetLookup(isStock ? assetType : null, isStock ? identifier : null, null)
 
   const submit = async () => {
     if (!name.trim()) { setErr(t('Give it a name.')); return }
     setBusy(true); setErr(null)
-    // A ticker plus a number of units makes the holding track the market. With
-    // only one of the two it stays a hand-typed figure — which is a legitimate
-    // choice, not an error, so neither field is required.
-    const tick = ticker.trim().toUpperCase()
+    // An identifier plus a number of units makes the holding track the
+    // market. With only one of the two it stays a hand-typed figure — which
+    // is a legitimate choice, not an error, so neither field is required.
+    const id = identifier.trim().toUpperCase()
     const unitCount = num(units)
-    const tracked = tick && unitCount > 0
-    const res = what === 'stock'
+    const tracked = id && unitCount > 0
+    const res = isStock
       ? await onHolding({
           kind: 'investment',
           name: name.trim(),
+          asset_type: assetType,
           value: tracked ? unitCount * (livePrice?.price || 0) : Math.abs(num(value)),
-          ticker: tick || null,
+          ticker: !isFund && id ? id : null,
+          isin: isFund && id ? id : null,
+          yahoo_symbol: isFund && tracked ? livePrice?.symbol ?? null : null,
           units: tracked ? unitCount : null,
           unit_price: tracked ? livePrice?.price ?? null : null,
           price_currency: tracked ? livePrice?.currency ?? null : null,
           priced_at: tracked && livePrice ? new Date().toISOString() : null,
+          cost_basis: num(costBasis) > 0 ? num(costBasis) : null,
           note: null,
         })
       : await onAccount({ name: name.trim(), kind: what === 'cash' ? 'cash' : 'savings', opening_balance: num(value) })
@@ -450,33 +453,52 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
     )
   }
 
-  const isStock = what === 'stock'
   return (
     <div className="space-y-3">
       <h2 className="text-xl font-bold">{options.find((o) => o.key === what).title}</h2>
+
+      {isStock && (
+        <Segmented
+          options={[{ value: 'stock', label: t('Stock / ETF') }, { value: 'fund', label: t('Mutual fund') }]}
+          value={assetType}
+          onChange={(v) => { setAssetType(v); setIdentifier('') }}
+        />
+      )}
+
       <div>
         <label className="label">{t('Name')}</label>
         <input className="field" value={name} onChange={(e) => setName(e.target.value)}
-          placeholder={isStock ? t('e.g. S&P 500 fund') : what === 'cash' ? t('e.g. Cash at home') : t('e.g. Santander savings')} />
+          placeholder={isStock ? (isFund ? t('e.g. Vanguard Global Stock Index') : t('e.g. S&P 500 fund')) : what === 'cash' ? t('e.g. Cash at home') : t('e.g. Santander savings')} />
       </div>
+
       {isStock && (
         <>
           <div>
-            <label className="label">{t('Ticker (optional)')}</label>
-            <input className="field" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} placeholder={t('e.g. VUAA.L')} />
-            {/* Said plainly, because a wrong suffix is the one thing that
-                stops this working and it is invisible otherwise. */}
+            <label className="label">{isFund ? t('ISIN') : t('Ticker (optional)')}</label>
+            <input className="field" value={identifier} onChange={(e) => setIdentifier(e.target.value.toUpperCase())}
+              placeholder={isFund ? t('e.g. IE0032620787') : t('e.g. VUAA.L')} />
+            {/* Said plainly, because a wrong suffix — or ISIN — is the one
+                thing that stops this working and it is invisible otherwise. */}
             <p className="mt-1 px-1 text-xs text-muted">
-              {t('Use the exchange suffix — VUAA.L (London), VWCE.DE (Xetra), SAN.MC (Madrid). No suffix means a US listing.')}
+              {isFund
+                ? t('The 12-character code on your fund statement — it uniquely identifies the exact fund and share class.')
+                : t('Use the exchange suffix — VUAA.L (London), VWCE.DE (Xetra), SAN.MC (Madrid). No suffix means a US listing.')}
             </p>
           </div>
           <div>
             <label className="label">{t('How many units')}</label>
             <input className="field" inputMode="decimal" value={units}
-              onChange={(e) => setUnits(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder={t('e.g. 12')} />
+              onChange={(e) => setUnits(e.target.value.replace(/[^0-9.,]/g, ''))}
+              placeholder={isFund ? t('e.g. 12.34567') : t('e.g. 12')} />
+            {isFund && (
+              <p className="mt-1 px-1 text-xs text-muted">
+                {t('Funds are usually bought by amount, not whole units — decimals are fine and expected here.')}
+              </p>
+            )}
           </div>
         </>
       )}
+
       {/* With a live price the value is worked out, not typed — typing it
           would only be a number that goes stale the moment you save. */}
       {!(isStock && livePrice && num(units) > 0) && (
@@ -486,16 +508,18 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
             onChange={(e) => setValue(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0" />
         </div>
       )}
-      {isStock && lookingUp && <p className="px-1 text-sm text-muted">{t('Looking up {ticker}…', { ticker: ticker.trim().toUpperCase() })}</p>}
-      {isStock && !lookingUp && ticker.trim() && !livePrice && (
+      {isStock && lookingUp && <p className="px-1 text-sm text-muted">{t('Looking up {id}…', { id: identifier.trim().toUpperCase() })}</p>}
+      {isStock && !lookingUp && identifier.trim() && !livePrice && (
         <p className="px-1 text-sm text-muted">
-          {t('No live price for that ticker — it will use the value you type. Check the exchange suffix.')}
+          {isFund
+            ? t('No live price for that ISIN — it will use the value you type. Double-check the code.')
+            : t('No live price for that ticker — it will use the value you type. Check the exchange suffix.')}
         </p>
       )}
       {isStock && livePrice && (
         <div className="rounded-2xl bg-brand-50 px-4 py-3">
           <p className="text-sm text-muted">
-            {t('{ticker} · {price} per unit', { ticker: ticker.trim().toUpperCase(), price: money(livePrice.price) })}
+            {t('{ticker} · {price} per unit', { ticker: identifier.trim().toUpperCase(), price: money(livePrice.price) })}
             {livePrice.rawCurrency !== livePrice.currency &&
               t(' (converted from {cur})', { cur: livePrice.rawCurrency })}
           </p>
@@ -504,6 +528,18 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
           )}
         </div>
       )}
+
+      {isStock && (
+        <div>
+          <label className="label">{t('Total invested (optional)')}</label>
+          <input className="field" inputMode="decimal" value={costBasis}
+            onChange={(e) => setCostBasis(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0" />
+          <p className="mt-1 px-1 text-xs text-muted">
+            {t('What you actually paid in, total — this is what profit/loss gets measured against.')}
+          </p>
+        </div>
+      )}
+
       {err && <p className="text-sm text-spend">{err}</p>}
       <div className="grid grid-cols-2 gap-2">
         <Tap className="btn-ghost py-3 text-base" onClick={() => setWhat(null)}>{t('Back')}</Tap>
@@ -516,42 +552,39 @@ function AddToWealth({ onClose, onAccount, onHolding }) {
 function EditHolding({ holding, onClose, onSave, onDelete }) {
   const [name, setName] = useState(holding.name)
   const [value, setValue] = useState(String(holding.value))
-  // Tickers used to be kept in `note` as a decorative label. Read from either
-  // so holdings added before live pricing keep the symbol already typed.
-  const [ticker, setTicker] = useState((holding.ticker || holding.note || '').toUpperCase())
+  const [assetType, setAssetType] = useState(holding.asset_type === 'fund' ? 'fund' : 'stock')
+  // Tickers used to be kept in `note` as a decorative label. Read from
+  // whichever of ticker/isin/note applies so holdings added before live
+  // pricing (or before funds existed) keep the identifier already typed.
+  const [identifier, setIdentifier] = useState(
+    (holding.asset_type === 'fund' ? holding.isin : holding.ticker || holding.note || '').toUpperCase()
+  )
   const [units, setUnits] = useState(holding.units != null ? String(holding.units) : '')
+  const [costBasis, setCostBasis] = useState(holding.cost_basis != null ? String(holding.cost_basis) : '')
   const [confirm, setConfirm] = useState(false)
-  const [livePrice, setLivePrice] = useState(null)
-  const [lookingUp, setLookingUp] = useState(false)
+  const isFund = assetType === 'fund'
 
-  useEffect(() => {
-    const tick = ticker.trim().toUpperCase()
-    if (!tick) { setLivePrice(null); setLookingUp(false); return }
-    let alive = true
-    setLookingUp(true)
-    const timer = setTimeout(async () => {
-      const q = await fetchQuotes([tick])
-      if (!alive) return
-      setLivePrice(q[tick] || null)
-      setLookingUp(false)
-    }, 500)
-    return () => { alive = false; clearTimeout(timer) }
-  }, [ticker])
+  const { livePrice, lookingUp } = useAssetLookup(assetType, identifier, holding.yahoo_symbol)
 
-  const tick = ticker.trim().toUpperCase()
+  const id = identifier.trim().toUpperCase()
   const unitCount = num(units)
-  const tracked = !!tick && !!livePrice && unitCount > 0
+  const tracked = !!id && !!livePrice && unitCount > 0
+  const pnl = tracked && num(costBasis) > 0 ? unitCount * livePrice.price - num(costBasis) : null
 
   const save = () =>
     onSave({
       name: name.trim() || holding.name,
+      asset_type: assetType,
       // A tracked holding's value is the market's answer, not a typed one.
       value: tracked ? unitCount * livePrice.price : Math.abs(num(value)),
-      ticker: tick || null,
+      ticker: !isFund && id ? id : null,
+      isin: isFund && id ? id : null,
+      yahoo_symbol: isFund && tracked ? livePrice.symbol ?? holding.yahoo_symbol ?? null : null,
       units: tracked ? unitCount : null,
       unit_price: tracked ? livePrice.price : null,
       price_currency: tracked ? livePrice.currency : null,
       priced_at: tracked ? new Date().toISOString() : null,
+      cost_basis: num(costBasis) > 0 ? num(costBasis) : null,
       note: null,
     })
 
@@ -559,21 +592,30 @@ function EditHolding({ holding, onClose, onSave, onDelete }) {
     <Sheet open onClose={onClose}>
       <div className="space-y-3">
         <h2 className="text-xl font-bold">{t('Update value')}</h2>
+        <Segmented
+          options={[{ value: 'stock', label: t('Stock / ETF') }, { value: 'fund', label: t('Mutual fund') }]}
+          value={assetType}
+          onChange={(v) => { setAssetType(v); setIdentifier('') }}
+        />
         <div>
           <label className="label">{t('Name')}</label>
           <input className="field" value={name} onChange={(e) => setName(e.target.value)} />
         </div>
         <div>
-          <label className="label">{t('Ticker (optional)')}</label>
-          <input className="field" value={ticker} onChange={(e) => setTicker(e.target.value.toUpperCase())} placeholder={t('e.g. VUAA.L')} />
+          <label className="label">{isFund ? t('ISIN') : t('Ticker (optional)')}</label>
+          <input className="field" value={identifier} onChange={(e) => setIdentifier(e.target.value.toUpperCase())}
+            placeholder={isFund ? t('e.g. IE0032620787') : t('e.g. VUAA.L')} />
           <p className="mt-1 px-1 text-xs text-muted">
-            {t('Use the exchange suffix — VUAA.L (London), VWCE.DE (Xetra), SAN.MC (Madrid). No suffix means a US listing.')}
+            {isFund
+              ? t('The 12-character code on your fund statement — it uniquely identifies the exact fund and share class.')
+              : t('Use the exchange suffix — VUAA.L (London), VWCE.DE (Xetra), SAN.MC (Madrid). No suffix means a US listing.')}
           </p>
         </div>
         <div>
           <label className="label">{t('How many units')}</label>
           <input className="field" inputMode="decimal" value={units}
-            onChange={(e) => setUnits(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder={t('e.g. 12')} />
+            onChange={(e) => setUnits(e.target.value.replace(/[^0-9.,]/g, ''))}
+            placeholder={isFund ? t('e.g. 12.34567') : t('e.g. 12')} />
         </div>
         {/* Once the market is answering, a typed value would only be a number
             going stale, so the field steps aside. */}
@@ -583,20 +625,35 @@ function EditHolding({ holding, onClose, onSave, onDelete }) {
             <input className="field" inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value.replace(/[^0-9.,]/g, ''))} />
           </div>
         )}
-        {lookingUp && <p className="px-1 text-sm text-muted">{t('Looking up {ticker}…', { ticker: tick })}</p>}
-        {!lookingUp && tick && !livePrice && (
+        {lookingUp && <p className="px-1 text-sm text-muted">{t('Looking up {id}…', { id })}</p>}
+        {!lookingUp && id && !livePrice && (
           <p className="px-1 text-sm text-muted">
-            {t('No live price for that ticker — it will use the value you type. Check the exchange suffix.')}
+            {isFund
+              ? t('No live price for that ISIN — it will use the value you type. Double-check the code.')
+              : t('No live price for that ticker — it will use the value you type. Check the exchange suffix.')}
           </p>
         )}
         {livePrice && (
           <div className="rounded-2xl bg-brand-50 px-4 py-3">
             <p className="text-sm text-muted">
-              {t('{ticker} · {price} per unit', { ticker: tick, price: money(livePrice.price) })}
+              {t('{ticker} · {price} per unit', { ticker: id, price: money(livePrice.price) })}
               {livePrice.rawCurrency !== livePrice.currency && t(' (converted from {cur})', { cur: livePrice.rawCurrency })}
             </p>
             {unitCount > 0 && <p className="text-xl font-bold">{money(unitCount * livePrice.price)}</p>}
           </div>
+        )}
+        <div>
+          <label className="label">{t('Total invested (optional)')}</label>
+          <input className="field" inputMode="decimal" value={costBasis}
+            onChange={(e) => setCostBasis(e.target.value.replace(/[^0-9.,]/g, ''))} placeholder="0" />
+          <p className="mt-1 px-1 text-xs text-muted">
+            {t('What you actually paid in, total — this is what profit/loss gets measured against.')}
+          </p>
+        </div>
+        {pnl != null && (
+          <p className={`text-center text-sm font-semibold ${pnl >= 0 ? 'text-brand-600' : 'text-spend'}`}>
+            {pnl >= 0 ? '▲' : '▼'} {money(Math.abs(pnl))} {t('({pct}%)', { pct: ((pnl / num(costBasis)) * 100).toFixed(1) })}
+          </p>
         )}
         <Tap className="btn-primary w-full" onClick={save}>{t('Save')}</Tap>
         {confirm ? (
@@ -614,3 +671,4 @@ function EditHolding({ holding, onClose, onSave, onDelete }) {
     </Sheet>
   )
 }
+

@@ -1047,4 +1047,22 @@ export const es = {
   'Budget nearly gone': 'Presupuesto casi agotado',
   'Coming soon — for now it’s a card here in the app': 'Próximamente — por ahora es una tarjeta aquí en la app',
   'A weekly summary': 'Un resumen semanal',
+  'A stock, ETF or mutual fund you top up': 'Una acción, ETF o fondo de inversión que vas ampliando',
+  'Stock / ETF': 'Acción / ETF',
+  'Mutual fund': 'Fondo de inversión',
+  'e.g. Vanguard Global Stock Index': 'p. ej. Vanguard Global Stock Index',
+  'ISIN': 'ISIN',
+  'e.g. IE0032620787': 'p. ej. IE0032620787',
+  'The 12-character code on your fund statement — it uniquely identifies the exact fund and share class.':
+    'El código de 12 caracteres de tu extracto del fondo — identifica exactamente el fondo y la clase de participación.',
+  'e.g. 12.34567': 'p. ej. 12,34567',
+  'Funds are usually bought by amount, not whole units — decimals are fine and expected here.':
+    'Los fondos normalmente se compran por importe, no en participaciones enteras — los decimales son normales y esperados aquí.',
+  'Looking up {id}…': 'Buscando {id}…',
+  'No live price for that ISIN — it will use the value you type. Double-check the code.':
+    'No hay precio en vivo para ese ISIN — se usará el valor que escribas. Revisa el código.',
+  'Total invested (optional)': 'Total invertido (opcional)',
+  'What you actually paid in, total — this is what profit/loss gets measured against.':
+    'Lo que realmente aportaste, en total — es la cifra contra la que se mide la ganancia o pérdida.',
+  '({pct}%)': '({pct}%)',
 }
