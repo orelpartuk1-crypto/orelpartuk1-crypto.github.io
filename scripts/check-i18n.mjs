@@ -20,12 +20,18 @@ const files = []
 const CALL = /\bt\(\s*(['"`])((?:\\.|(?!\1)[^\\])*?)\1/g
 
 const missing = new Map()
+const dynamic = new Set()
 let total = 0
 for (const f of files) {
   const src = readFileSync(f, 'utf8')
   for (const m of src.matchAll(CALL)) {
     const key = m[2].replace(/\\'/g, "'").replace(/\\"/g, '"')
     total++
+    // t(`column|${field}`) and friends: the literal source text is a
+    // template, not a real key. Report these separately — they can't be
+    // looked up here, so their true keys have to be checked by reading the
+    // surrounding code.
+    if (key.includes('${')) { dynamic.add(key); continue }
     if (!(key in es)) {
       if (!missing.has(key)) missing.set(key, new Set())
       missing.get(key).add(f.replace(ROOT + '/', ''))
@@ -36,6 +42,7 @@ for (const f of files) {
 console.log(`t() calls found: ${total}`)
 console.log(`unique keys translated: ${Object.keys(es).length}`)
 console.log(`MISSING Spanish: ${missing.size}`)
+if (dynamic.size) console.log(`dynamic keys (verify by hand): ${[...dynamic].join(', ')}`)
 for (const [k, where] of missing) {
   console.log(`  ${JSON.stringify(k)}  <- ${[...where].join(', ')}`)
 }

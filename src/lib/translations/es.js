@@ -593,4 +593,304 @@ export const es = {
   'Nothing matches “{q}”.': 'No hay coincidencias con “{q}”.',
   // "In 10 years", not the Movements "In" (incoming) filter.
   'duration|In': 'Dentro de',
+
+  // Login / sign up
+  'Track spending together, save apart.': 'Controlad los gastos juntos, ahorrad por separado.',
+  'e.g. Alex': 'p. ej. Alex',
+  'Email': 'Correo',
+  'Password': 'Contraseña',
+  'Please wait…': 'Un momento…',
+  'Create account': 'Crear cuenta',
+  'Sign in': 'Iniciar sesión',
+  'New here? Create an account': '¿Nuevo por aquí? Crea una cuenta',
+  'Already have an account? Sign in': '¿Ya tienes cuenta? Inicia sesión',
+  'Account created! Check your email if confirmation is on, then sign in.':
+    '¡Cuenta creada! Revisa tu correo si la confirmación está activada y luego inicia sesión.',
+
+  // Onboarding
+  'Our Household': 'Nuestra casa',
+  'Hi {name} 👋': 'Hola, {name} 👋',
+  'Set up your shared space to start tracking together.':
+    'Configura vuestro espacio compartido para empezar a controlar los gastos juntos.',
+  'Create': 'Crear',
+  'Join': 'Unirse',
+  'Household name': 'Nombre de la casa',
+  'Create household': 'Crear casa',
+  "You'll get an invite code to share with your partner so they can join.":
+    'Recibirás un código de invitación para compartir con tu pareja y que pueda unirse.',
+  'Invite code': 'Código de invitación',
+  'Join household': 'Unirse a una casa',
+
+  // Reset password
+  'Password must be at least 6 characters.': 'La contraseña debe tener al menos 6 caracteres.',
+  "Passwords don't match.": 'Las contraseñas no coinciden.',
+  'Set a new password': 'Cambiar la contraseña',
+  'Choose a new password for your account.': 'Elige una contraseña nueva para tu cuenta.',
+  'Confirm password': 'Confirmar contraseña',
+  'Save new password': 'Guardar contraseña',
+
+  // Every month (plan)
+  'What goes out before you spend a thing': 'Lo que sale antes de gastar nada',
+  '{n} active · {amount} a month': '{n} activos · {amount} al mes',
+  'Nothing repeating yet — add rent and subscriptions here':
+    'Aún no hay nada recurrente: añade aquí el alquiler y las suscripciones',
+  'Important dates': 'Fechas importantes',
+  '{title} in 1 day': '{title} dentro de 1 día',
+  '{title} in {n} days': '{title} dentro de {n} días',
+  'Nothing coming up': 'Nada a la vista',
+
+  // Salary
+  'Your fixed monthly income': 'Tu ingreso fijo mensual',
+  'Monthly salary': 'Nómina mensual',
+  'What lands in your account every month, before anything extra. Change it here whenever it changes.':
+    'Lo que entra en tu cuenta cada mes, antes de cualquier extra. Cámbialo aquí cuando cambie.',
+  'e.g. 2200': 'p. ej. 2200',
+  'Currently counted as {amount} every month.': 'Ahora mismo cuenta como {amount} al mes.',
+  'Got something extra?': '¿Has tenido un extra?',
+  "A bonus, a freelance payment, a sale — those change month to month, so add them as income on the Add screen and they'll count only in the month they arrived.":
+    'Una paga extra, un trabajo freelance, una venta: cambian mes a mes, así que añádelos como ingreso en la pantalla Añadir y contarán solo en el mes en que llegaron.',
+  'Add income': 'Añadir ingreso',
+
+  // Important dates
+  'New date': 'Nueva fecha',
+  'Plan ahead for birthdays, anniversaries and holidays — set a budget so gifts never blow the month. Only you can see these.':
+    'Anticípate a cumpleaños, aniversarios y vacaciones: pon un presupuesto para que los regalos no te descuadren el mes. Solo tú puedes verlas.',
+  'What is it?': '¿Qué es?',
+  "e.g. Adi's birthday": 'p. ej. cumpleaños de Adi',
+  'Budget (€)': 'Presupuesto (€)',
+  'Repeats every year': 'Se repite cada año',
+  'Add date': 'Añadir fecha',
+  'No dates yet': 'Aún no hay fechas',
+  'Add birthdays and holidays to plan for them.': 'Añade cumpleaños y vacaciones para planificarlos.',
+  'Add a date': 'Añadir una fecha',
+  'yearly': 'anual',
+  'budget {amount}': 'presupuesto {amount}',
+  'Today!': '¡Hoy!',
+  '{n} days': '{n} días',
+
+  // Categories
+  'Shared with your partner': 'Compartidas con tu pareja',
+  'Spending': 'Gastos',
+  'Not counted as spending': 'No cuenta como gasto',
+  'Add subcategory to {name}': 'Añadir subcategoría a {name}',
+  'Turn off {name}': 'Desactivar {name}',
+  'Turn on {name}': 'Activar {name}',
+  '+ Add category': '+ Añadir categoría',
+  'Renaming a category updates it everywhere. A subcategory always counts toward its parent in reports, so your monthly totals stay comparable.':
+    'Al renombrar una categoría se actualiza en todas partes. Una subcategoría siempre suma a su categoría principal en los informes, así tus totales mensuales siguen siendo comparables.',
+  'New subcategory under {name}': 'Nueva subcategoría en {name}',
+  'New category': 'Nueva categoría',
+  'Emoji': 'Emoji',
+  'e.g. Gym': 'p. ej. Gimnasio',
+  'e.g. Subscriptions': 'p. ej. Suscripciones',
+  'Colour': 'Color',
+  'Usually a': 'Normalmente es',
+  'Edit category': 'Editar categoría',
+  'Edit subcategory': 'Editar subcategoría',
+  'Delete “{name}”?': '¿Eliminar “{name}”?',
+  'Its 1 subcategory goes too.': 'Su subcategoría también se elimina.',
+  'Its {n} subcategories go too.': 'Sus {n} subcategorías también se eliminan.',
+  'Expenses already filed under it keep their history and their totals — they just stop pointing at a category you can pick again.':
+    'Los gastos ya asignados conservan su historial y sus totales; simplemente dejan de apuntar a una categoría que puedas volver a elegir.',
+  'Hide from the picker': 'Ocultar del selector',
+
+  // Log faster (Shortcuts / Siri). The bolded fragments are Shortcuts action
+  // names as they read on a Spanish iPhone, so the steps can be followed
+  // literally; the surrounding prose is split around them.
+  'Home-screen icons, Siri & reminders': 'Iconos en la pantalla de inicio, Siri y recordatorios',
+  '📲 Home-screen shortcuts': '📲 Accesos en la pantalla de inicio',
+  'The fastest way: put dedicated icons on your home screen that jump straight to Scan or Add.':
+    'Lo más rápido: pon iconos en tu pantalla de inicio que abran directamente Escanear o Añadir.',
+  '📸 Scan': '📸 Escanear',
+  '➕ Quick add': '➕ Añadir rápido',
+  'Tap': 'Toca',
+  'above (opens the scan screen).': 'arriba (abre la pantalla de escaneo).',
+  'In Safari tap': 'En Safari toca',
+  'Share': 'Compartir',
+  'Add to Home Screen': 'Añadir a pantalla de inicio',
+  'name it “Scan”.': 'y llámalo “Escanear”.',
+  'Repeat with': 'Repite con',
+  'name it “Add”.': 'y llámalo “Añadir”.',
+  'Now “Scan” opens the camera in one tap, and “Add” opens the numpad. (First open, sign in once — it stays logged in.)':
+    'Ahora “Escanear” abre la cámara de un toque y “Añadir” abre el teclado numérico. (La primera vez inicia sesión una sola vez: se queda guardada.)',
+  '💳 Auto-log every Apple Pay tap': '💳 Registra solo cada pago con Apple Pay',
+  'iOS has a built-in automation trigger that fires on every physical Apple Pay tap (NFC only — not online checkouts) and hands you the amount and merchant with no typing at all. Only the category defaults generically; fix it later from the':
+    'iOS tiene una automatización que se activa con cada pago físico con Apple Pay (solo NFC, no compras online) y te da el importe y el comercio sin escribir nada. Solo la categoría queda genérica; corrígela después desde la',
+  'expenses list': 'lista de gastos',
+  'if it matters.': 'si te importa.',
+  'Shortcuts': 'Atajos',
+  // Reads "Atajos app" after the bolded action name, the way the step lists
+  // are stitched together; "app" is what a Spanish iPhone calls it anyway.
+  'app': 'app',
+  'iPhone': 'iPhone',
+  'Automation': 'Automatización',
+  'Create Personal Automation': 'Crear automatización personal',
+  'search': 'busca',
+  'Wallet': 'Cartera',
+  'older iOS:': 'en iOS antiguo:',
+  'Transaction': 'Transacción',
+  'Select the card(s) to auto-log.': 'Elige la tarjeta o tarjetas que se registrarán solas.',
+  'Do this once per card if they should default to different scopes':
+    'Hazlo una vez por tarjeta si cada una debe ir a un ámbito distinto',
+  '— e.g. a shared card → Shared, your own → Private.':
+    '— p. ej. una tarjeta común → Compartido, la tuya → Privado.',
+  'URL Encode': 'Codificar URL',
+  'input: tap the field, scroll to': 'entrada: toca el campo, baja hasta',
+  'Shortcut Input': 'Entrada del atajo',
+  'pick': 'y elige',
+  'Merchant': 'Comercio',
+  'Text': 'Texto',
+  'paste the base link below, then insert in order:':
+    'pega el enlace base de abajo e inserta en orden:',
+  'Shortcut Input → Amount': 'Entrada del atajo → Importe',
+  'then the category/scope for this card, then the':
+    'luego la categoría/ámbito de esta tarjeta y después el',
+  'encoded merchant': 'comercio codificado',
+  'as the note. It should read like:': 'como nota. Debería quedar así:',
+  'Get Contents of URL': 'Obtener contenido de la URL',
+  'that': 'ese',
+  'text =': 'texto =',
+  'Contents of URL': 'Contenido de la URL',
+  '— confirms what was logged, or shows the error, without opening anything.':
+    '— confirma lo registrado, o muestra el error, sin abrir nada.',
+  'Turn off': 'Desactiva',
+  'Ask Before Running': 'Preguntar antes de ejecutar',
+  'and': 'y',
+  'Notify When Run': 'Notificar al ejecutar',
+  'Show Notification': 'Mostrar notificación',
+  'Name it after the card, e.g. “Log — Joint card”.':
+    'Ponle el nombre de la tarjeta, p. ej. “Registrar — Tarjeta común”.',
+  "Apple's own trigger occasionally times out on the first few taps while it settles — this is a known Shortcuts quirk, not a Duo Budget problem. If a tap doesn't log, add it manually; nothing is lost.":
+    'La automatización de Apple a veces falla en los primeros pagos mientras se asienta: es una rareza conocida de Atajos, no un problema de Duo Budget. Si un pago no se registra, añádelo a mano; no se pierde nada.',
+  'Time of Day': 'Hora del día',
+  'e.g. 21:00, Daily.': 'p. ej. 21:00, cada día.',
+  'Action': 'Acción',
+  "“💸 Log today's spending”.": '“💸 Registra los gastos de hoy”.',
+  'Turn off “Ask Before Running”.': 'Desactiva “Preguntar antes de ejecutar”.',
+  "Note: this is a plain iOS notification — tapping it opens Shortcuts, not Duo Budget (this isn't a native app, so iOS won't deep-link a tap into it). It's a nudge to open the app yourself, not a shortcut into it.":
+    'Nota: es una notificación normal de iOS; al tocarla se abre Atajos, no Duo Budget (esto no es una app nativa, así que iOS no puede enlazar dentro de ella). Es un aviso para que abras tú la app, no un acceso directo.',
+  '🎙️ Siri: “Log expense” (asks everything)': '🎙️ Siri: “Registrar gasto” (te pregunta todo)',
+  'One shortcut Siri can ask you about each time — how much, what for, shared or private:':
+    'Un atajo que Siri te pregunta cada vez: cuánto, para qué, compartido o privado:',
+  'add': 'añade',
+  'Ask for Input': 'Pedir entrada',
+  'type': 'tipo',
+  'Number': 'Número',
+  'prompt “How much?”).': 'pregunta “¿Cuánto?”).',
+  'again': 'otra vez',
+  "prompt “What's it for?”) — say anything, e.g. “coffee”, “taxi”.":
+    'pregunta “¿Para qué?”) — di lo que sea, p. ej. “café”, “taxi”.',
+  'Choose from Menu': 'Elegir del menú',
+  'prompt “Shared or private?”, menu items':
+    'pregunta “¿Compartido o privado?”, opciones del menú',
+  'In each branch add a': 'En cada rama añade una acción',
+  'action with just that word': 'con solo esa palabra',
+  '— this becomes the result after the menu.': '— esto será el resultado tras el menú.',
+  'input: the category': 'entrada: la variable de categoría',
+  "variable (so spaces/accents don't break the link).":
+    '(para que los espacios y las tildes no rompan el enlace).',
+  'build the link: paste the base link below, then insert variables in order —':
+    'construye el enlace: pega el enlace base de abajo e inserta las variables en orden —',
+  'then the': 'luego la',
+  'encoded category': 'categoría codificada',
+  'menu result': 'resultado del menú',
+  '(scope). It should read like:': '(ámbito). Debería quedar así:',
+  '(this shows “✅ Added” or the exact error — no more silent failures).':
+    '(muestra “✅ Añadido” o el error exacto: se acabaron los fallos silenciosos).',
+  'Name it “Log expense”, turn off “Ask Before Running”. Say “Hey Siri, Log expense”.':
+    'Llámalo “Registrar gasto” y desactiva “Preguntar antes de ejecutar”. Di “Oye Siri, Registrar gasto”.',
+  'Base link (build the full one above from this)':
+    'Enlace base (monta con él el completo de arriba)',
+  "🔒 Keep this link private — it's your personal logging key. Need vs treat defaults to “need”; edit it in the app after if it was a treat.":
+    '🔒 No compartas este enlace: es tu clave personal de registro. Necesidad o capricho se pone como “necesidad”; cámbialo luego en la app si fue un capricho.',
+  'Test it now (logs €1 “Test”, shows the real result) →':
+    'Pruébalo ahora (registra 1 € “Test” y muestra el resultado real) →',
+  '⚡ Or: one-word shortcuts per category': '⚡ O bien: atajos de una palabra por categoría',
+  'Prefer speed over choice? Make a few of these instead — each only asks the amount:':
+    '¿Prefieres velocidad a elegir? Crea varios de estos: cada uno solo pregunta el importe:',
+  'type:': 'tipo:',
+  'prompt “Amount?”).': 'pregunta “¿Importe?”).',
+  'paste the link below, then insert the': 'pega el enlace de abajo e inserta la variable',
+  'Provided Input': 'Entrada proporcionada',
+  'variable at the very end.': 'justo al final.',
+  'that Text.': 'ese Texto.',
+  'Name it e.g. “Log groceries”. Say “Hey Siri, Log groceries”.':
+    'Llámalo p. ej. “Registrar compra”. Di “Oye Siri, Registrar compra”.',
+  'Your quick-add link (amount goes at the end)':
+    'Tu enlace de añadido rápido (el importe va al final)',
+  // "Cambia" (imperative) — Settings' own "Change" button is "Cambiar".
+  'link|Change': 'Cambia',
+  'in the link to make different shortcuts (e.g. “Log coffee”, “Log night out”).':
+    'en el enlace para crear atajos distintos (p. ej. “Registrar café”, “Registrar salida”).',
+
+  // Import bank statement
+  "Couldn't find any rows in that file.": 'No se ha encontrado ninguna fila en ese archivo.',
+  "Couldn't read that file. Export it as CSV from your bank and try again.":
+    'No se ha podido leer ese archivo. Expórtalo como CSV desde tu banco e inténtalo de nuevo.',
+  '{done} of {total} imported.': '{done} de {total} importados.',
+  'Import statement': 'Importar extracto',
+  'CSV from your bank': 'CSV de tu banco',
+  'Choose a CSV file': 'Elige un archivo CSV',
+  'Semicolons or commas, Spanish or English formats':
+    'Con punto y coma o con comas, formato español o inglés',
+  'Getting the file from Santander': 'Cómo sacar el archivo del Santander',
+  "Online banking → your account → movements → export. Pick CSV rather than Excel or PDF; Excel files aren't readable here.":
+    'Banca online → tu cuenta → movimientos → exportar. Elige CSV en vez de Excel o PDF; los archivos de Excel no se pueden leer aquí.',
+  'Money coming in is ignored on purpose — salary and transfers are already handled properly elsewhere, and importing them as spending would distort every total.':
+    'El dinero que entra se ignora a propósito: la nómina y las transferencias ya se gestionan en otro sitio, e importarlas como gasto distorsionaría todos los totales.',
+  'Which column is which?': '¿Qué columna es cada una?',
+  "Found {n} rows. Check these look right — change any that don't.":
+    'Se han encontrado {n} filas. Comprueba que esto cuadra y cambia lo que no.',
+  'column|date': 'fecha',
+  'column|description': 'concepto',
+  'column|amount': 'importe',
+  '— none —': '— ninguna —',
+  'Import into': 'Importar a',
+  'Treat as': 'Tratar como',
+  'Category for all of them': 'Categoría para todos',
+  'One category for the batch — sort them properly afterwards from the expenses list.':
+    'Una categoría para todo el lote; ordénalos bien después desde la lista de gastos.',
+  'Preview 1 payment': 'Ver 1 pago',
+  'Preview {n} payments': 'Ver {n} pagos',
+  'No spending found with those columns — check the date and amount pickers.':
+    'No se han encontrado gastos con esas columnas: revisa los selectores de fecha e importe.',
+  'Selected': 'Seleccionados',
+  "1 payment looks like one you already logged, so it's unticked. Tick one only if it's genuinely separate.":
+    '1 pago se parece a uno que ya registraste, así que está desmarcado. Márcalo solo si es realmente otro.',
+  "{n} payments look like ones you already logged, so they're unticked. Tick one only if it's genuinely separate.":
+    '{n} pagos se parecen a otros que ya registraste, así que están desmarcados. Marca uno solo si es realmente otro.',
+  'Already logged {date}': 'Ya registrado el {date}',
+  'Importing…': 'Importando…',
+  'Import {n}': 'Importar {n}',
+  '{n} imported': '{n} importados',
+  'Nothing imported': 'No se ha importado nada',
+  'They all landed on one category — sort them from the expenses list.':
+    'Han caído todos en una categoría; ordénalos desde la lista de gastos.',
+  'Everything in that file was already in the app.': 'Todo lo de ese archivo ya estaba en la app.',
+  'See expenses': 'Ver gastos',
+
+  // Grocery analysis
+  'Spent on groceries': 'Gastado en la compra',
+  '1 shop': '1 compra',
+  '{n} shops': '{n} compras',
+  '1 distinct item': '1 producto distinto',
+  '{n} distinct items': '{n} productos distintos',
+  'No itemised shops yet — scan a grocery receipt and its products will show up here.':
+    'Aún no hay compras detalladas: escanea un ticket del súper y sus productos aparecerán aquí.',
+  'What you bought': 'Qué has comprado',
+  "+{amount} from shops that weren't itemised.": '+{amount} de compras sin detallar.',
+
+  // Install prompt
+  'Install Duo Budget': 'Instalar Duo Budget',
+  'then': 'y luego',
+  '— it opens full-screen like a normal app.': '— se abre a pantalla completa como una app normal.',
+  'Add it to your home screen for a full-screen, offline app.':
+    'Añádela a tu pantalla de inicio para tenerla a pantalla completa y sin conexión.',
+  'Dismiss': 'Descartar',
+  'Install app': 'Instalar app',
+
+  // Receipt viewer
+  'Loading receipt…': 'Cargando recibo…',
+  'That receipt image could not be loaded.': 'No se ha podido cargar la imagen del recibo.',
+  'Receipt': 'Recibo',
 }

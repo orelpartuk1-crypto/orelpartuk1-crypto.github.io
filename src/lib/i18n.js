@@ -5,8 +5,8 @@
 //    leaking onto the screen. With a few hundred strings across 25 screens,
 //    something WILL be missed, and the failure mode should be "that bit is
 //    still English", not "that bit says nav.wealth.title".
-//  - Call sites stay readable: t('Save') instead of t('add.save_button'),
-//    so the code still says what it renders.
+//  - Call sites stay readable: t('Save') rather than an opaque id like
+//    add_save_button, so the code still says what it renders.
 //
 // Interpolation is {named} placeholders: t('{n} entries', { n: 12 }).
 import { es } from './translations/es.js'
