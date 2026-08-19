@@ -181,6 +181,20 @@ export function merchantCategory(raw) {
   return d ? MERCHANT_CATEGORY[d] || null : null
 }
 
+// Phone/telecom providers — the one merchant type genuinely universal enough
+// to nudge toward Business scope for anyone who has a business enabled,
+// since a phone line doing double duty for work is close to the default
+// case. Deliberately narrow rather than "everything tax-deductible": that's
+// a much broader, personal judgment (is THIS grocery run for an office
+// snack, or dinner?) that a fixed keyword list would get wrong at least as
+// often as right, and a wrong scope guess costs real money if missed.
+// Expand this set later if a specific merchant proves as unambiguous.
+const BUSINESS_LEANING_DOMAINS = new Set(['vodafone.es', 'movistar.es', 'orange.es', 'yoigo.com', 'jazztel.com', 'digimobil.es'])
+export function merchantLeansBusiness(raw) {
+  const d = merchantDomain(raw)
+  return !!d && BUSINESS_LEANING_DOMAINS.has(d)
+}
+
 // A stable colour per merchant, so the fallback badge for a given shop is
 // always the same one and starts to read as recognisable in its own right.
 const BADGE_COLORS = ['#0f7a3e', '#2563eb', '#db2777', '#f97316', '#7c3aed', '#0891b2', '#ca8a04', '#dc2626']

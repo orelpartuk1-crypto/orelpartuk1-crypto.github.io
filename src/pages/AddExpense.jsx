@@ -15,7 +15,7 @@ import { Screen, Tap, Sheet } from '../components/motion'
 import { useKeyboardInset } from '../hooks/useKeyboardInset'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
 import { t } from '../lib/i18n'
-import { merchantDomain, merchantCategory } from '../lib/merchants'
+import { merchantDomain, merchantCategory, merchantLeansBusiness } from '../lib/merchants'
 import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY, SHARED_LEANING_CATEGORIES } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingReceipt } from '../lib/pendingScan'
@@ -201,6 +201,18 @@ export default function AddExpense() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note])
+
+  // A phone line is close to the default case of "genuinely business but
+  // billed like anything else" — nudge scope to Business the moment one of
+  // these providers is typed, same shape as the shared-leaning category
+  // nudge above. Gated on hasBusiness so this never touches an account
+  // (Adi's) that has no business at all — her phone bill is just a phone
+  // bill, never nudged anywhere.
+  useEffect(() => {
+    if (!hasBusiness || isIncome || scopeTouched || scope === 'business' || !note.trim()) return
+    if (merchantLeansBusiness(note)) changeScope('business')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note, hasBusiness])
 
   const needsDescription = !isIncome && !note.trim() && !SELF_EXPLANATORY.has(category)
 
