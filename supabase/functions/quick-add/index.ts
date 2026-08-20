@@ -27,9 +27,32 @@ const respond = (msg: string, plain: string, format: string, code = 200) =>
         { status: code, headers: { ...corsHeaders, 'Content-Type': 'text/html; charset=utf-8' } }
       )
 
+// Values can arrive as query params (the original Siri shortcut) or in a POST
+// body (the Apple Pay automation). The body matters: a merchant like
+// "Lidl, Madrid, Madrid" has spaces and commas, and putting that straight
+// into a URL produces something Shortcuts refuses to send at all — a form
+// body is encoded by Shortcuts itself, so the problem disappears.
+async function readParams(req: Request): Promise<Record<string, string>> {
+  const q = Object.fromEntries(new URL(req.url).searchParams)
+  if (req.method !== 'POST') return q
+  try {
+    const type = req.headers.get('content-type') || ''
+    if (type.includes('json')) return { ...q, ...(await req.json()) }
+    const form = await req.formData()
+    return { ...q, ...Object.fromEntries([...form.entries()].map(([k, v]) => [k, String(v)])) }
+  } catch {
+    return q
+  }
+}
+
+const asAmount = (v: unknown) => {
+  const n = Math.abs(parseFloat(String(v ?? '').replace(/[^0-9.,-]/g, '').replace(',', '.')))
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-  const q = Object.fromEntries(new URL(req.url).searchParams)
+  const q = await readParams(req)
   const format = q.format === 'text' ? 'text' : 'html'
 
   // Shortcuts hands over whatever the card used — "12,34" in Spain, "12.34"
@@ -46,13 +69,22 @@ Deno.serve(async (req) => {
     return respond(`<pre style="text-align:left;font-size:13px">${dump.replace(/[<>]/g, '')}</pre>`, dump, format)
   }
 
-  const cleaned = String(q.amount || '').replace(/[^0-9.,-]/g, '').replace(',', '.')
-  const amount = Math.abs(parseFloat(cleaned))
+  // Which of the Wallet transaction's two exposed fields carries the amount
+  // is genuinely undocumented, and the first real payment showed the one we
+  // expected to be numeric arriving as "Lidl". So rather than depend on
+  // getting that right in the Shortcuts UI: whichever value actually parses
+  // as a number IS the amount, and the other is the merchant. Being tolerant
+  // here removes a whole class of "set it up slightly wrong and every
+  // expense is garbage" failure, at no cost.
+  let amount = asAmount(q.amount)
+  let note = (q.note || '').trim()
+  if (amount == null && asAmount(note) != null) {
+    amount = asAmount(note)
+    note = (q.amount || '').trim()
+  }
 
   if (!q.key) return respond('❌ Missing key', '❌ Missing key', format, 400)
-  if (!(amount > 0)) return respond('❌ Enter a valid amount', '❌ Enter a valid amount', format, 400)
-
-  const note = (q.note || '').trim()
+  if (amount == null) return respond('❌ Enter a valid amount', '❌ Enter a valid amount', format, 400)
   // An explicit category/scope (the older Siri shortcut) always wins; the
   // merchant guess only fills in what wasn't specified.
   const guess = note ? classify(note) : { category: 'Other', scope: 'private' as const }
