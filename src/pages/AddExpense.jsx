@@ -30,8 +30,32 @@ export default function AddExpense() {
   const nav = useNavigate()
   const location = useLocation()
   const keyboardInset = useKeyboardInset()
-  const prefill = location.state?.prefill
   const editing = location.state?.edit
+
+  // Prefill can arrive two ways. In-app navigation (the scan flow, a repeat
+  // shortcut) passes it as router state. Anything OUTSIDE the app — the Apple
+  // Pay automation in Shortcuts — can only hand us a URL, so the same fields
+  // are also read from the query string:
+  //   /add?amount=12.34&note=Mercadona
+  // Amount is normalised here because Shortcuts hands over whatever the card
+  // used: "12,34" in Spain, "12.34" elsewhere, sometimes with the currency
+  // symbol attached. Getting that wrong silently logs the wrong number, which
+  // is worse than not prefilling at all.
+  const urlPrefill = useMemo(() => {
+    const q = new URLSearchParams(location.search)
+    const rawAmount = q.get('amount')
+    const note = q.get('note')
+    if (!rawAmount && !note) return null
+    const cleaned = String(rawAmount || '').replace(/[^0-9.,-]/g, '').replace(',', '.')
+    const value = Math.abs(parseFloat(cleaned))
+    return {
+      ...(Number.isFinite(value) && value > 0 ? { amount: value } : {}),
+      ...(note ? { note } : {}),
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search])
+
+  const prefill = location.state?.prefill || urlPrefill
   const { user, household, hasBusiness, members } = useAuth()
   const { addExpense, updateExpense, deleteExpense } = useExpenses()
   const { addBonus } = useMoney()
@@ -40,7 +64,11 @@ export default function AddExpense() {
   const { pickList } = useCategories()
   const { expenses: history } = useAllExpenses()
 
-  const [claimedReceipt] = useState(() => (prefill ? takePendingReceipt() : null))
+  // Only a prefill that came from in-app navigation can have a scanned
+  // receipt waiting for it. A URL prefill (the Apple Pay shortcut) never
+  // does, and claiming here would consume — and discard — a receipt image
+  // the scan flow was still holding for a different expense.
+  const [claimedReceipt] = useState(() => (location.state?.prefill ? takePendingReceipt() : null))
   const pendingReceipt = useRef(claimedReceipt)
 
   const isIncomeCapable = !editing
@@ -57,7 +85,15 @@ export default function AddExpense() {
   // happened to view a moment ago.
   const defaultScope = editing?.scope || prefill?.scope || 'private'
 
-  const [amount, setAmount] = useState(seed.amount ? String(seed.amount).replace('.', ',') : '')
+  // Money, so cents are shown even when they're round: a €45.60 card charge
+  // prefilling as "45,6" reads like the app got the amount wrong. Whole
+  // euros stay whole — "12" is a normal way to write twelve euros, "12,00"
+  // just looks like a form.
+  const [amount, setAmount] = useState(() => {
+    const a = Number(seed.amount)
+    if (!seed.amount || !Number.isFinite(a)) return ''
+    return (Number.isInteger(a) ? String(a) : a.toFixed(2)).replace('.', ',')
+  })
   const [category, setCategory] = useState(seed.category || (defaultScope === 'business' ? 'Meeting' : 'Groceries'))
   const [categoryId, setCategoryId] = useState(editing?.category_id || prefill?.category_id || null)
   const [scope, setScope] = useState(defaultScope)
