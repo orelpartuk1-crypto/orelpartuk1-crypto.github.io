@@ -6,7 +6,7 @@
 // Only names listed here get a logo — see the note in merchantDomain() for
 // why guessing is worse than not trying. Everything else falls back to a
 // lettered badge, which is a normal outcome here, not an error.
-const KNOWN = {
+export const KNOWN = {
   // Supermarkets & groceries
   mercadona: 'mercadona.es',
   carrefour: 'carrefour.es',
@@ -138,7 +138,7 @@ export function merchantDomain(raw) {
 // require telling the app it was groceries — the brand already says so. Only
 // listed where it's genuinely unambiguous: a supermarket is Groceries, Zara
 // is Shopping. Anything debatable is left out rather than guessed.
-const MERCHANT_CATEGORY = {
+export const MERCHANT_CATEGORY = {
   'mercadona.es': 'Groceries', 'carrefour.es': 'Groceries', 'lidl.es': 'Groceries',
   'aldi.es': 'Groceries', 'dia.es': 'Groceries', 'alcampo.es': 'Groceries',
   'consum.es': 'Groceries', 'eroski.es': 'Groceries', 'ahorramas.com': 'Groceries',
