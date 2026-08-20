@@ -36,6 +36,16 @@ Deno.serve(async (req) => {
   // elsewhere, sometimes with the currency symbol attached. A refund arrives
   // negative; take the magnitude so it still logs as a real amount rather
   // than being rejected as invalid.
+  // Shortcuts' Wallet trigger hands over a Transaction object, and how it
+  // stringifies is not something the docs pin down — so rather than guess a
+  // format and silently log wrong numbers, `debug=1` echoes exactly what
+  // arrived and writes nothing. One real payment tells us the shape, and the
+  // parser below is written against that instead of against an assumption.
+  if (q.debug === '1') {
+    const dump = JSON.stringify(q, null, 1).slice(0, 900)
+    return respond(`<pre style="text-align:left;font-size:13px">${dump.replace(/[<>]/g, '')}</pre>`, dump, format)
+  }
+
   const cleaned = String(q.amount || '').replace(/[^0-9.,-]/g, '').replace(',', '.')
   const amount = Math.abs(parseFloat(cleaned))
 
