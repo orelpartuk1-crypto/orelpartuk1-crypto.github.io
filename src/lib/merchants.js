@@ -174,6 +174,22 @@ export const MERCHANT_CATEGORY = {
   'hbomax.com': 'Utilities',
 }
 
+// Card networks append the town and region to the shop name — a real Lidl
+// payment arrives as "Lidl, Madrid, Madrid". Only the first segment is the
+// shop; everything after the first comma is location noise that makes the
+// expense list unreadable.
+//
+// Deliberately just the first comma, not anything cleverer: a shop name is
+// what a card prints before the address, and trying to detect "which parts
+// are place names" would eventually eat a legitimate name like
+// "Ben & Jerry's, Madrid". Casing is left exactly as it came — uppercasing
+// rules break real names ("H&M" would become "H&m").
+export function cleanMerchant(raw) {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+  return s.split(',')[0].trim() || s
+}
+
 // The category a brand name implies, or null when the brand is unknown or
 // its category would be a guess.
 export function merchantCategory(raw) {

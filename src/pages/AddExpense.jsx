@@ -15,7 +15,7 @@ import { Screen, Tap, Sheet } from '../components/motion'
 import { useKeyboardInset } from '../hooks/useKeyboardInset'
 import { money, dayLabel, monthRange, isoDay } from '../lib/format'
 import { t } from '../lib/i18n'
-import { merchantDomain, merchantCategory, merchantLeansBusiness } from '../lib/merchants'
+import { merchantDomain, merchantCategory, merchantLeansBusiness, cleanMerchant } from '../lib/merchants'
 import { defaultSpendType, categoryMeta, guessCategory, CATEGORIES, BUSINESS_CATEGORIES, SELF_EXPLANATORY, SHARED_LEANING_CATEGORIES } from '../lib/categories'
 import { findDuplicate } from '../lib/dupCheck'
 import { takePendingReceipt } from '../lib/pendingScan'
@@ -48,9 +48,12 @@ export default function AddExpense() {
     if (!rawAmount && !note) return null
     const cleaned = String(rawAmount || '').replace(/[^0-9.,-]/g, '').replace(',', '.')
     const value = Math.abs(parseFloat(cleaned))
+    // "Lidl, Madrid, Madrid" is what the card sends; "Lidl" is what belongs
+    // in the expense list.
+    const shop = cleanMerchant(note)
     return {
       ...(Number.isFinite(value) && value > 0 ? { amount: value } : {}),
-      ...(note ? { note } : {}),
+      ...(shop ? { note: shop } : {}),
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search])

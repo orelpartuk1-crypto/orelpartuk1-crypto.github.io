@@ -13,7 +13,7 @@
 // &format=text returns a plain-text body instead of HTML — that's what the
 // automation shows in its confirmation notification.
 import { corsHeaders } from '../_shared/cors.ts'
-import { classify } from '../_shared/merchants.ts'
+import { classify, cleanMerchant } from '../_shared/merchants.ts'
 
 const SB = 'https://bckxqcyyvhxlcfbyvgzl.supabase.co'
 const PUBKEY = 'sb_publishable_uns5CoujX97-YWiNEHifLw_cS6LhruN'
@@ -82,6 +82,9 @@ Deno.serve(async (req) => {
     amount = asAmount(note)
     note = (q.amount || '').trim()
   }
+  // Strip the town/region the card appends, so the expense reads "Lidl"
+  // rather than "Lidl, Madrid, Madrid".
+  note = cleanMerchant(note)
 
   if (!q.key) return respond('❌ Missing key', '❌ Missing key', format, 400)
   if (amount == null) return respond('❌ Enter a valid amount', '❌ Enter a valid amount', format, 400)

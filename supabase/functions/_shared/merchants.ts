@@ -191,6 +191,14 @@ export function merchantDomain(raw: string): string | null {
   return hit ? KNOWN[hit] : null
 }
 
+// Card networks append town and region — "Lidl, Madrid, Madrid". Only the
+// first segment is the shop. Mirrors cleanMerchant in src/lib/merchants.js.
+export function cleanMerchant(raw: string): string {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+  return s.split(',')[0].trim() || s
+}
+
 export function merchantCategory(raw: string): string | null {
   const d = merchantDomain(raw)
   return d ? MERCHANT_CATEGORY[d] || null : null
