@@ -79,27 +79,52 @@ export default function ScanReceipt() {
     setPreview(URL.createObjectURL(file))
     setStage('scanning')
     setProgress(0)
+    // A bare setProgress(0.4) in front of a multi-second network call leaves
+    // the bar frozen at exactly 40% for the whole wait, which reads as "it
+    // hung" rather than "it's working" — the reason scans looked stuck.
+    // Nothing here can know real progress (the model answers when it
+    // answers), so the bar eases toward a ceiling it never reaches and only
+    // completes when the answer actually arrives. Honest about being
+    // indeterminate, without pretending to be frozen.
+    let creep = null
+    const startCreep = (from, to) => {
+      clearInterval(creep)
+      let p = from
+      setProgress(p)
+      creep = setInterval(() => {
+        p += (to - p) * 0.06
+        setProgress(p)
+      }, 200)
+    }
+    const stopCreep = () => { clearInterval(creep); creep = null }
+
     try {
       let res
       try {
         // Gemini reads the photo directly — far more accurate than OCR + regex.
-        setProgress(0.4)
+        startCreep(0.15, 0.85)
         res = await geminiScan(file)
-        setProgress(0.9)
+        stopCreep(); setProgress(0.9)
       } catch (geminiErr) {
         try {
           // Fall back to traditional cloud OCR.
-          setProgress(0.4)
+          startCreep(0.2, 0.85)
           const text = await cloudScan(file)
-          setProgress(0.9)
+          stopCreep(); setProgress(0.9)
           res = parseReceipt(text)
         } catch (cloudErr) {
-          // Offline / both cloud paths unavailable → fall back to on-device OCR.
+          // Offline / both cloud paths unavailable → fall back to on-device
+          // OCR, which reports genuine progress, so the fake creep stops.
+          stopCreep()
           res = await scanReceipt(file, setProgress)
         }
       }
       setResult(res)
-      setAmount(res.amount != null ? String(res.amount).replace('.', ',') : '')
+      setAmount(
+        res.amount != null
+          ? (Number.isInteger(Number(res.amount)) ? String(res.amount) : Number(res.amount).toFixed(2)).replace('.', ',')
+          : ''
+      )
       setCategory(res.category || 'Other')
       setCategoryId(null)
       setSpendType(defaultSpendType(res.category || 'Other'))
@@ -113,12 +138,16 @@ export default function ScanReceipt() {
       // whose price looks inexplicably high.
       setItems((res.items || []).map((i) => ({
         name: i.qty > 1 ? `${i.qty}× ${i.name}` : i.name,
-        price: String(i.price).replace('.', ','),
+        price: (Number.isInteger(Number(i.price)) ? String(i.price) : Number(i.price).toFixed(2)).replace('.', ','),
       })))
       setStage('review')
     } catch (e2) {
       setErr(t('Could not read the receipt. Try a clearer, well-lit photo.'))
       setStage('idle')
+    } finally {
+      // Every exit path, success or failure — otherwise the timer keeps
+      // ticking setProgress against a screen that has already moved on.
+      stopCreep()
     }
   }
 
